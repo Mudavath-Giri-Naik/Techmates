@@ -1,50 +1,84 @@
-# Welcome to your Expo app 👋
+# TechMates – College Community App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+TechMates is a community-driven mobile application exclusively designed for college students to grow beyond academics through collaboration, verified networking, knowledge sharing, and peer engagement. The app ensures secure access through college-associated email verification and provides tools to connect, learn, and build together.
 
-## Get started
+## Table of Contents
 
-1. Install dependencies
+- [About](#about)
+- [Key Features](#key-features)
+- [Authentication](#authentication)
+- [Screens and Functionality](#screens-and-functionality)
+- [Tech Stack](#tech-stack)
+- [Installation](#installation)
+- [Contributing](#contributing)
+- [License](#license)
 
+## About
+
+The goal of TechMates is to create a verified, collaborative space for college students across different institutions. It promotes skill development, meaningful connections, and resource sharing in a secure and structured manner.
+
+## Key Features
+
+- College-based email authentication system
+- Verified student profiles with GitHub, LinkedIn, LeetCode, and more
+- Live GitHub integration and automatic ranking system based on contribution analytics
+- Resource sharing with categorized uploads and downloads
+- Real-time chat with connections, groups, and communities
+- Discover and connect with students across colleges via the collaboration hub
+- Post creation and news feed similar to social media platforms
+
+## Authentication
+
+Only students with verified college email domains (e.g., `@college.edu.in`) can register. OAuth-based authentication is used to securely sign in users and validate domains.
+
+## Screens and Functionality
+
+### 1. Home (Feed)
+- Displays latest posts from followed users and the global community.
+- Posts include text, images, polls, and resource highlights.
+
+### 2. Search / Connect
+- Search and filter students by college, skills, and rank.
+- Send connection requests and follow users.
+- View student ranks within college or globally.
+
+### 3. Resources
+- Access community-uploaded study materials.
+- Upload new resources with titles, tags, and descriptions.
+- Download resources directly from the app.
+
+### 4. Profile
+- Personalized profile view similar to LinkedIn.
+- Displays verified links with icons (GitHub, LinkedIn, etc.).
+- Shows GitHub stats, rank, and contributions.
+- Edit profile and view posts, connections, and achievements.
+
+### 5. Chat
+- Chat with connections in real time.
+- Join community groups and interest-based chatrooms.
+- View and accept/reject connection requests.
+
+### Additional
+- Create Post (accessible from top bar)
+- GitHub integration and rank assignment based on actual contribution data
+
+## Tech Stack
+
+**Frontend:**
+- Flutter or React Native (cross-platform)
+
+**Backend:**
+- Firebase (Authentication, Firestore, Storage)
+- Node.js with Express (optional for custom APIs)
+
+**APIs and Services:**
+- Google OAuth
+- GitHub REST API
+- Firebase Cloud Functions (if used)
+
+## Installation
+
+1. Clone the repository
    ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+   git clone https://github.com/your-username/TechMates.git
+   cd TechMates
