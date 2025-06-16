@@ -153,124 +153,49 @@ The app follows a **modular, scalable architecture** using modern web and mobile
         v
 [PostgreSQL Database]   [Cloud Storage]   [GitHub API]
 
-Components:
-Frontend:
+## Components
 
-Built with Expo (React Native)
+### Frontend
 
-Handles navigation, UI, state management, and API calls
+- Built with **Expo (React Native)**
+- Handles navigation, UI, state management, and API calls
+- Communicates with backend via REST APIs and WebSockets
 
-Communicates with backend via REST APIs and WebSockets
+### Backend Server
 
-Backend Server:
+- Built with **Node.js** and **Express**
+- Manages authentication, user data, posts, chat, resources, and GitHub analysis
+- Real-time chat supported via **Socket.IO**
 
-Built with Node.js and Express
+### Database
 
-Manages authentication, user data, posts, chat, resources, and GitHub analysis
+- **PostgreSQL** used for structured data (users, messages, posts, resources, ranks, etc.)
+- Hosted via platforms like **Supabase**, **Railway**, or **Neon**
 
-Real-time chat supported via Socket.IO
+### Cloud Storage
 
-Database:
+- Stores uploaded documents and media (images, files)
+- Can be **Firebase Storage**, **AWS S3**, or **Cloudinary**
 
-PostgreSQL used for structured data (users, messages, posts, resources, ranks, etc.)
+### Third-party Integrations
 
-Hosted via platforms like Supabase, Railway, or Neon
+- **GitHub API** for pulling contribution stats
+- **Google OAuth** (via Firebase) for college email authentication
 
-Cloud Storage:
+### Deployment
 
-Stores uploaded documents and media (images, files)
-
-Can be Firebase Storage, AWS S3, or Cloudinary
-
-Third-party Integrations:
-
-GitHub API for pulling contribution stats
-
-Google OAuth (via Firebase) for college email authentication
-
-Deployment:
-
-Frontend: Hosted via Expo Go or built as APK/IPA via EAS
-
-Backend: Deployed using Render, Railway, or similar
-
-Continuous deployment using GitHub Actions (optional)
-
-Installation
-Clone the repository
-
-bash
-Copy
-Edit
-git clone https://github.com/your-org/techmates.git
-cd techmates
-Install frontend dependencies
-
-bash
-Copy
-Edit
-npm install
-# or
-yarn install
-Start the frontend
-
-bash
-Copy
-Edit
-npx expo start
-Set up backend
-
-bash
-Copy
-Edit
-cd backend
-npm install
-npm run dev
-Environment Configuration
-Create a .env file in both the root and backend directories with necessary API keys and configurations.
-Refer to .env.example for structure and required values.
-
-Contributing
-We welcome contributions from the community. To contribute:
-
-Fork the repository
-
-Create a new branch
-
-bash
-Copy
-Edit
-git checkout -b feature/your-feature-name
-Make your changes and commit
-
-bash
-Copy
-Edit
-git commit -m "Add: your message"
-Push to your fork
-
-bash
-Copy
-Edit
-git push origin feature/your-feature-name
-Open a Pull Request
-
-Please ensure:
-
-Code follows existing project structure and formatting
-
-You have tested your changes locally
-
-Major features are first discussed via GitHub Issues
-
-License
-This project is licensed under the MIT License.
-See the LICENSE file for full license text.
-
-yaml
-Copy
-Edit
+- **Frontend**: Hosted via **Expo Go** or built as APK/IPA via **EAS**
+- **Backend**: Deployed using **Render**, **Railway**, or similar platforms
+- **CI/CD**: Optional continuous deployment using **GitHub Actions**
 
 ---
 
-Let me know if you want me to generate the `.env.example`, `CONTRIBUTING.md`, or folder structure visua
+## Installation
+
+### Clone the repository
+
+```bash
+git clone https://github.com/your-org/techmates.git
+cd techmates
+
+Install frontend dependencies
