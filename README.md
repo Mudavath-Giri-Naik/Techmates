@@ -173,3 +173,34 @@ The app follows a **modular, scalable architecture** using modern web and mobile
   - Frontend: Hosted via Expo Go or built as APK/IPA via EAS  
   - Backend: Deployed using Render, Railway, or similar  
   - Continuous deployment using GitHub Actions (optional)  
+
+
+## Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/your-org/techmates.git
+cd techmates
+npm install
+# or
+yarn install
+npx expo start
+cd backend
+npm install
+npm run dev
+
+---
+
+### 🤝 **Contributing**
+
+```markdown
+## Contributing
+
+We welcome contributions from the community. To contribute:
+
+1. Fork this repository
+2. Create a new branch:
+```bash
+git checkout -b feature/your-feature-name
+git commit -m "Add: your message"
+git push origin feature/your-feature-name
