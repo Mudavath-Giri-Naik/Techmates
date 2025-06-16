@@ -152,7 +152,7 @@ The app follows a **modular, scalable architecture** using modern web and mobile
         |
         v
 [PostgreSQL Database]   [Cloud Storage]   [GitHub API]
-
+```
 ## Components
 
 ### Frontend
@@ -197,5 +197,21 @@ The app follows a **modular, scalable architecture** using modern web and mobile
 ```bash
 git clone https://github.com/your-org/techmates.git
 cd techmates
+```
+### Install the dependencies
+ ```bash
+npm install
+```
 
-Install frontend dependencies
+### Start the frontend
+```bash
+npx expo start
+```
+
+### Set up backend
+```bash
+cd backend
+npm install
+npm run dev
+```
+
