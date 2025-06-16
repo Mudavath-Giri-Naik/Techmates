@@ -1,84 +1,146 @@
 # TechMates – College Community App
 
-TechMates is a community-driven mobile application exclusively designed for college students to grow beyond academics through collaboration, verified networking, knowledge sharing, and peer engagement. The app ensures secure access through college-associated email verification and provides tools to connect, learn, and build together.
+TechMates is a mobile application exclusively built for college students, designed to foster collaboration, verified networking, and knowledge sharing. The app enforces secure access through domain-based email authentication and provides tools for community learning, real-time communication, and portfolio development.
+
+---
 
 ## Table of Contents
 
 - [About](#about)
 - [Key Features](#key-features)
-- [Authentication](#authentication)
-- [Screens and Functionality](#screens-and-functionality)
-- [Tech Stack](#tech-stack)
+- [Technology Stack](#technology-stack)
+- [Architecture Overview](#architecture-overview)
 - [Installation](#installation)
 - [Contributing](#contributing)
 - [License](#license)
 
+---
+
 ## About
 
-The goal of TechMates is to create a verified, collaborative space for college students across different institutions. It promotes skill development, meaningful connections, and resource sharing in a secure and structured manner.
+TechMates connects verified college students to a secure and structured platform where they can share resources, engage in real-time communication, discover peers across institutions, and track personal growth through skill-based ranking.
+
+---
 
 ## Key Features
 
-- College-based email authentication system
-- Verified student profiles with GitHub, LinkedIn, LeetCode, and more
-- Live GitHub integration and automatic ranking system based on contribution analytics
-- Resource sharing with categorized uploads and downloads
-- Real-time chat with connections, groups, and communities
-- Discover and connect with students across colleges via the collaboration hub
-- Post creation and news feed similar to social media platforms
+- Secure college email-based authentication
+- Live feed of student posts and updates
+- College-wise searchable student directory
+- Real-time chat and group communication
+- Resource sharing and downloads
+- GitHub analytics and automatic student ranking
+- Customizable student profiles with verified links
 
-## Authentication
+---
 
-Only students with verified college email domains (e.g., `@college.edu.in`) can register. OAuth-based authentication is used to securely sign in users and validate domains.
+## Technology Stack
 
-## Screens and Functionality
+The app follows a **modular, scalable architecture** using modern web and mobile technologies. Below is a feature-wise breakdown of the tech stack:
 
-### 1. Home (Feed)
-- Displays latest posts from followed users and the global community.
-- Posts include text, images, polls, and resource highlights.
+### 1. **Mobile App (Frontend)**
+- **Framework**: Expo React Native
+- **Language**: JavaScript (ES6+)
+- **State Management**: React Context API / Redux (optional)
+- **Navigation**: React Navigation
+- **HTTP Requests**: Axios
 
-### 2. Search / Connect
-- Search and filter students by college, skills, and rank.
-- Send connection requests and follow users.
-- View student ranks within college or globally.
+---
 
-### 3. Resources
-- Access community-uploaded study materials.
-- Upload new resources with titles, tags, and descriptions.
-- Download resources directly from the app.
+### 2. **Authentication**
+- **Method**: Google OAuth 2.0
+- **College Email Restriction**: Custom domain validation during sign-in
+- **Provider**: Firebase Authentication
+- **Backend Validation**: Node.js API to enforce domain whitelist
 
-### 4. Profile
-- Personalized profile view similar to LinkedIn.
-- Displays verified links with icons (GitHub, LinkedIn, etc.).
-- Shows GitHub stats, rank, and contributions.
-- Edit profile and view posts, connections, and achievements.
+---
 
-### 5. Chat
-- Chat with connections in real time.
-- Join community groups and interest-based chatrooms.
-- View and accept/reject connection requests.
+### 3. **Feed (Home Screen)**
+- **Tech Stack**:
+  - Expo React Native (UI)
+  - Node.js + Express (API)
+  - PostgreSQL (Post data storage)
+  - Cloud Storage (for media)
+- **Features**:
+  - Global and following-based post retrieval
+  - Media uploads
+  - Likes and comments functionality
 
-### Additional
-- Create Post (accessible from top bar)
-- GitHub integration and rank assignment based on actual contribution data
+---
 
-## Tech Stack
+### 4. **Search / Connect Screen**
+- **Tech Stack**:
+  - Node.js APIs to fetch college-wise users
+  - PostgreSQL (Student metadata and rank)
+- **Features**:
+  - Search/filter by college, skills, rank
+  - Connection request system
+  - Verified profile preview and follow/connect actions
 
-**Frontend:**
-- Flutter or React Native (cross-platform)
+---
 
-**Backend:**
-- Firebase (Authentication, Firestore, Storage)
-- Node.js with Express (optional for custom APIs)
+### 5. **Resources Screen**
+- **Tech Stack**:
+  - Cloud Storage (File storage)
+  - PostgreSQL (Metadata: title, tags, uploader)
+  - Node.js API for uploads/downloads
+- **Features**:
+  - Upload/download documents
+  - Filter by topic/category
+  - Uploader profile linking
 
-**APIs and Services:**
-- Google OAuth
-- GitHub REST API
-- Firebase Cloud Functions (if used)
+---
 
-## Installation
+### 6. **Profile Screen**
+- **Tech Stack**:
+  - React Native (UI)
+  - GitHub API (Live stats)
+  - Node.js API for GitHub data parsing
+  - PostgreSQL (User info, social links, rank)
+- **Features**:
+  - Verified external links (LinkedIn, GitHub, LeetCode)
+  - Real-time GitHub contribution analytics
+  - Auto-generated skill-based ranks
+  - Badge system for top contributors
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/your-username/TechMates.git
-   cd TechMates
+---
+
+### 7. **Chat System**
+- **Tech Stack**:
+  - **Real-Time Communication**: WebSockets (Socket.IO)
+  - **Backend**: Node.js + Express + Socket.IO
+  - **Database**: PostgreSQL for message history and user metadata
+- **Features**:
+  - One-on-one chats
+  - Group chats and interest-based rooms
+  - Connection request notifications
+  - Message read receipts, timestamps
+
+---
+
+### 8. **Backend API**
+- **Language**: JavaScript (Node.js)
+- **Framework**: Express
+- **Database**: PostgreSQL
+- **Libraries**: JWT, bcrypt, multer, socket.io
+- **Endpoints**:
+  - Auth
+  - Posts
+  - Resources
+  - Users and Profiles
+  - GitHub data sync
+  - Chat communication
+
+---
+
+### 9. **Deployment and Infrastructure**
+- **Frontend Hosting**: Expo Go / EAS (Expo Application Services)
+- **Backend Hosting**: Render / Railway / Heroku
+- **Database Hosting**: Supabase / Neon.tech / Railway (PostgreSQL)
+- **Media Storage**: Firebase Storage / Cloudinary / AWS S3
+- **CI/CD**: GitHub Actions (optional for automated deployments)
+
+---
+
+## Architecture Overview
+
