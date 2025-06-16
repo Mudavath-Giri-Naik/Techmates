@@ -214,4 +214,32 @@ cd backend
 npm install
 npm run dev
 ```
+## Contributing
+```text
+We welcome contributions from the community. To contribute:
+```
+### 1.Fork the repository
+### 2.Create new branch
+```bash
+git checkout -b feature/your-feature-name
+```
+### 3.Make your changes and commit
+```bash
+git commit -m "Add: your message"
+```
+### 4.Push to your fork
+```bash
+git push origin feature/your-feature-name
+```
 
+## Contribution Guidelines
+```text
+1.Code should follow the existing project structure and formatting
+2.Test your changes locally before submitting
+3.For major features, please create an issue to discuss changes before implementation
+```
+## License
+```text
+This project is licensed under the MIT License.
+See the LICENSE file for full license text.
+```
