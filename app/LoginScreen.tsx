@@ -15,14 +15,14 @@ export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess?: () =>
     setLoading(true);
     try {
       if (isLogin) {
-        const res = await axios.post('http://192.168.206.224:5000/api/auth/login', { email, password });
+        const res = await axios.post('https://techmates.onrender.com/api/auth/login', { email, password });
         const { token } = res.data;
         await AsyncStorage.setItem('token', token);
         setLoading(false);
         if (onLoginSuccess) onLoginSuccess();
         router.replace('/profile');
       } else {
-        await axios.post('http://192.168.206.224:5000/api/auth/register', { email, password });
+        await axios.post('https://techmates.onrender.com/api/auth/register', { email, password });
         setLoading(false);
         Alert.alert('Success', 'Account created! Please log in.');
         setIsLogin(true);

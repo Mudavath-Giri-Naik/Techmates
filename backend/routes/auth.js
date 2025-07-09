@@ -5,12 +5,19 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Allowed college email domains
+const allowedDomains = ['@mvgrce.edu.in'];
+
 // Register
 router.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required.' });
+    }
+    // Strictly allow only mvgrce.edu.in emails
+    if (!email.endsWith('@mvgrce.edu.in')) {
+      return res.status(400).json({ message: 'Please enter your college email only.' });
     }
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -21,6 +28,7 @@ router.post('/register', async (req, res) => {
     await user.save();
     res.status(201).json({ message: 'User registered successfully.' });
   } catch (err) {
+    console.error('Registration error:', err);
     res.status(500).json({ message: 'Server error.' });
   }
 });
@@ -47,6 +55,7 @@ router.post('/login', async (req, res) => {
     );
     res.json({ token });
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).json({ message: 'Server error.' });
   }
 });
