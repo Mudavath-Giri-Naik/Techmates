@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1010328611770",
+    "project_id": "techmates-982ca",
+    "storage_bucket": "techmates-982ca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1010328611770:android:26b7f65204a26838834b83",
+        "android_client_info": {
+          "package_name": "com.example.techmates"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsn4pY0TeGegqeNiMOqcSDW1EO0MJVdVo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

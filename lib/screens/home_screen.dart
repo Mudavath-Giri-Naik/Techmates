@@ -4,6 +4,8 @@ import '../services/opportunity_service.dart';
 import '../models/opportunity_model.dart';
 import '../widgets/main_layout.dart';
 import '../widgets/opportunity_card.dart';
+import '../services/notification_service.dart';
+
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
@@ -43,6 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData(); // Initial load (Cache first)
+    
+    // Initialize Notification Service (Safe here because HomeScreen requires Auth)
+    NotificationService().init();
   }
 
   Future<void> _loadData({bool forceRefresh = false}) async {

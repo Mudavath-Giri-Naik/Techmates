@@ -2,6 +2,7 @@ class CollegeEmailValidator {
   static const allowedDomains = [
     'mvgrce.edu.in',
     'iitb.ac.in',
+    'gmail.com',
     'nitw.ac.in',
   ];
 
