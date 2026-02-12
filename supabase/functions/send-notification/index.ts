@@ -53,6 +53,12 @@ serve(async (req) => {
                                 title: title,
                                 body: body,
                             },
+                            android: {
+                                notification: {
+                                    icon: "logo",
+                                    color: "#FFFFFF",
+                                },
+                            },
                         },
                     }),
                 }

@@ -1,4 +1,5 @@
-package com.example.techmates
+package com.techmates.app
+
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/opportunity_model.dart';
 import '../core/supabase_client.dart';
 import 'cache_service.dart';
+import 'internship_service.dart'; // Added import
 
 class FetchResult {
   final List<Opportunity> items;
@@ -13,6 +14,7 @@ class FetchResult {
 class OpportunityService {
   final SupabaseClient _client = SupabaseClientManager.instance;
   final CacheService _cacheService = CacheService();
+  final InternshipService _internshipService = InternshipService(); // Added instance
 
   // Categories map to DB types
   String _mapCategoryToType(String category) {

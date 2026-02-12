@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/notification_service.dart'; 
+import 'screens/splash_screen.dart'; 
 
 
 
@@ -69,33 +70,25 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Notification Service is now initialized in HomeScreen to ensure Auth is ready
   }
 
   @override
   Widget build(BuildContext context) {
-    // We can safely create AuthService here because we only run MyApp if init succeeded.
-    final auth = AuthService();
-
     return MaterialApp(
       title: 'Techmates Auth',
       theme: ThemeData(
-        // Enforce light mode to prevent "White Text on White Background" issues
-        // if the system is in Dark Mode but the app is hardcoded to light backgrounds.
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        // Explicitly style text selection controls
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: Colors.deepPurple,
           selectionColor: Colors.deepPurple.withOpacity(0.4),
           selectionHandleColor: Colors.deepPurple,
         ),
       ),
-      // Simple routing based on auth state
-      home: auth.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }

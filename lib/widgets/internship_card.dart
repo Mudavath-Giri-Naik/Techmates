@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/opportunity_model.dart';
 import '../models/internship_details_model.dart';
 import 'package:intl/intl.dart';
 
-class OpportunityCard extends StatelessWidget {
-  final Opportunity opportunity;
+class InternshipCard extends StatelessWidget {
+  final InternshipDetailsModel internship;
   final int? serialNumber;
 
-  const OpportunityCard({
+  const InternshipCard({
     super.key, 
-    required this.opportunity,
+    required this.internship,
     this.serialNumber,
   });
 
   Future<void> _launchURL() async {
-    final Uri url = Uri.parse(opportunity.link);
+    final Uri url = Uri.parse(internship.link);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
@@ -24,7 +23,6 @@ class OpportunityCard extends StatelessWidget {
   Color _getTagColor(String text) {
     final t = text.toLowerCase();
     if (t.contains('internship')) return Colors.blue;
-    if (t.contains('hackathon')) return Colors.purple;
     if (t.contains('remote')) return Colors.green;
     if (t.contains('paid') || t.contains('stipend') || t.contains('\$') || t.contains('₹')) return Colors.orange;
     if (t.contains('urgent') || t.contains('closing')) return Colors.red;
@@ -34,8 +32,9 @@ class OpportunityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final difference = opportunity.deadline.difference(now);
-    final daysLeft = difference.inDays;
+    final today = DateTime(now.year, now.month, now.day);
+    final deadlineDate = DateTime(internship.deadline.year, internship.deadline.month, internship.deadline.day);
+    final daysLeft = deadlineDate.difference(today).inDays;
     
     // Logic for urgency text
     String urgencyText = "";
@@ -48,28 +47,16 @@ class OpportunityCard extends StatelessWidget {
       urgencyColor = Colors.red;
     } else {
       urgencyText = "$daysLeft days left";
-      if (daysLeft <= 3) urgencyColor = Colors.red;
-      else if (daysLeft <= 10) urgencyColor = Colors.orange;
+      if (daysLeft <= 5) urgencyColor = Colors.red;
+      else if (daysLeft <= 15) urgencyColor = Colors.orange; // Yellow/Orange
       else urgencyColor = Colors.green; 
-      if (daysLeft > 10) urgencyColor = Colors.blue;
     }
 
-    // Extract specific details based on type
-    String? stipend;
-    String? mode;
+    String? stipendText;
+    if (internship.stipend > 0) {
+      stipendText = "₹${internship.stipend}";
+    }
     
-    if (opportunity is InternshipDetailsModel) {
-      final internship = opportunity as InternshipDetailsModel;
-      if (internship.stipend > 0) {
-        stipend = "₹${internship.stipend}"; // Assuming INR or format as needed
-      }
-      mode = internship.empType;
-    } else {
-      // Fallback for Hackathons/Events using extraDetails
-      stipend = opportunity.extraDetails['stipend']?.toString() ?? opportunity.extraDetails['prize_pool']?.toString();
-      mode = opportunity.extraDetails['mode']?.toString();
-    }
-
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       decoration: const BoxDecoration(
@@ -104,7 +91,7 @@ class OpportunityCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        opportunity.title,
+                        internship.title,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -135,50 +122,112 @@ class OpportunityCard extends StatelessWidget {
                 
                 const SizedBox(height: 6),
 
-                // Organization & Location
-                Text(
-                  "${opportunity.organization} • ${opportunity.location}",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // Organization & Location (Icon)
+                Row(
+                  children: [
+                    Icon(Icons.business, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        "${internship.company}",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                         maxLines: 1,
+                         overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        internship.location,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                         maxLines: 1,
+                         overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 4),
 
-                // Explicit Deadline
-                Text(
-                  "Deadline: ${_formatDate(opportunity.deadline)}",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[800], // Darker than loc
-                    fontWeight: FontWeight.w500,
+                // Eligibility (Icon)
+                if (internship.eligibility.isNotEmpty)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Icon(Icons.school, size: 14, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          internship.eligibility,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
 
-                const SizedBox(height: 10),
 
-                // Footer: Tags + Apply Button
+                const SizedBox(height: 4),
+
+                // Footer: Deadline (Left) + Tags + Apply Button
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // New Attractive Deadline (Bottom Left)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time_filled, size: 14, color: Colors.black),
+                        const SizedBox(width: 4),
+                        Text(
+                          _formatDate(internship.deadline),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700, // Bold
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(width: 8),
+
                     // Tags
                     Expanded(
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          _buildTag(opportunity.type),
-                          if (opportunity.location.toLowerCase().contains("remote"))
-                             _buildTag("Remote"),
-                          if (stipend != null)
-                             _buildTag(stipend),
-                          if (mode != null && mode.isNotEmpty)
-                            _buildTag(mode),
-                        ],
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            // "Internship" tag REMOVED as requested
+                            if (internship.location.toLowerCase().contains("remote"))
+                               Padding(padding: const EdgeInsets.only(right: 6), child: _buildTag("Remote")),
+                            if (stipendText != null)
+                               Padding(padding: const EdgeInsets.only(right: 6), child: _buildTag(stipendText)),
+                            if (internship.empType.isNotEmpty)
+                              _buildTag(internship.empType),
+                          ],
+                        ),
                       ),
                     ),
                     
