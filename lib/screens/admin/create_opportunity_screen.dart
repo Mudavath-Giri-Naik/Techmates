@@ -80,9 +80,9 @@ class _CreateOpportunityScreenState extends State<CreateOpportunityScreen> {
     final data = widget.existingData!;
     // Common
     _titleController.text = data['title'] ?? '';
-    _orgController.text = data['company'] ?? data['organization'] ?? data['organizer'] ?? '';
+    _orgController.text = data['company'] ?? data['organization'] ?? data['organizer'] ?? data['organiser'] ?? '';
     _linkController.text = data['link'] ?? data['apply_link'] ?? '';
-    _locationController.text = data['location'] ?? '';
+    _locationController.text = data['location'] ?? (_selectedType == 'event' ? (data['venue'] ?? '') : '') ?? '';
     _descriptionController.text = data['description'] ?? '';
 
     // Source

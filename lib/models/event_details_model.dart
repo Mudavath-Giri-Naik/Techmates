@@ -103,8 +103,8 @@ class EventDetailsModel {
 
     return EventDetailsModel(
       opportunityId: (data['opportunity_id'] ?? data['id'] ?? json['id']).toString(),
-      title: data['title'] as String,
-      organiser: data['organiser'] as String,
+      title: (data['title'] ?? '') as String,
+      organiser: (data['organizer'] ?? data['organiser'] ?? '') as String,
       description: data['description'] as String? ?? '',
       venue: data['venue'] as String? ?? 'TBD',
       entryFee: data['entry_fee'] as String?,
@@ -124,7 +124,7 @@ class EventDetailsModel {
     return {
       'opportunity_id': opportunityId,
       'title': title,
-      'organiser': organiser,
+      'organizer': organiser,
       'description': description,
       'venue': venue,
       'entry_fee': entryFee,

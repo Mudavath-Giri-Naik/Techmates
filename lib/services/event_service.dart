@@ -11,6 +11,9 @@ class EventService {
 
   Future<List<EventDetailsModel>> fetchEvents({int page = 0, int limit = 20, bool forceRefresh = false}) async {
     try {
+      if (page == 0 && forceRefresh) {
+        await _cacheService.clearEvents();
+      }
       if (page == 0 && !forceRefresh) {
         final cached = await _cacheService.getEvents();
         if (cached.isNotEmpty) return cached;
@@ -58,7 +61,7 @@ class EventService {
       await _client.from('event_details').insert({
         'opportunity_id': opportunityId,
         'title': event.title,
-        'organiser': event.organiser,
+        'organizer': event.organiser,
         'description': event.description,
         'venue': event.venue,
         'entry_fee': event.entryFee,

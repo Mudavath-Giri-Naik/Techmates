@@ -325,6 +325,8 @@ class _InternshipCardState extends State<InternshipCard> {
                         onDelete: widget.onDelete!,
                         isElite: widget.internship.isElite,
                         onToggleElite: widget.onToggleElite,
+                        title: widget.internship.title,
+                        subtitle: widget.internship.company,
                       ),
                     ),
                   ),

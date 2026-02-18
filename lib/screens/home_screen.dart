@@ -463,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
              }
         }
         
-        _updateFromStore();
+        await _updateFromStore();
       }
 
     } catch (e) {
@@ -481,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _updateFromStore() {
+  Future<void> _updateFromStore() async {
       final store = OpportunityStore.instance;
       List<dynamic> items = [];
       
@@ -493,17 +493,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
          items = store.events.value;
       }
       
-      // Filter out applied/later items?
-      // The original code did:
-      // items = items.where((op) { ... statusService.getStatus(id) == null ... }).toList();
-      // I should probably preserve that logic if I want to hide applied items from main feed.
-      // Yes, I need to check status service.
-      
-      // StatusService usage in original code had await statusService.init() before.
-      // I can assume it's initialized or I should make _updateFromStore async?
-      // Making it async is safer.
-      
-      _filterAppliedItems(items);
+      await _filterAppliedItems(items);
   }
 
   Future<void> _filterAppliedItems(List<dynamic> items) async {
@@ -1090,8 +1080,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       )),
     );
 
-    if (result == true) {
-      _onRefresh();
+    if (result == true && mounted) {
+      await _onRefresh();
     }
   }
 
@@ -1110,7 +1100,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     
     if (confirm == true) {
       await _adminService.deleteOpportunity(id);
-      _onRefresh();
+      if (mounted) await _onRefresh();
     }
   }
 

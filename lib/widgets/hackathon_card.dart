@@ -165,6 +165,8 @@ class _HackathonCardState extends State<HackathonCard> {
                           context,
                           onEdit: widget.onEdit!,
                           onDelete: widget.onDelete!,
+                          title: widget.hackathon.title,
+                          subtitle: widget.hackathon.company,
                         ),
                       ),
                     ),

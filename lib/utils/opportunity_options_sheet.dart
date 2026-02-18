@@ -6,6 +6,8 @@ void showOpportunityOptions(
   required VoidCallback onDelete,
   bool? isElite,
   Function(bool)? onToggleElite,
+  String? title,
+  String? subtitle,
 }) {
   showModalBottomSheet(
     context: context,
@@ -30,6 +32,40 @@ void showOpportunityOptions(
               ),
             ),
             const SizedBox(height: 24),
+            // Show item info when provided
+            if (title != null && title.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle != null && subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             
             // Edit Option
             Material(

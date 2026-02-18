@@ -128,4 +128,9 @@ class CacheService {
       return [];
     }
   }
+
+  Future<void> clearEvents() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('${_keyPrefix}Events');
+  }
 }
