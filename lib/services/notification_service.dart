@@ -2,6 +2,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
+import 'package:flutter/material.dart'; // For debugPrint and Navigator
+import '../main.dart'; // For navigatorKey
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -15,9 +17,13 @@ class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   // Accessing Supabase client. ensuring it is initialized in main.dart before this service is used.
   SupabaseClient get _supabase => Supabase.instance.client;
-
-  final _notificationStreamController = StreamController<Map<String, dynamic>>.broadcast();
-  Stream<Map<String, dynamic>> get notificationStream => _notificationStreamController.stream;
+  
+  // Remove StreamController as we use global key now
+  // final _notificationStreamController = StreamController<Map<String, dynamic>>.broadcast();
+  // Stream<Map<String, dynamic>> get notificationStream => _notificationStreamController.stream;
+  
+  // Callback for in-feed navigation
+  Function(String opportunityId, String type)? onNotificationTap;
 
   Future<void> init() async {
     final user = _supabase.auth.currentUser;
@@ -59,9 +65,34 @@ class NotificationService {
 
     if (initialMessage != null) {
       debugPrint('🚀 [NotificationService] App launched from terminated state via notification');
-      if (initialMessage.data.isNotEmpty) {
-        _notificationStreamController.add(initialMessage.data);
-      }
+      handleNotificationClick(initialMessage);
+    }
+  }
+
+  void handleNotificationClick(RemoteMessage message) {
+    debugPrint("🔔 [NotificationService] Handling notification click. Payload: ${message.data}");
+
+    final data = message.data;
+    String? opportunityId;
+    String? type;
+    String? route;
+
+    if (data.containsKey('route')) route = data['route'];
+    if (data.containsKey('opportunity_id')) opportunityId = data['opportunity_id'];
+    if (data.containsKey('type')) type = data['type'];
+
+    // If route is 'opportunity' (or implicit if we have an ID)
+    if (opportunityId != null && (route == 'opportunity' || route == null)) { 
+       debugPrint("✅ [NotificationService] Triggering in-feed navigation: $opportunityId");
+       
+       // Use callback instead of direct navigation
+       if (onNotificationTap != null) {
+         onNotificationTap!(opportunityId, type ?? 'internship');
+       } else {
+         debugPrint("⚠️ [NotificationService] No callback registered for notification tap");
+       }
+    } else {
+      debugPrint("⚠️ [NotificationService] Unknown route or missing ID. Payload: $data");
     }
   }
 
@@ -157,9 +188,7 @@ class NotificationService {
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('👆 [NotificationService] Notification clicked (OpenedApp)');
-      if (message.data.isNotEmpty) {
-        _notificationStreamController.add(message.data);
-      }
+      handleNotificationClick(message);
     });
   }
 }

@@ -17,12 +17,27 @@ class _InternshipListWidgetState extends State<InternshipListWidget> {
   @override
   void initState() {
     super.initState();
-    _internshipFuture = _service.fetchInternships();
+    _loadInternships();
+  }
+
+  void _loadInternships() {
+    _internshipFuture = _service.fetchInternships().then((details) {
+      return details.map((d) => Internship(
+        id: d.opportunityId,
+        title: d.title,
+        organization: d.company,
+        location: d.location,
+        link: d.link,
+        deadline: d.deadline,
+        stipend: d.stipend.toString(),
+        mode: d.empType,
+      )).toList();
+    });
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _internshipFuture = _service.fetchInternships();
+      _loadInternships();
     });
   }
 
@@ -56,7 +71,7 @@ class _InternshipListWidgetState extends State<InternshipListWidget> {
             padding: const EdgeInsets.all(16),
             itemCount: internships.length,
             itemBuilder: (context, index) {
-              return InternshipCard(internship: internships[index]);
+              return InternshipListCard(internship: internships[index]);
             },
           );
         },
@@ -65,9 +80,9 @@ class _InternshipListWidgetState extends State<InternshipListWidget> {
   }
 }
 
-class InternshipCard extends StatelessWidget {
+class InternshipListCard extends StatelessWidget {
   final Internship internship;
-  const InternshipCard({super.key, required this.internship});
+  const InternshipListCard({super.key, required this.internship});
 
   Future<void> _launchURL() async {
     final Uri url = Uri.parse(internship.link);

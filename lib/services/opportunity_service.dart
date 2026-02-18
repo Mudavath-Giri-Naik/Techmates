@@ -92,8 +92,8 @@ class OpportunityService {
       
       var mergedList = mergedMap.values.toList();
       
-      // 5. Re-Sort (Deadline Ascending as per original requirement)
-      mergedList.sort((a, b) => a.deadline.compareTo(b.deadline));
+      // 5. Re-Sort (Newest first - by updatedAt descending)
+      mergedList.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       
       // 6. Save Cache
       await _cacheService.saveOpportunities(category, mergedList);

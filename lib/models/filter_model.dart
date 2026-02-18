@@ -1,8 +1,9 @@
 
+enum SortOption { newest, oldest, nearestDeadline, latestDeadline, serialNumberAsc }
+
 class FilterModel {
-  // Sort Orders
-  bool isNewestFirst;
-  bool isDeadlineAscending; // Default: true (nearest deadline first)
+  // Sort Order
+  SortOption sortBy;
 
   // Internship Specific
   bool isRemote;
@@ -36,8 +37,7 @@ class FilterModel {
   bool showMeetups;
 
   FilterModel({
-    this.isNewestFirst = true,
-    this.isDeadlineAscending = true,
+    this.sortBy = SortOption.newest,
     this.isRemote = false,
     this.isPaid = false,
     this.isHybrid = false,
@@ -65,8 +65,7 @@ class FilterModel {
   int get activeCount {
     int count = 0;
     
-    if (!isNewestFirst) count++;
-    if (!isDeadlineAscending) count++;
+    if (sortBy != SortOption.newest) count++;
 
     if (isRemote) count++;
     if (isPaid) count++;
@@ -99,8 +98,7 @@ class FilterModel {
 
   // CopyWith for immutability updates if needed (or just mutate since we are local)
   FilterModel copyWith({
-    bool? isNewestFirst,
-    bool? isDeadlineAscending,
+    SortOption? sortBy,
     bool? isRemote,
     bool? isPaid,
     bool? isHybrid,
@@ -124,8 +122,7 @@ class FilterModel {
     bool? showMeetups,
   }) {
     return FilterModel(
-      isNewestFirst: isNewestFirst ?? this.isNewestFirst,
-      isDeadlineAscending: isDeadlineAscending ?? this.isDeadlineAscending,
+      sortBy: sortBy ?? this.sortBy,
       isRemote: isRemote ?? this.isRemote,
       isPaid: isPaid ?? this.isPaid,
       isHybrid: isHybrid ?? this.isHybrid,
@@ -152,8 +149,7 @@ class FilterModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'isNewestFirst': isNewestFirst,
-      'isDeadlineAscending': isDeadlineAscending,
+      'sortBy': sortBy.name,
       'isRemote': isRemote,
       'isPaid': isPaid,
       'isHybrid': isHybrid,
@@ -180,8 +176,10 @@ class FilterModel {
 
   factory FilterModel.fromJson(Map<String, dynamic> json) {
     return FilterModel(
-      isNewestFirst: json['isNewestFirst'] ?? true,
-      isDeadlineAscending: json['isDeadlineAscending'] ?? true,
+      sortBy: SortOption.values.firstWhere(
+        (e) => e.name == json['sortBy'],
+        orElse: () => SortOption.newest,
+      ),
       isRemote: json['isRemote'] ?? false,
       isPaid: json['isPaid'] ?? false,
       isHybrid: json['isHybrid'] ?? false,

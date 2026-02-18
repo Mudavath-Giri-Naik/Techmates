@@ -7,6 +7,9 @@ class Opportunity {
   final String link;
   final DateTime deadline;
   final DateTime createdAt;
+  final DateTime updatedAt;
+  final int? typeSerialNo; // New field
+  final String? source;
   
   // Storage for details of other types
   final Map<String, dynamic> extraDetails;
@@ -20,6 +23,9 @@ class Opportunity {
     required this.link,
     required this.deadline,
     required this.createdAt,
+    required this.updatedAt,
+    this.typeSerialNo,
+    this.source,
     this.extraDetails = const {},
   });
 
@@ -48,16 +54,16 @@ class Opportunity {
     // Parse Deadline
     DateTime? parsedDeadline;
     if (json['deadline'] != null) {
-      parsedDeadline = DateTime.tryParse(json['deadline']);
+      parsedDeadline = DateTime.tryParse(json['deadline'])?.toLocal();
     }
     if (parsedDeadline == null && detailMap['deadline'] != null) {
-      parsedDeadline = DateTime.tryParse(detailMap['deadline']);
+      parsedDeadline = DateTime.tryParse(detailMap['deadline'])?.toLocal();
     }
 
     // Parse CreatedAt
     DateTime? parsedCreatedAt;
     if (json['created_at'] != null) {
-      parsedCreatedAt = DateTime.tryParse(json['created_at']);
+      parsedCreatedAt = DateTime.tryParse(json['created_at'])?.toLocal();
     }
     
     // Extract common fields
@@ -66,15 +72,24 @@ class Opportunity {
     final loc = json['location'] ?? detailMap['location'] ?? 'Remote';
     final link = json['link'] ?? detailMap['link'] ?? '';
 
+    // Parse UpdatedAt
+    DateTime? parsedUpdatedAt;
+    if (json['updated_at'] != null) {
+      parsedUpdatedAt = DateTime.tryParse(json['updated_at'])?.toLocal();
+    }
+
     return Opportunity(
       id: json['id'].toString(),
       type: json['type'] ?? 'event',
       title: title,
       organization: org,
       location: loc,
+      source: json['source'] as String?,
       link: link,
       deadline: parsedDeadline ?? DateTime.now().add(const Duration(days: 30)),
       createdAt: parsedCreatedAt ?? DateTime.now(),
+      updatedAt: parsedUpdatedAt ?? parsedCreatedAt ?? DateTime.now(),
+      typeSerialNo: int.tryParse(json['type_serial_no']?.toString() ?? '') ?? (json['type_serial_no'] is int ? json['type_serial_no'] : null),
       extraDetails: detailMap,
     );
   }
@@ -87,8 +102,11 @@ class Opportunity {
       'organization': organization,
       'location': location,
       'link': link,
+      'source': source,
       'deadline': deadline.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'type_serial_no': typeSerialNo,
       'extra_details': extraDetails,
     };
   }

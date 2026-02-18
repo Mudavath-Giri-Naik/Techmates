@@ -2,289 +2,397 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/internship_details_model.dart';
 import 'package:intl/intl.dart';
+import '../services/bookmark_service.dart';
+import '../utils/opportunity_options_sheet.dart';
+import 'elite_badge.dart';
 
-class InternshipCard extends StatelessWidget {
+class InternshipCard extends StatefulWidget {
   final InternshipDetailsModel internship;
   final int? serialNumber;
+  final bool isHighlighted;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const InternshipCard({
-    super.key, 
+    super.key,
     required this.internship,
     this.serialNumber,
+    this.isHighlighted = false,
+    this.onEdit,
+    this.onDelete,
+    this.margin,
   });
 
+  final EdgeInsetsGeometry? margin;
+
+  @override
+  State<InternshipCard> createState() => _InternshipCardState();
+}
+
+class _InternshipCardState extends State<InternshipCard> {
+  final BookmarkService _bookmarkService = BookmarkService();
+  bool _isSaved = false;
+
+  // ── Stormy Morning Palette ──
+  static const Color _title = Color(0xFF384959);       // Dark navy
+  static const Color _muted = Color(0xFF6A89A7);       // Steel blue
+  static const Color _body = Color(0xFF4A6A85);        // Mid steel
+  static const Color _blue = Color(0xFF88BDF2);        // Sky blue accent
+  static const Color _chipBg = Color(0xFFE8F2FC);      // Very light blue tint
+  static const Color _chipBorder = Color(0xFFBDDDFC);  // Pastel blue
+  static const Color _divider = Color(0xFFD6E8F7);     // Soft pastel divider
+  static const Color _red = Color(0xFFDC2626);         // Urgency red (preserved)
+  static const Color _green = Color(0xFF16A34A);       // Urgency green (preserved)
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBookmarkStatus();
+  }
+
+  void _checkBookmarkStatus() {
+    setState(() {
+      _isSaved = _bookmarkService.isBookmarked(widget.internship.opportunityId);
+    });
+  }
+
+  Future<void> _toggleBookmark() async {
+    await _bookmarkService.toggleBookmark(widget.internship);
+    _checkBookmarkStatus();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isSaved ? "Saved to bookmarks" : "Removed from bookmarks"),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          width: 200,
+        ),
+      );
+    }
+  }
+
   Future<void> _launchURL() async {
-    final Uri url = Uri.parse(internship.link);
+    final Uri url = Uri.parse(widget.internship.link);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
   }
 
-  Color _getTagColor(String text) {
-    final t = text.toLowerCase();
-    if (t.contains('internship')) return Colors.blue;
-    if (t.contains('remote')) return Colors.green;
-    if (t.contains('paid') || t.contains('stipend') || t.contains('\$') || t.contains('₹')) return Colors.orange;
-    if (t.contains('urgent') || t.contains('closing')) return Colors.red;
-    return Colors.blueGrey;
-  }
-
   @override
   Widget build(BuildContext context) {
+    _isSaved = _bookmarkService.isBookmarked(widget.internship.opportunityId);
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final deadlineDate = DateTime(internship.deadline.year, internship.deadline.month, internship.deadline.day);
-    final daysLeft = deadlineDate.difference(today).inDays;
-    
-    // Logic for urgency text
-    String urgencyText = "";
-    Color urgencyColor = Colors.grey;
+    final dl = DateTime(widget.internship.deadline.year, widget.internship.deadline.month, widget.internship.deadline.day);
+    final daysLeft = dl.difference(today).inDays;
+
+    String urgency;
+    Color urgencyColor;
     if (daysLeft < 0) {
-      urgencyText = "Closed";
-      urgencyColor = Colors.grey;
+      urgency = "Closed";
+      urgencyColor = _muted;
     } else if (daysLeft == 0) {
-      urgencyText = "Ends Today";
-      urgencyColor = Colors.red;
+      urgency = "Ends today";
+      urgencyColor = _red;
+    } else if (daysLeft <= 7) {
+      urgency = "$daysLeft days left";
+      urgencyColor = _red;
+    } else if (daysLeft <= 15) {
+      urgency = "$daysLeft days left";
+      urgencyColor = const Color(0xFFD97706);
     } else {
-      urgencyText = "$daysLeft days left";
-      if (daysLeft <= 5) urgencyColor = Colors.red;
-      else if (daysLeft <= 15) urgencyColor = Colors.orange; // Yellow/Orange
-      else urgencyColor = Colors.green; 
+      urgency = "$daysLeft days left";
+      urgencyColor = _green;
     }
 
-    String? stipendText;
-    if (internship.stipend > 0) {
-      stipendText = "₹${internship.stipend}";
+    final deadline = DateFormat('MMM d, y').format(widget.internship.deadline);
+
+    // Description items
+    final List<_DescItem> descItems = [];
+    if (widget.internship.eligibility.isNotEmpty && widget.internship.eligibility != 'N/A') {
+      descItems.add(_DescItem(Icons.school_outlined, widget.internship.eligibility));
     }
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1)),
+    if (widget.internship.empType.isNotEmpty && widget.internship.empType != 'N/A') {
+      descItems.add(_DescItem(Icons.schedule_outlined, widget.internship.empType));
+    }
+    if (widget.internship.location.isNotEmpty && widget.internship.location != 'N/A') {
+      descItems.add(_DescItem(Icons.location_on_outlined, widget.internship.location));
+    }
+
+    // Chips (days left first, then stipend, duration)
+    final List<Widget> chipWidgets = [];
+    // Days left chip — colored, placed first (left-aligned)
+    chipWidgets.add(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: urgencyColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: urgencyColor.withValues(alpha: 0.2), width: 0.6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.hourglass_bottom_rounded, size: 11, color: urgencyColor),
+            const SizedBox(width: 3),
+            Text(urgency, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: urgencyColor)),
+          ],
+        ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Serial Number
-          if (serialNumber != null)
-             Text(
-               "$serialNumber. ",
-               style: TextStyle(
-                 color: Colors.grey[500],
-                 fontSize: 14,
-                 fontWeight: FontWeight.w500,
-               ),
-             ),
-          
-          const SizedBox(width: 8),
+    );
+    if (widget.internship.stipend > 0) {
+      chipWidgets.add(_buildChip("₹${_fmt(widget.internship.stipend)}"));
+    }
+    if (widget.internship.duration.isNotEmpty && widget.internship.duration != 'N/A') {
+      chipWidgets.add(_buildChip(widget.internship.duration));
+    }
 
-          // 2. Main Content
-          Expanded(
+    final cardMargin = widget.margin ?? const EdgeInsets.only(left: 16, right: 16, bottom: 2);
+
+    return Container(
+      margin: cardMargin,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: widget.isHighlighted ? _blue : const Color(0xFFBDDDFC),
+              width: widget.isHighlighted ? 1.6 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6A89A7).withValues(alpha: 0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Header: Title + Urgency
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        internship.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                          height: 1.2,
-                        ),
+            // ────────────────────────────────────────────
+            // TOP ROW: #Serial + Title (left) | Admin + Bookmark (right)
+            // ────────────────────────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Serial (plain) + Title — inline
+                Expanded(
+                  child: RichText(
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _title,
+                        height: 1.3,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Urgency Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: urgencyColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        urgencyText,
-                        style: TextStyle(
-                          color: urgencyColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 6),
-
-                // Organization & Location (Icon)
-                Row(
-                  children: [
-                    Icon(Icons.business, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        "${internship.company}",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                         maxLines: 1,
-                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        internship.location,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
-                        ),
-                         maxLines: 1,
-                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 4),
-
-                // Eligibility (Icon)
-                if (internship.eligibility.isNotEmpty)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2.0),
-                        child: Icon(Icons.school, size: 14, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          internship.eligibility,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-
-
-                const SizedBox(height: 4),
-
-                // Footer: Deadline (Left) + Tags + Apply Button
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // New Attractive Deadline (Bottom Left)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.access_time_filled, size: 14, color: Colors.black),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDate(internship.deadline),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700, // Bold
-                            color: Colors.black,
+                        if (widget.serialNumber != null || widget.internship.typeSerialNo != null)
+                          TextSpan(
+                            text: "#${widget.serialNumber ?? widget.internship.typeSerialNo} ",
+                            style: const TextStyle(
+                              color: Color(0xFF6A89A7),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
+                        TextSpan(text: widget.internship.title),
                       ],
                     ),
+                  ),
+                ),
+              ],
+            ),
 
-                    const SizedBox(width: 8),
-
-                    // Tags
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            // "Internship" tag REMOVED as requested
-                            if (internship.location.toLowerCase().contains("remote"))
-                               Padding(padding: const EdgeInsets.only(right: 6), child: _buildTag("Remote")),
-                            if (stipendText != null)
-                               Padding(padding: const EdgeInsets.only(right: 6), child: _buildTag(stipendText)),
-                            if (internship.empType.isNotEmpty)
-                              _buildTag(internship.empType),
-                          ],
-                        ),
+            // Company: "by Company Name"
+            if (widget.internship.company.isNotEmpty) ...[
+              const SizedBox(height: 1),
+              Padding(
+                padding: EdgeInsets.only(
+                  left: widget.internship.typeSerialNo != null ? 0 : 0,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      "by ",
+                      style: TextStyle(fontSize: 12, color: _muted, fontStyle: FontStyle.italic),
+                    ),
+                    Flexible(
+                      child: Text(
+                        widget.internship.company,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2845D6)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    
-                    // Minimal Apply Button
-                    TextButton(
-                      onPressed: _launchURL,
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.blue[700],
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        splashFactory: InkRipple.splashFactory,
+                  ],
+                ),
+              ),
+            ],
+
+            // ────────────────────────────────────────────
+            // DIVIDER + DESCRIPTION ITEMS
+            // ────────────────────────────────────────────
+            if (descItems.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Container(height: 0.8, color: _divider),
+              const SizedBox(height: 4),
+              ...descItems.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Row(
+                  children: [
+                    Icon(item.icon, size: 14, color: _muted),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        item.text,
+                        style: const TextStyle(fontSize: 12, color: _body, fontWeight: FontWeight.w400, height: 1.2),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      child: const Row(
+                    ),
+                  ],
+                ),
+              )),
+            ],
+
+            // ────────────────────────────────────────────
+            // DIVIDER + CHIPS (stipend, duration, days left)
+            // ────────────────────────────────────────────
+            const SizedBox(height: 6),
+            Container(height: 0.8, color: _divider),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: chipWidgets,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _toggleBookmark,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Icon(
+                      _isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                      color: _isSaved ? _blue : _muted,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // ────────────────────────────────────────────
+            // DIVIDER + BOTTOM: Date (left) | Apply (right edge)
+            // ────────────────────────────────────────────
+            const SizedBox(height: 8),
+            Container(height: 0.8, color: _divider),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.event_outlined, size: 13, color: _muted),
+                const SizedBox(width: 4),
+                Text(
+                  deadline,
+                  style: const TextStyle(fontSize: 11.5, color: _body, fontWeight: FontWeight.w500),
+                ),
+                const Spacer(),
+                if (widget.onEdit != null && widget.onDelete != null) ...[
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.more_vert, size: 20, color: _muted),
+                      onPressed: () => showOpportunityOptions(
+                        context,
+                        onEdit: widget.onEdit!,
+                        onDelete: widget.onDelete!,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                // Apply - right edge
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _launchURL,
+                    borderRadius: BorderRadius.circular(7),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF384959),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            "Apply",
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_forward, size: 14),
+                          const Text("Apply", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 3),
+                          const Icon(Icons.arrow_outward_rounded, size: 12, color: Colors.white),
                         ],
                       ),
                     ),
-                  ],
-                )
+                  ),
+                ),
               ],
             ),
-          )
+              ],
+            ),
+          ),
+        ),
+        if (widget.internship.isElite)
+          Positioned(
+            top: -3,
+            right: -3,
+            child: EliteBadge(),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTag(String text) {
-    final label = text.isEmpty ? "" : "${text[0].toUpperCase()}${text.substring(1)}";
-    final color = _getTagColor(label);
-    
+  Widget _buildChip(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: _chipBg,
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: _chipBorder, width: 0.6),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: _body)),
     );
   }
 
-  String _formatDate(DateTime dt) {
-    return DateFormat('d MMM yyyy').format(dt);
+  String _fmt(int n) {
+    if (n >= 100000) {
+      final l = n / 100000;
+      return l == l.roundToDouble() ? "${l.toInt()}L" : "${l.toStringAsFixed(1)}L";
+    } else if (n >= 1000) {
+      final k = n / 1000;
+      return k == k.roundToDouble() ? "${k.toInt()}K" : "${k.toStringAsFixed(1)}K";
+    }
+    return n.toString();
   }
 }
+
+class _DescItem {
+  final IconData icon;
+  final String text;
+  const _DescItem(this.icon, this.text);
+}
+

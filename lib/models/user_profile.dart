@@ -43,10 +43,10 @@ class UserProfile {
       role: json['role'] as String? ?? 'student',
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.parse(json['created_at'] as String).toLocal()
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? DateTime.parse(json['updated_at'] as String).toLocal()
           : null,
       linkedinUrl: json['linkedin_url'] as String?,
       githubUrl: json['github_url'] as String?,

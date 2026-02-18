@@ -60,7 +60,11 @@ class EventDetailsModel {
   // Or I will just not sort by date in fetch?
   
   final DateTime createdAt;
+  final DateTime updatedAt;
+
   final DateTime applyDeadline; // Added
+  final int? typeSerialNo; // New field
+  final String? source;
 
   EventDetailsModel({
     required this.opportunityId,
@@ -74,23 +78,45 @@ class EventDetailsModel {
     required this.locationLink,
     required this.applyLink,
     required this.createdAt,
+    required this.updatedAt,
+
     required this.applyDeadline, // Added
+    this.typeSerialNo,
+    this.source,
   });
 
   factory EventDetailsModel.fromJson(Map<String, dynamic> json) {
+    // Handle nested structure from parent fetch
+    Map<String, dynamic> data = json;
+    if (json.containsKey('event_details') && json['event_details'] != null) {
+       if (json['event_details'] is List && (json['event_details'] as List).isNotEmpty) {
+        data = json['event_details'][0];
+       } else if (json['event_details'] is Map) {
+        data = json['event_details'];
+       }
+    }
+
+    final serial = json['type_serial_no'];
+    if (serial != null) {
+        print("🔍 [EventModel] Found serial: $serial (Type: ${serial.runtimeType}) for ${json['title'] ?? data['title']}");
+    }
+
     return EventDetailsModel(
-      opportunityId: (json['opportunity_id'] ?? json['id']).toString(),
-      title: json['title'] as String,
-      organiser: json['organiser'] as String,
-      description: json['description'] as String? ?? '',
-      venue: json['venue'] as String? ?? 'TBD',
-      entryFee: json['entry_fee'] as String?,
-      startDate: DateTime.tryParse(json['start_date'].toString()) ?? DateTime.now(),
-      endDate: DateTime.tryParse(json['end_date'].toString()) ?? DateTime.now(),
-      locationLink: json['location_link'] as String? ?? '',
-      applyLink: json['apply_link'] as String? ?? '',
-      createdAt: DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now(),
-      applyDeadline: DateTime.tryParse(json['apply_deadline'].toString()) ?? DateTime.now().add(const Duration(days: 30)), // Added with fallback
+      opportunityId: (data['opportunity_id'] ?? data['id'] ?? json['id']).toString(),
+      title: data['title'] as String,
+      organiser: data['organiser'] as String,
+      description: data['description'] as String? ?? '',
+      venue: data['venue'] as String? ?? 'TBD',
+      entryFee: data['entry_fee'] as String?,
+      startDate: DateTime.tryParse(data['start_date'].toString())?.toLocal() ?? DateTime.now(),
+      endDate: DateTime.tryParse(data['end_date'].toString())?.toLocal() ?? DateTime.now(),
+      locationLink: data['location_link'] as String? ?? '',
+      applyLink: data['apply_link'] as String? ?? '',
+      createdAt: DateTime.tryParse((data['created_at'] ?? json['created_at']).toString())?.toLocal() ?? DateTime.now(),
+      updatedAt: DateTime.tryParse((json['updated_at'] ?? data['updated_at']).toString())?.toLocal() ?? DateTime.tryParse((data['created_at'] ?? json['created_at']).toString())?.toLocal() ?? DateTime.now(),
+      applyDeadline: DateTime.tryParse((data['apply_deadline'] ?? json['deadline']).toString())?.toLocal() ?? DateTime.now().add(const Duration(days: 30)),
+      typeSerialNo: int.tryParse(json['type_serial_no']?.toString() ?? '') ?? (json['type_serial_no'] is int ? json['type_serial_no'] : null),
+      source: json['source'] as String?,
     );
   }
 
@@ -107,7 +133,10 @@ class EventDetailsModel {
       'location_link': locationLink,
       'apply_link': applyLink,
       'apply_deadline': applyDeadline.toIso8601String(), // Added
-      // 'created_at': createdAt.toIso8601String(), 
+      'type_serial_no': typeSerialNo,
+      'source': source,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }

@@ -24,17 +24,25 @@ class FilterBottomSheet extends StatefulWidget {
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late FilterModel _tempFilters;
 
+  // ── Colors ──
+  static const Color _ink = Color(0xFF1A1A2E);
+  static const Color _muted = Color(0xFF78909C);
+  static const Color _accent = Color(0xFF0052CC);
+  static const Color _surface = Color(0xFFF8F9FA);
+  static const Color _border = Color(0xFFE8EAED);
+
   @override
   void initState() {
     super.initState();
-    // Create a copy to modify temporarily
     _tempFilters = widget.currentFilters.copyWith();
   }
 
   @override
   Widget build(BuildContext context) {
+    final activeCount = _tempFilters.activeCount;
+
     return Container(
-      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 24),
+      padding: const EdgeInsets.only(top: 12, left: 20, right: 20, bottom: 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -43,264 +51,451 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // ── Handle bar ──
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDDDDDD),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // ── Header ──
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Filter icon + title
+              const Icon(Icons.tune_rounded, size: 18, color: _ink),
+              const SizedBox(width: 8),
               const Text(
                 'Filters',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _ink,
+                  letterSpacing: -0.3,
+                ),
               ),
-              TextButton(
-                onPressed: () {
-                   // Reset visual state
-                   setState(() {
-                      _tempFilters = FilterModel(); // Reset to defaults
-                   });
+              if (activeCount > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _accent.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$activeCount',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: _accent,
+                    ),
+                  ),
+                ),
+              ],
+              const Spacer(),
+              // Reset
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _tempFilters = FilterModel();
+                  });
                 },
-                child: const Text('Reset', style: TextStyle(color: Colors.red)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _border, width: 0.8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh_rounded, size: 13, color: _muted),
+                      SizedBox(width: 4),
+                      Text(
+                        'Reset',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: _muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
-          const Divider(),
-          
+
+          const SizedBox(height: 16),
+
+          // ── Scrollable content ──
           Flexible(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Sort Section
-                  _buildSectionTitle('Sort By'),
-                  _buildSortOptions(),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // 2. Deadline Section
-                  _buildSectionTitle('Deadline'),
-                  _buildDeadlineOptions(),
-                  
-                  const SizedBox(height: 16),
+                  // ═══════════════════════════
+                  // SORT section
+                  // ═══════════════════════════
+                  _sectionHeader(Icons.swap_vert_rounded, 'Sort'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _sortChip('Newest', SortOption.newest),
+                      const SizedBox(width: 8),
+                      _sortChip('Oldest', SortOption.oldest),
+                      const SizedBox(width: 8),
+                      _sortChip('Deadline ↑', SortOption.nearestDeadline),
+                      const SizedBox(width: 8),
+                      _sortChip('Deadline ↓', SortOption.latestDeadline),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                       _sortChip('Serial # (1-9)', SortOption.serialNumberAsc), 
+                    ],
+                  ),
 
-                  // 3. Category Specific Section
-                  _buildCategorySpecificFilters(),
+                  // ═══════════════════════════
+                  // CATEGORY FILTERS
+                  // ═══════════════════════════
+                  _buildCategoryFilters(),
                 ],
               ),
             ),
           ),
-          
-          const SizedBox(height: 20),
-          
-          // Apply Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                widget.onApply(_tempFilters);
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+
+          const SizedBox(height: 16),
+
+          // ── Apply button ──
+          Row(
+            children: [
+              // Cancel
+              Expanded(
+                flex: 1,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border, width: 0.8),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _muted,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              child: const Text('Apply Filters', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
+              const SizedBox(width: 10),
+              // Apply
+              Expanded(
+                flex: 2,
+                child: GestureDetector(
+                  onTap: () {
+                    widget.onApply(_tempFilters);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: _ink,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Apply',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        if (activeCount > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$activeCount',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
-    );
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CATEGORY-SPECIFIC FILTERS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Widget _buildCategoryFilters() {
+    if (widget.category == 'Applied' || widget.category == 'Apply Later') {
+      return _buildStatusTabFilters();
+    } else if (widget.category == 'Internships') {
+      return _buildInternshipFilters();
+    } else if (widget.category == 'Hackathons') {
+      return _buildHackathonFilters();
+    } else if (widget.category == 'Events' || widget.category == 'Meetups') {
+      return _buildEventFilters();
+    }
+    return const SizedBox.shrink();
   }
 
-  Widget _buildSortOptions() {
-    return Row(
+  // ── Status Tabs ──
+  Widget _buildStatusTabFilters() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildChoiceChip(
-          label: 'Newest First',
-          selected: _tempFilters.isNewestFirst,
-          onSelected: (val) {
-             if (val) setState(() => _tempFilters.isNewestFirst = true);
-          },
-        ),
-        const SizedBox(width: 8),
-        _buildChoiceChip(
-          label: 'Oldest First',
-          selected: !_tempFilters.isNewestFirst,
-          onSelected: (val) {
-            if (val) setState(() => _tempFilters.isNewestFirst = false);
-          },
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildDeadlineOptions() {
-    return Row(
-      children: [
-        _buildChoiceChip(
-          label: 'Earliest Deadline',
-          selected: _tempFilters.isDeadlineAscending,
-          onSelected: (val) {
-             if (val) setState(() => _tempFilters.isDeadlineAscending = true);
-          },
-        ),
-        const SizedBox(width: 8),
-        _buildChoiceChip(
-          label: 'Latest Deadline',
-          selected: !_tempFilters.isDeadlineAscending,
-          onSelected: (val) {
-            if (val) setState(() => _tempFilters.isDeadlineAscending = false);
-          },
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.category_outlined, 'Type of Opportunity'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterTag('Internships', Icons.laptop_mac_rounded, _tempFilters.showInternships, (v) => _tempFilters.showInternships = v),
+            _filterTag('Hackathons', Icons.code_rounded, _tempFilters.showHackathons, (v) => _tempFilters.showHackathons = v),
+            _filterTag('Events', Icons.event_rounded, _tempFilters.showEvents, (v) => _tempFilters.showEvents = v),
+            _filterTag('Competitions', Icons.emoji_events_rounded, _tempFilters.showCompetitions, (v) => _tempFilters.showCompetitions = v),
+            _filterTag('Meetups', Icons.groups_rounded, _tempFilters.showMeetups, (v) => _tempFilters.showMeetups = v),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildCategorySpecificFilters() {
-     // Status tabs show "Type of Opportunity" filter
-     if (widget.category == 'Applied' || widget.category == 'Apply Later') {
-       return Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           _buildSectionTitle('Type of Opportunity'),
-           Wrap(
-             spacing: 8,
-             children: [
-               _buildFilterChip('Internships', _tempFilters.showInternships, (v) => _tempFilters.showInternships = v),
-               _buildFilterChip('Hackathons', _tempFilters.showHackathons, (v) => _tempFilters.showHackathons = v),
-               _buildFilterChip('Events', _tempFilters.showEvents, (v) => _tempFilters.showEvents = v),
-               _buildFilterChip('Competitions', _tempFilters.showCompetitions, (v) => _tempFilters.showCompetitions = v),
-               _buildFilterChip('Meetups', _tempFilters.showMeetups, (v) => _tempFilters.showMeetups = v),
-             ],
-           ),
-         ],
-       );
-     }
-
-     if (widget.category == 'Internships') {
-       return Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           _buildSectionTitle('Type'),
-           Wrap(
-             spacing: 8,
-             children: [
-               _buildFilterChip('Remote', _tempFilters.isRemote, (v) => _tempFilters.isRemote = v),
-               _buildFilterChip('Hybrid', _tempFilters.isHybrid, (v) => _tempFilters.isHybrid = v),
-               _buildFilterChip('On-Site', _tempFilters.isOnSite, (v) => _tempFilters.isOnSite = v),
-             ],
-           ),
-           const SizedBox(height: 16),
-           _buildSectionTitle('Stipend'),
-           Wrap(
-             spacing: 8,
-             children: [
-               _buildFilterChip('Paid', _tempFilters.isPaid, (v) => _tempFilters.isPaid = v),
-               _buildFilterChip('Unpaid', _tempFilters.isUnpaid, (v) => _tempFilters.isUnpaid = v),
-             ],
-           ),
-         ],
-       );
-     }
-     
-     if (widget.category == 'Hackathons') {
-       return Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           _buildSectionTitle('Mode'),
-           Wrap(
-             spacing: 8,
-             children: [
-               _buildFilterChip('Online', _tempFilters.isOnlineHackathon, (v) => _tempFilters.isOnlineHackathon = v),
-               _buildFilterChip('Hybrid', _tempFilters.isHybridHackathon, (v) => _tempFilters.isHybridHackathon = v), // Added
-               _buildFilterChip('Offline', _tempFilters.isOfflineHackathon, (v) => _tempFilters.isOfflineHackathon = v),
-             ],
-           ),
-           const SizedBox(height: 16),
-           _buildSectionTitle('Participation'),
-           Wrap(
-             spacing: 8,
-             children: [
-               _buildFilterChip('TeamAllowed', _tempFilters.isTeamAllowed, (v) => _tempFilters.isTeamAllowed = v),
-               _buildFilterChip('Solo Allowed', _tempFilters.isSoloAllowed, (v) => _tempFilters.isSoloAllowed = v),
-             ],
-           ),
-            const SizedBox(height: 16),
-            _buildSectionTitle('Other'),
-            _buildFilterChip('Prize Available', _tempFilters.isPrizeAvailable, (v) => _tempFilters.isPrizeAvailable = v),
-         ],
-       );
-     }
-
-     if (widget.category == 'Events' || widget.category == 'Meetups') {
-       return Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           _buildSectionTitle('Mode'),
-           Wrap(
-             spacing: 8,
-             children: [
-               _buildFilterChip('Online', _tempFilters.isOnlineEvent, (v) => _tempFilters.isOnlineEvent = v),
-               _buildFilterChip('In-Person', _tempFilters.isOfflineEvent, (v) => _tempFilters.isOfflineEvent = v),
-             ],
-           ),
-           const SizedBox(height: 16),
-           _buildSectionTitle('Cost'),
-           Wrap(
-             spacing: 8,
-             children: [
-               _buildFilterChip('Free', _tempFilters.isFree, (v) => _tempFilters.isFree = v),
-               _buildFilterChip('Paid', _tempFilters.isPaidEvent, (v) => _tempFilters.isPaidEvent = v),
-             ],
-           ),
-         ],
-       );
-     }
-
-     return const SizedBox.shrink();
+  // ── Internship Filters ──
+  Widget _buildInternshipFilters() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.location_on_outlined, 'Work Mode'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterTag('Remote', Icons.wifi_rounded, _tempFilters.isRemote, (v) => _tempFilters.isRemote = v),
+            _filterTag('Hybrid', Icons.sync_alt_rounded, _tempFilters.isHybrid, (v) => _tempFilters.isHybrid = v),
+            _filterTag('On-Site', Icons.business_rounded, _tempFilters.isOnSite, (v) => _tempFilters.isOnSite = v),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.payments_outlined, 'Stipend'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterTag('Paid', Icons.check_circle_outline, _tempFilters.isPaid, (v) => _tempFilters.isPaid = v),
+            _filterTag('Unpaid', Icons.money_off_rounded, _tempFilters.isUnpaid, (v) => _tempFilters.isUnpaid = v),
+          ],
+        ),
+      ],
+    );
   }
 
-  Widget _buildChoiceChip({required String label, required bool selected, required Function(bool) onSelected}) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: onSelected,
-      selectedColor: Colors.blue.shade100,
-      labelStyle: TextStyle(
-        color: selected ? Colors.blue.shade900 : Colors.grey.shade700,
-        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+  // ── Hackathon Filters ──
+  Widget _buildHackathonFilters() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.wifi_rounded, 'Mode'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterTag('Online', Icons.language_rounded, _tempFilters.isOnlineHackathon, (v) => _tempFilters.isOnlineHackathon = v),
+            _filterTag('Hybrid', Icons.sync_alt_rounded, _tempFilters.isHybridHackathon, (v) => _tempFilters.isHybridHackathon = v),
+            _filterTag('Offline', Icons.location_city_rounded, _tempFilters.isOfflineHackathon, (v) => _tempFilters.isOfflineHackathon = v),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.people_outline_rounded, 'Participation'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterTag('Team', Icons.group_rounded, _tempFilters.isTeamAllowed, (v) => _tempFilters.isTeamAllowed = v),
+            _filterTag('Solo', Icons.person_rounded, _tempFilters.isSoloAllowed, (v) => _tempFilters.isSoloAllowed = v),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.emoji_events_outlined, 'Prizes'),
+        const SizedBox(height: 8),
+        _filterTag('Prize Available', Icons.star_outline_rounded, _tempFilters.isPrizeAvailable, (v) => _tempFilters.isPrizeAvailable = v),
+      ],
+    );
+  }
+
+  // ── Event Filters ──
+  Widget _buildEventFilters() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.wifi_rounded, 'Mode'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterTag('Online', Icons.language_rounded, _tempFilters.isOnlineEvent, (v) => _tempFilters.isOnlineEvent = v),
+            _filterTag('In-Person', Icons.location_city_rounded, _tempFilters.isOfflineEvent, (v) => _tempFilters.isOfflineEvent = v),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _sectionHeader(Icons.confirmation_num_outlined, 'Cost'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _filterTag('Free', Icons.check_circle_outline, _tempFilters.isFree, (v) => _tempFilters.isFree = v),
+            _filterTag('Paid', Icons.payments_outlined, _tempFilters.isPaidEvent, (v) => _tempFilters.isPaidEvent = v),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // REUSABLE COMPONENTS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /// Section header with icon + label
+  Widget _sectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: _muted),
+        const SizedBox(width: 6),
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            color: _muted,
+            letterSpacing: 1.0,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Sort chip (single select)
+  Widget _sortChip(String label, SortOption option) {
+    final isSelected = _tempFilters.sortBy == option;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _tempFilters.sortBy = option);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? _ink : _surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? _ink : _border,
+            width: 0.8,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? Colors.white : _muted,
+          ),
+        ),
       ),
-      backgroundColor: Colors.grey.shade100,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
-      showCheckmark: false,
     );
   }
 
-  Widget _buildFilterChip(String label, bool value, Function(bool) onChanged) {
-    return FilterChip(
-      label: Text(label),
-      selected: value,
-      onSelected: (v) {
+  /// Filter tag with icon (multi select)
+  Widget _filterTag(String label, IconData icon, bool value, Function(bool) onChanged) {
+    return GestureDetector(
+      onTap: () {
         setState(() {
-          onChanged(v);
+          onChanged(!value);
         });
       },
-      selectedColor: Colors.blue.shade100,
-      labelStyle: TextStyle(
-        color: value ? Colors.blue.shade900 : Colors.grey.shade700,
-        fontWeight: value ? FontWeight.bold : FontWeight.normal,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: value ? _accent.withOpacity(0.06) : _surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: value ? _accent.withOpacity(0.3) : _border,
+            width: 0.8,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: value ? _accent : _muted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: value ? FontWeight.w700 : FontWeight.w500,
+                color: value ? _accent : const Color(0xFF546E7A),
+              ),
+            ),
+            if (value) ...[
+              const SizedBox(width: 4),
+              Icon(
+                Icons.check_rounded,
+                size: 13,
+                color: _accent,
+              ),
+            ],
+          ],
+        ),
       ),
-      backgroundColor: Colors.grey.shade100,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
-      showCheckmark: false,
     );
   }
 }

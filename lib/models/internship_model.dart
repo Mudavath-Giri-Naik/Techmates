@@ -39,11 +39,11 @@ class Internship {
     // Parse Deadline safely
     DateTime? parsedDeadline;
     if (detailMap != null && detailMap['deadline'] != null) {
-      parsedDeadline = DateTime.tryParse(detailMap['deadline']);
+      parsedDeadline = DateTime.tryParse(detailMap['deadline'])?.toLocal();
     } 
     // Fallback to Opportunity deadline if detail deadline missing
     if (parsedDeadline == null && json['deadline'] != null) {
-      parsedDeadline = DateTime.tryParse(json['deadline']);
+      parsedDeadline = DateTime.tryParse(json['deadline'])?.toLocal();
     }
 
     return Internship(

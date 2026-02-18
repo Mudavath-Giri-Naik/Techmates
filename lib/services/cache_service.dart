@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/opportunity_model.dart';
+import '../models/internship_details_model.dart';
+import '../models/hackathon_details_model.dart';
+import '../models/event_details_model.dart';
 import 'package:flutter/foundation.dart';
 
 class CacheService {
@@ -58,5 +61,71 @@ class CacheService {
     final String? timeStr = prefs.getString(key);
     if (timeStr == null) return null;
     return DateTime.tryParse(timeStr);
+  }
+
+  // --- Internships ---
+  Future<void> saveInternships(List<InternshipDetailsModel> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String key = '${_keyPrefix}Internships';
+    final String encoded = jsonEncode(items.map((e) => e.toJson()).toList());
+    await prefs.setString(key, encoded);
+  }
+
+  Future<List<InternshipDetailsModel>> getInternships() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String key = '${_keyPrefix}Internships';
+    final String? encoded = prefs.getString(key);
+    if (encoded == null) return [];
+    try {
+      final List<dynamic> decoded = jsonDecode(encoded);
+      return decoded.map((e) => InternshipDetailsModel.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint("Error decoding internships cache: $e");
+      return [];
+    }
+  }
+
+  // --- Hackathons ---
+  Future<void> saveHackathons(List<HackathonDetailsModel> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String key = '${_keyPrefix}Hackathons';
+    final String encoded = jsonEncode(items.map((e) => e.toJson()).toList());
+    await prefs.setString(key, encoded);
+  }
+
+  Future<List<HackathonDetailsModel>> getHackathons() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String key = '${_keyPrefix}Hackathons';
+    final String? encoded = prefs.getString(key);
+    if (encoded == null) return [];
+    try {
+      final List<dynamic> decoded = jsonDecode(encoded);
+      return decoded.map((e) => HackathonDetailsModel.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint("Error decoding hackathons cache: $e");
+      return [];
+    }
+  }
+
+  // --- Events ---
+  Future<void> saveEvents(List<EventDetailsModel> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String key = '${_keyPrefix}Events';
+    final String encoded = jsonEncode(items.map((e) => e.toJson()).toList());
+    await prefs.setString(key, encoded);
+  }
+
+  Future<List<EventDetailsModel>> getEvents() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String key = '${_keyPrefix}Events';
+    final String? encoded = prefs.getString(key);
+    if (encoded == null) return [];
+    try {
+      final List<dynamic> decoded = jsonDecode(encoded);
+      return decoded.map((e) => EventDetailsModel.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint("Error decoding events cache: $e");
+      return [];
+    }
   }
 }

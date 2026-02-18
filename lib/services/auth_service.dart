@@ -5,6 +5,7 @@ import '../core/supabase_client.dart';
 import '../utils/college_email_validator.dart';
 import '../models/user_profile.dart';
 import 'profile_service.dart';
+import 'user_role_service.dart';
 
 class AuthService {
   final SupabaseClient _client = SupabaseClientManager.instance;
@@ -22,8 +23,14 @@ class AuthService {
         // Post-Login Profile Sync
         if (event == AuthChangeEvent.signedIn || event == AuthChangeEvent.tokenRefreshed) {
            _onLoginSuccess(session.user);
+           // Fetch Role
+           UserRoleService().fetchAndCacheRole(session.user.id);
         }
       } else {
+        // Clear role on logout
+        if (event == AuthChangeEvent.signedOut) {
+             UserRoleService().clear();
+        }
         debugPrint("   -> No Session");
       }
     });
@@ -31,6 +38,7 @@ class AuthService {
 
   Future<void> _onLoginSuccess(User user) async {
     try {
+      // 1. Sync Profile
       final profileService = ProfileService();
       final metadata = user.userMetadata ?? {};
       
@@ -44,6 +52,9 @@ class AuthService {
       );
       
       await profileService.upsertProfile(profile);
+      
+      // 2. Fetch Role (Redundant call but ensures freshness)
+      // await UserRoleService().fetchAndCacheRole(user.id); 
     } catch (e) {
       debugPrint("⚠️ [AuthService] Failed to sync profile on login: $e");
     }
@@ -226,6 +237,13 @@ class AuthService {
   bool get isLoggedIn => session != null;
   String get role => user?.userMetadata?['role'] ?? 'student';
   bool get isAdmin => role == 'admin';
+
+  Future<void> updateUserMetadata(Map<String, dynamic> data) async {
+    debugPrint("🔄 [AuthService] Updating User Metadata: $data");
+    await _client.auth.updateUser(
+      UserAttributes(data: data),
+    );
+  }
 
   Future<void> signOut() async {
     debugPrint("👋 [AuthService] Signing Out.");

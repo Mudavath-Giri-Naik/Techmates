@@ -5,10 +5,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'core/supabase_client.dart';
 import 'services/auth_service.dart';
+import 'services/user_role_service.dart'; // Import Role Service
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/notification_service.dart'; 
 import 'screens/splash_screen.dart'; 
+import 'screens/opportunity_detail_screen.dart';
 
 
 
@@ -35,6 +37,9 @@ void main() async {
 
     await SupabaseClientManager.initialize();
 
+    // Initialize Role Service (Load from cache)
+    await UserRoleService().init();
+
     // Check strict session rules on startup
     final auth = AuthService();
     if (auth.isLoggedIn) {
@@ -59,6 +64,8 @@ void main() async {
   }
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -75,7 +82,9 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Techmates Auth',
+      scrollBehavior: const SmoothScrollBehavior(),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,
@@ -89,6 +98,16 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       home: const SplashScreen(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/opportunity_detail': (context) {
+           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+           return OpportunityDetailScreen(
+             opportunityId: args['opportunityId'],
+             type: args['type'],
+           );
+        },
+      },
     );
   }
 }
@@ -112,6 +131,20 @@ class ErrorApp extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// Global smooth scroll — iOS-style bouncing on all platforms
+// ─────────────────────────────────────────────────────
+class SmoothScrollBehavior extends ScrollBehavior {
+  const SmoothScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics(
+      decelerationRate: ScrollDecelerationRate.fast,
     );
   }
 }
