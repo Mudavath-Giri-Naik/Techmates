@@ -163,7 +163,7 @@ class _EventCardState extends State<EventCard> {
         : '001';
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       // Drop-shadow that mimics a slightly lifted card on a table
       decoration: BoxDecoration(
         boxShadow: [
@@ -278,7 +278,7 @@ class _EventCardState extends State<EventCard> {
                               labelStyle: _styleMicro.copyWith(fontSize: 8),
                               valueStyle: _styleData,
                             ),
-                            const SizedBox(width: 20),
+                            const Spacer(),
                             _InfoColumn(
                               label: 'DEADLINE',
                               value: DateFormat('MMM d').format(deadline),
@@ -307,19 +307,52 @@ class _EventCardState extends State<EventCard> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Top: serial
-                        Text(
-                          'NO. $serial',
-                          style: _styleMicro.copyWith(
-                            color: _inkFaint,
-                            letterSpacing: 1.4,
-                          ),
+                        // Top: serial + edit/save icons
+                        Column(
+                          children: [
+                            Text(
+                              'NO. $serial',
+                              style: _styleMicro.copyWith(
+                                color: _inkFaint,
+                                letterSpacing: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (widget.onEdit != null)
+                                  _StubIcon(
+                                    icon: Icons.tune,
+                                    onTap: () => showOpportunityOptions(
+                                      context,
+                                      onEdit: widget.onEdit!,
+                                      onDelete: widget.onDelete!,
+                                      title: widget.event.title,
+                                      subtitle: widget.event.organiser,
+                                    ),
+                                  )
+                                else
+                                  _StubIcon(
+                                    icon: Icons.arrow_outward_rounded,
+                                    onTap: () => _launchURL(widget.event.applyLink),
+                                  ),
+                                const SizedBox(width: 10),
+                                _StubIcon(
+                                  icon: _isSaved
+                                      ? Icons.bookmark_rounded
+                                      : Icons.bookmark_outline_rounded,
+                                  onTap: _toggleBookmark,
+                                  color: _isSaved ? _amber : _inkMid,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
 
                         // Middle: status + mini barcode
                         Column(
                           children: [
-                            // Status label
                             Text(
                               status.text,
                               textAlign: TextAlign.center,
@@ -343,41 +376,16 @@ class _EventCardState extends State<EventCard> {
 
                             const SizedBox(height: 12),
 
-                            // Mini decorative barcode
                             _MiniBarcode(color: _inkFaint.withOpacity(0.55)),
                           ],
                         ),
 
-                        // Bottom: action icons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (widget.onEdit != null) ...[
-                              _StubIcon(
-                                icon: Icons.tune,
-                                onTap: () => showOpportunityOptions(
-                                  context,
-                                  onEdit: widget.onEdit!,
-                                  onDelete: widget.onDelete!,
-                                  title: widget.event.title,
-                                  subtitle: widget.event.organiser,
-                                ),
-                              ),
-                            ] else ...[
-                              _StubIcon(
-                                icon: Icons.arrow_outward_rounded,
-                                onTap: () => _launchURL(widget.event.applyLink),
-                              ),
-                            ],
-                            const SizedBox(width: 14),
-                            _StubIcon(
-                              icon: _isSaved
-                                  ? Icons.bookmark_rounded
-                                  : Icons.bookmark_outline_rounded,
-                              onTap: _toggleBookmark,
-                              color: _isSaved ? _amber : _inkMid,
-                            ),
-                          ],
+                        // Bottom: Apply button (uses apply_link from DB)
+                        _ApplyButton(
+                          applyLink: widget.event.applyLink,
+                          onTap: () => _launchURL(widget.event.applyLink),
+                          amberColor: _amber,
+                          inkFaintColor: _inkFaint,
                         ),
                       ],
                     ),
@@ -442,6 +450,51 @@ class _InfoColumn extends StatelessWidget {
         const SizedBox(height: 3),
         Text(value, style: valueStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
       ],
+    );
+  }
+}
+
+/// Apply button — matches ticket style, uses apply_link from DB
+class _ApplyButton extends StatelessWidget {
+  final String? applyLink;
+  final VoidCallback onTap;
+  final Color amberColor;
+  final Color inkFaintColor;
+
+  const _ApplyButton({
+    required this.applyLink,
+    required this.onTap,
+    required this.amberColor,
+    required this.inkFaintColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasLink = applyLink != null && applyLink!.isNotEmpty;
+    return GestureDetector(
+      onTap: hasLink ? onTap : null,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: hasLink ? amberColor.withOpacity(0.5) : inkFaintColor.withOpacity(0.4),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(3),
+          color: hasLink ? amberColor.withOpacity(0.08) : null,
+        ),
+        child: Text(
+          'APPLY',
+          style: TextStyle(
+            fontFamily: 'CourierPrime',
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.4,
+            color: hasLink ? amberColor : inkFaintColor,
+          ),
+        ),
+      ),
     );
   }
 }
