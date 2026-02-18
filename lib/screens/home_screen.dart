@@ -961,6 +961,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               isHighlighted: _highlightedOpportunityId == id,
               onEdit: roleService.isSuperAdmin ? () => _handleEdit(item, id) : null,
               onDelete: roleService.isSuperAdmin ? () => _handleDelete(id) : null,
+              onToggleElite: roleService.isAdmin ? (bool value) => _handleToggleElite(id, value) : null,
               margin: const EdgeInsets.only(left: 4, right: 16, bottom: 2),
             ),
             Padding(
@@ -1110,6 +1111,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (confirm == true) {
       await _adminService.deleteOpportunity(id);
       _onRefresh();
+    }
+  }
+
+  Future<void> _handleToggleElite(String opportunityId, bool isElite) async {
+    try {
+      await _adminService.toggleEliteInternship(
+        opportunityId: opportunityId,
+        isElite: isElite,
+      );
+
+      // Refresh both regular internships and elite internships
+      await OpportunityStore.instance.fetchAll(forceRefresh: true);
+      await _fetchEliteInternships();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isElite ? "Marked as Elite Internship" : "Removed from Elite Internships",
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to update elite status: $e"),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -1498,6 +1535,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                 final cardWidget = item is InternshipDetailsModel 
                   ? InternshipCard(
+                      onToggleElite: roleService.isAdmin ? (bool value) => _handleToggleElite(id, value) : null,
                       internship: item, 
                       serialNumber: adjustedIndex + 1,
                       isHighlighted: _highlightedOpportunityId == item.opportunityId,

@@ -12,6 +12,7 @@ class InternshipCard extends StatefulWidget {
   final bool isHighlighted;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final Function(bool)? onToggleElite;
 
   const InternshipCard({
     super.key,
@@ -20,6 +21,7 @@ class InternshipCard extends StatefulWidget {
     this.isHighlighted = false,
     this.onEdit,
     this.onDelete,
+    this.onToggleElite,
     this.margin,
   });
 
@@ -321,6 +323,8 @@ class _InternshipCardState extends State<InternshipCard> {
                         context,
                         onEdit: widget.onEdit!,
                         onDelete: widget.onDelete!,
+                        isElite: widget.internship.isElite,
+                        onToggleElite: widget.onToggleElite,
                       ),
                     ),
                   ),
@@ -356,9 +360,9 @@ class _InternshipCardState extends State<InternshipCard> {
           ),
         ),
         if (widget.internship.isElite)
-          Positioned(
-            top: -3,
-            right: -3,
+          const Positioned(
+            top: 6,
+            right: 6,
             child: EliteBadge(),
           ),
         ],

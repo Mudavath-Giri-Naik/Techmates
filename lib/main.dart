@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import dotenv
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'firebase_options.dart';
 import 'core/supabase_client.dart';
 import 'services/auth_service.dart';
@@ -25,6 +26,10 @@ void main() async {
   String? error;
 
   try {
+    final packageInfo = await PackageInfo.fromPlatform();
+    debugPrint("🚀 Techmates App Version: ${packageInfo.version}");
+    debugPrint("📦 Build Number: ${packageInfo.buildNumber}");
+
     // Load env file
     await dotenv.load(fileName: ".env");
     
@@ -73,10 +78,33 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      final auth = AuthService();
+
+      if (auth.isLoggedIn) {
+        try {
+          debugPrint("🔄 [LIFECYCLE] App resumed. Revalidating session...");
+          await auth.ensureSessionValid();
+        } catch (e) {
+          debugPrint("❌ [LIFECYCLE] Session invalid on resume: $e");
+        }
+      }
+    }
   }
 
   @override

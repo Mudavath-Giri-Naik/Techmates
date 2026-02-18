@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
-void showOpportunityOptions(BuildContext context, {required VoidCallback onEdit, required VoidCallback onDelete}) {
+void showOpportunityOptions(
+  BuildContext context, {
+  required VoidCallback onEdit,
+  required VoidCallback onDelete,
+  bool? isElite,
+  Function(bool)? onToggleElite,
+}) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.white,
@@ -62,6 +68,44 @@ void showOpportunityOptions(BuildContext context, {required VoidCallback onEdit,
             ),
             
             const SizedBox(height: 8),
+
+            // Elite Toggle Option (only for internships)
+            if (isElite != null && onToggleElite != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Text(
+                        'Mark as Elite Internship',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Switch(
+                      value: isElite,
+                      onChanged: (value) {
+                        Navigator.pop(context);
+                        onToggleElite(value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+            if (isElite != null && onToggleElite != null) const SizedBox(height: 8),
 
             // Delete Option
             Material(

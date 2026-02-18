@@ -73,6 +73,23 @@ class AuthService {
       throw "No active session. Please login.";
     }
 
+    debugPrint("🔍 [AuthService] Checking account activation status...");
+    final profile = await _client
+        .from('profiles')
+        .select('is_active')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (profile != null) {
+      debugPrint("🔍 [AuthService] is_active: ${profile['is_active']}");
+    }
+
+    if (profile == null || profile['is_active'] == false) {
+      debugPrint("❌ [AuthService] Account deactivated.");
+      await signOut();
+      throw "Your account has been deactivated. Contact admin.";
+    }
+
     debugPrint("   -> User: ${user.email}");
     
     // Check Email Verification

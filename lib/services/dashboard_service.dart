@@ -1,8 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../core/supabase_client.dart';
 
 class DashboardService {
   final SupabaseClient _client = SupabaseClientManager.instance;
+
+  void _logAppUpdate(String message, {Map<String, dynamic>? context}) {
+    final ctx = context != null ? ' | ctx=$context' : '';
+    debugPrint('[APP_UPDATE][WRITE] $message$ctx');
+  }
 
   // ---------------------------------------------------------------------------
   // COUNTS
@@ -210,15 +216,75 @@ class DashboardService {
   
   Future<String> fetchMinVersion() async {
     try {
-      final response = await _client.from('app_update').select('min_version').limit(1).single();
-      return response['min_version'] as String;
-    } catch (e) {
-      return "1.0.0";
+      debugPrint('[APP_UPDATE][READ] Fetching min_version from app_update...');
+      final response = await _client
+          .from('app_update')
+          .select('min_version')
+          .limit(1)
+          .single();
+      debugPrint('[APP_UPDATE][READ] Raw row: $response');
+
+      final minVersion = response['min_version'] as String;
+      debugPrint('[APP_UPDATE][READ] Parsed min_version: $minVersion');
+      return minVersion;
+    } catch (e, st) {
+      debugPrint('[APP_UPDATE][READ][ERROR] Failed to fetch min_version: $e');
+      debugPrint('[APP_UPDATE][READ][STACK] $st');
+      debugPrint('[APP_UPDATE][READ] Falling back to 1.0.0');
+      return '1.0.0';
     }
   }
 
   Future<void> updateMinVersion(String version) async {
-    await _client.from('app_update').upsert({'id': 1, 'min_version': version});
+    final user = _client.auth.currentUser;
+    final session = _client.auth.currentSession;
+    final accessToken = session?.accessToken;
+
+    final tokenPreview = accessToken == null
+        ? 'null'
+        : '${accessToken.substring(0, accessToken.length > 10 ? 10 : accessToken.length)}... (len=${accessToken.length})';
+
+    final payload = {'id': 1, 'min_version': version};
+
+    _logAppUpdate(
+      'Starting updateMinVersion',
+      context: {
+        'userId': user?.id,
+        'hasSession': session != null,
+        'hasAccessToken': accessToken != null,
+        'accessTokenPreview': tokenPreview,
+        'version': version,
+        'payload': payload,
+      },
+    );
+
+    try {
+      final newVersion = version;
+      debugPrint("🔵 [UPDATE] Attempting to update min_version to: $newVersion");
+      debugPrint("🔵 [UPDATE] Logged in UID: ${_client.auth.currentUser?.id}");
+
+      final response = await _client
+          .from('app_update')
+          .update({'min_version': newVersion})
+          .eq('id', 1);
+
+      _logAppUpdate('Upsert succeeded', context: {'response': response});
+    } on PostgrestException catch (e, st) {
+      _logAppUpdate('PostgrestException during upsert', context: {
+        'code': e.code,
+        'message': e.message,
+        'details': e.details,
+        'hint': e.hint,
+      });
+      debugPrint('[APP_UPDATE][WRITE][STACK] $st');
+      throw Exception('Postgrest error ${e.code}: ${e.message}');
+    } catch (e, st) {
+      _logAppUpdate('Unexpected error during upsert', context: {
+        'error': e.toString(),
+      });
+      debugPrint('[APP_UPDATE][WRITE][STACK] $st');
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchUsers({

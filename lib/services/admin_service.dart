@@ -267,6 +267,48 @@ class AdminService {
     }
   }
 
+  // Elite Internship Toggle
+  /// Toggles the elite status of an internship.
+  /// Updates `internship_details.is_elite` for the given opportunity_id.
+  /// Requires admin or super_admin role (enforced by RLS).
+  /// 
+  /// RLS Policy Required (if not already exists):
+  /// ```sql
+  /// CREATE POLICY "Allow admin/super_admin to update is_elite"
+  /// ON internship_details
+  /// FOR UPDATE
+  /// USING (
+  ///   EXISTS (
+  ///     SELECT 1 FROM user_roles
+  ///     WHERE user_roles.user_id = auth.uid()
+  ///     AND user_roles.role IN ('admin', 'super_admin')
+  ///   )
+  /// );
+  /// ```
+  Future<void> toggleEliteInternship({
+    required String opportunityId,
+    required bool isElite,
+  }) async {
+    try {
+      final user = _client.auth.currentUser;
+      if (user == null) {
+        throw "User not logged in";
+      }
+
+      // Update is_elite in internship_details table
+      await _client
+          .from('internship_details')
+          .update({'is_elite': isElite})
+          .eq('opportunity_id', opportunityId);
+
+    } on PostgrestException catch (e) {
+      // Handle RLS or other database errors
+      throw "Failed to update elite status: ${e.message}";
+    } catch (e) {
+      throw "Failed to toggle elite internship: $e";
+    }
+  }
+
   // Logs
   Future<List<Map<String, dynamic>>> fetchLogs() async {
     try {

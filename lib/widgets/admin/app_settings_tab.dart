@@ -32,10 +32,31 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
   }
 
   Future<void> _update() async {
+    final value = _versionController.text.trim();
+    debugPrint('[APP_SETTINGS][UPDATE] Tap detected with value="$value"');
+
+    final regex = RegExp(r'^\d+\.\d+\.\d+$');
+    final isValid = value.isNotEmpty && regex.hasMatch(value);
+    debugPrint('[APP_SETTINGS][UPDATE] Validation result: isValid=$isValid');
+
+    if (!isValid) {
+      if (mounted) {
+        debugPrint('[APP_SETTINGS][UPDATE] Invalid version, showing snackbar');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid version like 1.0.0'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() { _isLoading = true; _saved = false; });
     try {
-      await widget.service.updateMinVersion(_versionController.text);
+      await widget.service.updateMinVersion(value);
       if (mounted) {
+        debugPrint('[APP_SETTINGS][UPDATE] Update succeeded, showing success snackbar');
         setState(() => _saved = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -48,8 +69,15 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
         });
       }
     } catch (e) {
+      debugPrint('[APP_SETTINGS][UPDATE][ERROR] $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        debugPrint('[APP_SETTINGS][UPDATE] Showing error snackbar');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

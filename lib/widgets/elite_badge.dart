@@ -1,116 +1,95 @@
 import 'package:flutter/material.dart';
 
-class EliteBadge extends StatelessWidget {
+class EliteBadge extends StatefulWidget {
   const EliteBadge({super.key});
 
   @override
+  State<EliteBadge> createState() => _EliteBadgeState();
+}
+
+class _EliteBadgeState extends State<EliteBadge> with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+  Animation<double>? _textOpacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnimations();
+  }
+
+  void _initializeAnimations() {
+    _controller?.dispose();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 2000), // Slower blink - 2 seconds
+      vsync: this,
+    );
+
+    _textOpacityAnimation = Tween<double>(
+      begin: 0.3, // More visible blink
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller!,
+      curve: Curves.easeInOut,
+    ));
+
+    _controller!.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 65,
-      height: 65,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // The ribbon banner itself
-          Positioned(
-            top: 0,
-            right: 0,
-            child: CustomPaint(
-              size: const Size(65, 65),
-              painter: _RibbonPainter(),
-            ),
-          ),
-          // The ELITE text
-          Positioned(
-            top: 16,
-            right: 4,
-            child: Transform.rotate(
-              angle: 0.785398, // 45 degrees
-              child: const Text(
-                'ELITE',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(0, 1),
-                      blurRadius: 1,
-                    ),
-                  ],
-                ),
+    // Ensure animations are initialized
+    if (_controller == null || _textOpacityAnimation == null) {
+      _initializeAnimations();
+    }
+
+    return AnimatedBuilder(
+      animation: _controller!,
+      builder: (context, child) {
+        return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFEF4444),
+                  Color(0xFFDC2626),
+                  Color(0xFFB91C1C),
+                ],
               ),
+              borderRadius: BorderRadius.circular(6),
             ),
-          ),
-        ],
-      ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  size: 8,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 2),
+                Opacity(
+                  opacity: _textOpacityAnimation?.value ?? 1.0,
+                  child: const Text(
+                    'ELITE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 7,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+      },
     );
   }
 }
-
-class _RibbonPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double s = size.width;
-    
-    // 1. The main ribbon path (the part that crosses the corner)
-    final Paint ribbonPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFFF87171), // Light red
-          Color(0xFFDC2626), // Medium red
-          Color(0xFFB91C1C), // Dark red
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, s, s));
-
-    final Path ribbonPath = Path()
-      ..moveTo(s * 0.4, 0)      // Top edge start
-      ..lineTo(s, s * 0.6)      // Right edge end
-      ..lineTo(s, s)            // Right edge bottom
-      ..lineTo(0,0)             // Origin
-      ..close();
-    
-    // Actually, let's draw a proper strip
-    final Path stripPath = Path()
-      ..moveTo(s * 0.3, 0)
-      ..lineTo(s, s * 0.7)
-      ..lineTo(s, s * 0.95)
-      ..lineTo(s * 0.05, 0)
-      ..close();
-
-    // 2. Shadows/Folds for depth (wrapping around)
-    final Paint foldPaint = Paint()..color = const Color(0xFF7F1D1D);
-    
-    // Top fold
-    final Path topFold = Path()
-      ..moveTo(s * 0.3, 0)
-      ..lineTo(s * 0.3, -4)
-      ..lineTo(s * 0.4, 0)
-      ..close();
-      
-    // Right fold
-    final Path rightFold = Path()
-      ..moveTo(s, s * 0.7)
-      ..lineTo(s + 4, s * 0.7)
-      ..lineTo(s, s * 0.8)
-      ..close();
-
-    // Draw shadow first
-    canvas.drawShadow(stripPath, Colors.black, 3.0, false);
-    
-    // Draw ribbon
-    canvas.drawPath(stripPath, ribbonPaint);
-    
-    // Draw folds
-    canvas.drawPath(topFold, foldPaint);
-    canvas.drawPath(rightFold, foldPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-

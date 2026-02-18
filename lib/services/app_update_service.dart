@@ -27,17 +27,19 @@ class AppUpdateService {
       // 1. Get current app version
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
+      print('🔵 [UPDATE] Current app version: $currentVersion');
       
       // 2. Fetch min_version from Supabase
+      print('🔵 [UPDATE] Fetching app_update row...');
       final response = await Supabase.instance.client
           .from('app_update')
           .select('min_version')
           .eq('id', 1)
           .single();
+      print('🔵 [UPDATE] Raw Supabase response: $response');
 
       final minVersion = response['min_version'] as String;
 
-      print("🔵 [UPDATE] Current version: $currentVersion");
       print("🔵 [UPDATE] Min version from DB: $minVersion");
 
       // 3. Compare versions
@@ -106,8 +108,13 @@ class AppUpdateService {
       } else {
         print("🟢 [UPDATE] App up to date");
       }
-    } catch (e) {
+    } on PostgrestException catch (e, st) {
+      print('🟡 [UPDATE][ERROR] PostgrestException while checking update');
+      print('🟡 [UPDATE][ERROR] code=${e.code}, message=${e.message}, details=${e.details}, hint=${e.hint}');
+      print('🟡 [UPDATE][STACK] $st');
+    } catch (e, st) {
       print("🟢 [UPDATE] Error checking update, skipping: $e");
+      print('🟢 [UPDATE][STACK] $st');
     }
   }
 
