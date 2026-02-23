@@ -12,7 +12,7 @@
         <!-- Notification icon (uses app icon) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/logo" />
+            android:resource="@drawable/ic_notification" />
         
         <!-- Notification icon color -->
         <meta-data

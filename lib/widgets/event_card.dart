@@ -32,31 +32,18 @@ class _EventCardState extends State<EventCard> {
   final BookmarkService _bookmarkService = BookmarkService();
   bool _isSaved = false;
 
-  // ── Design System ──────────────────────────────────────────────────────────
-  // The palette is built around aged ivory, deep charcoal ink, and a single
-  // warm-amber accent — evoking a quality printed ticket with brass hardware.
-
-  static const Color _surface      = Color(0xFFFAF8F4); // Aged ivory / warm paper
-  static const Color _stubSurface  = Color(0xFFF3F0EA); // Slightly darker stub
-  static const Color _inkDeep      = Color(0xFF1C1C1E); // Near-black for headings
-  static const Color _inkMid       = Color(0xFF5C5C5E); // Mid-grey for labels
-  static const Color _inkFaint     = Color(0xFFB0AAA0); // Faint for dividers / tertiary
-  static const Color _amber        = Color(0xFFC8862A); // Warm amber accent
-  static const Color _danger       = Color(0xFFA0291E); // Muted red for urgency
-  static const Color _success      = Color(0xFF2A6B3E); // Forest green for healthy
-  static const Color _border       = Color(0xFFD8D2C8); // Ticket outline
-
-  // ── Typography ────────────────────────────────────────────────────────────
-  // Playfair Display → expressive editorial display
-  // Courier Prime    → authentic ticket mono for codes & numbers
-  // Add to pubspec.yaml:
-  //   google_fonts: ^6.x
-  // Then: import 'package:google_fonts/google_fonts.dart';
-  // Replace TextStyle references below with GoogleFonts calls if desired.
-  // Currently using named fontFamilies as fallback strings — replace as needed.
+  static const Color _surface      = Color(0xFFFAF8F4);
+  static const Color _stubSurface  = Color(0xFFF3F0EA);
+  static const Color _inkDeep      = Color(0xFF1C1C1E);
+  static const Color _inkMid       = Color(0xFF5C5C5E);
+  static const Color _inkFaint     = Color(0xFFB0AAA0);
+  static const Color _amber        = Color(0xFFC8862A);
+  static const Color _danger       = Color(0xFFA0291E);
+  static const Color _success      = Color(0xFF2A6B3E);
+  static const Color _border       = Color(0xFFD8D2C8);
 
   TextStyle get _styleTitle => const TextStyle(
-    fontFamily: 'PlayfairDisplay', // GoogleFonts.playfairDisplay()
+    fontFamily: 'PlayfairDisplay',
     fontSize: 19,
     fontWeight: FontWeight.w700,
     color: _inkDeep,
@@ -65,7 +52,7 @@ class _EventCardState extends State<EventCard> {
   );
 
   TextStyle get _styleMicro => const TextStyle(
-    fontFamily: 'CourierPrime',    // GoogleFonts.courierPrime()
+    fontFamily: 'CourierPrime',
     fontSize: 9,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.6,
@@ -88,7 +75,6 @@ class _EventCardState extends State<EventCard> {
     letterSpacing: 0.1,
   );
 
-  // ── State & Init ──────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -136,7 +122,6 @@ class _EventCardState extends State<EventCard> {
     return '${f.format(start)} – ${f.format(end)}';
   }
 
-  // ── Status helpers ────────────────────────────────────────────────────────
   _StatusConfig _getStatus(int daysLeft) {
     if (daysLeft < 0)  return _StatusConfig('CLOSED',    _inkFaint);
     if (daysLeft == 0) return _StatusConfig('LAST CALL', _danger);
@@ -144,7 +129,6 @@ class _EventCardState extends State<EventCard> {
     return _StatusConfig('$daysLeft DAYS', _success);
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final now      = DateTime.now();
@@ -157,14 +141,16 @@ class _EventCardState extends State<EventCard> {
         widget.event.entryFee!.isEmpty ||
         widget.event.entryFee == 'Free';
 
-    // Serial string e.g. "001"
     final String serial = widget.serialNumber != null
         ? widget.serialNumber!.toString().padLeft(3, '0')
         : '001';
 
+    // Whether eligible data exists
+    final bool hasEligible = widget.event.eligible != null &&
+        widget.event.eligible!.isNotEmpty;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      // Drop-shadow that mimics a slightly lifted card on a table
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
@@ -187,11 +173,12 @@ class _EventCardState extends State<EventCard> {
         child: ClipPath(
           clipper: _TicketClipper(),
           child: SizedBox(
-            height: 186,
+            // ── Slightly taller to accommodate the extra eligible row ──
+            height: 210,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── LEFT — Main body ─────────────────────────────────────
+                // ── LEFT — Main body ──────────────────────────────────────
                 Expanded(
                   flex: 68,
                   child: Container(
@@ -200,19 +187,21 @@ class _EventCardState extends State<EventCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Row 1: Organiser + fee badge
+                        // Row 1: Organiser (up to 2 lines) + fee badge
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: Text(
                                 (widget.event.organiser ?? 'ORGANISER').toUpperCase(),
                                 style: _styleMicro,
-                                maxLines: 1,
+                                // ── CHANGED: was maxLines: 1, now 2 ──
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
+                            // Align pill to top so it doesn't push down on 2-line organiser
                             _FeaturePill(
                               label: isFree ? 'FREE' : widget.event.entryFee!,
                               textStyle: _styleMicro.copyWith(
@@ -240,11 +229,15 @@ class _EventCardState extends State<EventCard> {
 
                         // Row 3: Venue
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.place_outlined,
-                              size: 12,
-                              color: _inkFaint,
+                            const Padding(
+                              padding: EdgeInsets.only(top: 1),
+                              child: Icon(
+                                Icons.place_outlined,
+                                size: 12,
+                                color: _inkFaint,
+                              ),
                             ),
                             const SizedBox(width: 4),
                             Expanded(
@@ -258,6 +251,34 @@ class _EventCardState extends State<EventCard> {
                             ),
                           ],
                         ),
+
+                        // ── NEW: Eligible row (only shown when data exists) ──
+                        if (hasEligible) ...[
+                          const SizedBox(height: 5),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 1),
+                                child: Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 12,
+                                  color: _inkFaint,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  widget.event.eligible!,
+                                  style: _styleVenue,
+                                  maxLines: 2,
+                                  softWrap: true,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
 
                         const Spacer(),
 
@@ -294,7 +315,7 @@ class _EventCardState extends State<EventCard> {
                   ),
                 ),
 
-                // ── RIGHT — Stub ─────────────────────────────────────────
+                // ── RIGHT — Stub ───────────────────────────────────────────
                 Expanded(
                   flex: 32,
                   child: Container(
@@ -373,14 +394,12 @@ class _EventCardState extends State<EventCard> {
                                 letterSpacing: 2.0,
                               ),
                             ),
-
                             const SizedBox(height: 12),
-
                             _MiniBarcode(color: _inkFaint.withOpacity(0.55)),
                           ],
                         ),
 
-                        // Bottom: Apply button (uses apply_link from DB)
+                        // Bottom: Apply button
                         _ApplyButton(
                           applyLink: widget.event.applyLink,
                           onTap: () => _launchURL(widget.event.applyLink),
@@ -402,7 +421,6 @@ class _EventCardState extends State<EventCard> {
 
 // ── Helper sub-widgets ────────────────────────────────────────────────────────
 
-/// Small pill badge (FREE, ₹500, etc.)
 class _FeaturePill extends StatelessWidget {
   final String label;
   final TextStyle textStyle;
@@ -427,7 +445,6 @@ class _FeaturePill extends StatelessWidget {
   }
 }
 
-/// Labelled value column (Date, Deadline, etc.)
 class _InfoColumn extends StatelessWidget {
   final String label;
   final String value;
@@ -454,7 +471,6 @@ class _InfoColumn extends StatelessWidget {
   }
 }
 
-/// Apply button — matches ticket style, uses apply_link from DB
 class _ApplyButton extends StatelessWidget {
   final String? applyLink;
   final VoidCallback onTap;
@@ -478,7 +494,9 @@ class _ApplyButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           border: Border.all(
-            color: hasLink ? amberColor.withOpacity(0.5) : inkFaintColor.withOpacity(0.4),
+            color: hasLink
+                ? amberColor.withOpacity(0.5)
+                : inkFaintColor.withOpacity(0.4),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(3),
@@ -499,7 +517,6 @@ class _ApplyButton extends StatelessWidget {
   }
 }
 
-/// Pressable icon in the stub area
 class _StubIcon extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -521,7 +538,6 @@ class _StubIcon extends StatelessWidget {
   }
 }
 
-/// Decorative barcode made of random-width vertical lines
 class _MiniBarcode extends StatelessWidget {
   final Color color;
   const _MiniBarcode({required this.color});
@@ -537,7 +553,6 @@ class _MiniBarcode extends StatelessWidget {
 
 class _BarcodePainter extends CustomPainter {
   final Color color;
-  // Fixed pattern — no randomness so it stays deterministic across repaints
   static const List<double> _pattern = [
     2, 1, 3, 1, 2, 2, 1, 3, 1, 1, 2, 1, 3, 2, 1, 2, 1, 1, 3, 1,
   ];
@@ -547,7 +562,8 @@ class _BarcodePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
-    final double totalUnits = _pattern.fold(0.0, (a, b) => a + b) + _pattern.length;
+    final double totalUnits =
+        _pattern.fold(0.0, (a, b) => a + b) + _pattern.length;
     final double unitW = size.width / totalUnits;
 
     double x = 0;
@@ -556,7 +572,7 @@ class _BarcodePainter extends CustomPainter {
       if (i.isEven) {
         canvas.drawRect(Rect.fromLTWH(x, 0, barW, size.height), paint);
       }
-      x += barW + unitW; // unitW gap
+      x += barW + unitW;
     }
   }
 
@@ -572,21 +588,19 @@ class _StatusConfig {
   const _StatusConfig(this.text, this.color);
 }
 
-/// Clips the widget into a ticket shape with notches at the perforation line
 class _TicketClipper extends CustomClipper<Path> {
   static const double _cornerR  = 10;
   static const double _notchR   = 9;
-  static const double _stubFrac = 0.685; // stub starts at 68.5% of width
+  static const double _stubFrac = 0.685;
 
   @override
   Path getClip(Size size) {
-    final w = size.width;
-    final h = size.height;
-    final sx = w * _stubFrac; // x of perforation
+    final w  = size.width;
+    final h  = size.height;
+    final sx = w * _stubFrac;
 
     final path = Path();
 
-    // Top edge: left corner → notch cutout → right corner
     path.moveTo(_cornerR, 0);
     path.lineTo(sx - _notchR, 0);
     path.arcToPoint(Offset(sx + _notchR, 0),
@@ -594,21 +608,15 @@ class _TicketClipper extends CustomClipper<Path> {
     path.lineTo(w - _cornerR, 0);
     path.arcToPoint(Offset(w, _cornerR),
         radius: const Radius.circular(_cornerR));
-
-    // Right edge
     path.lineTo(w, h - _cornerR);
     path.arcToPoint(Offset(w - _cornerR, h),
         radius: const Radius.circular(_cornerR));
-
-    // Bottom edge: right → notch → left
     path.lineTo(sx + _notchR, h);
     path.arcToPoint(Offset(sx - _notchR, h),
         radius: Radius.circular(_notchR), clockwise: false);
     path.lineTo(_cornerR, h);
     path.arcToPoint(Offset(0, h - _cornerR),
         radius: const Radius.circular(_cornerR));
-
-    // Left edge
     path.lineTo(0, _cornerR);
     path.arcToPoint(Offset(_cornerR, 0),
         radius: const Radius.circular(_cornerR));
@@ -621,7 +629,6 @@ class _TicketClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> old) => false;
 }
 
-/// Draws the outer ticket border + the dashed perforation line
 class _TicketPainter extends CustomPainter {
   final Color borderColor;
   final Color stubLineColor;
@@ -641,7 +648,6 @@ class _TicketPainter extends CustomPainter {
     final h  = size.height;
     final sx = w * _stubFrac;
 
-    // ── Outer border ────────────────────────────────────────────────────────
     final borderPaint = Paint()
       ..color       = borderColor
       ..style       = PaintingStyle.stroke
@@ -670,7 +676,6 @@ class _TicketPainter extends CustomPainter {
 
     canvas.drawPath(path, borderPaint);
 
-    // ── Dashed perforation line ─────────────────────────────────────────────
     const double dashH   = 5.0;
     const double gapH    = 4.0;
     final double topY    = _notchR + 4;

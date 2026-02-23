@@ -308,7 +308,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
               ),
               child: Center(
                 child: Text(
-                  name[0].toUpperCase(),
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,

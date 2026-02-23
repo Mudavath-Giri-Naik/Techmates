@@ -121,7 +121,7 @@ class AdminService {
           'p_emp_type': null,
           'p_duration': null,
           'p_tags': null,
-          'p_eligibility': null,
+          'p_eligibility': additionalData['eligible'] ?? additionalData['eligibility'],
           'p_team_size': null,
           'p_rounds': null,
           'p_prizes': null,

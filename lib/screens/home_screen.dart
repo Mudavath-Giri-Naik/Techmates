@@ -1566,7 +1566,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     Padding(
                       padding: EdgeInsets.only(
                         left: 18, 
-                        bottom: item is HackathonDetailsModel ? 2 : 12
+                        bottom: item is HackathonDetailsModel ? 2 : 6
                       ),
                       child: Padding(
                         padding: const EdgeInsets.only(top: 4.0),

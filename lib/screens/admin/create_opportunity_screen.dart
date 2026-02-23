@@ -131,6 +131,7 @@ class _CreateOpportunityScreenState extends State<CreateOpportunityScreen> {
        _venueController.text = data['venue'] ?? '';
        _entryFeeController.text = data['entry_fee'] ?? '';
        _locationLinkController.text = data['location_link'] ?? '';
+       _eligibilityController.text = data['eligible'] ?? data['eligibility'] ?? '';
     }
   }
 
@@ -224,6 +225,7 @@ class _CreateOpportunityScreenState extends State<CreateOpportunityScreen> {
          
          childData['start_date'] = _startDate?.toIso8601String();
          childData['end_date'] = _endDate?.toIso8601String();
+         childData['eligible'] = _eligibilityController.text.trim();
       }
 
       if (widget.editId != null) {
@@ -593,11 +595,18 @@ class _CreateOpportunityScreenState extends State<CreateOpportunityScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                   _buildTextField(
+                    _buildTextField(
                     controller: _locationLinkController,
                     label: "Google Maps Link (Optional)",
                     hint: "https://maps.google.com/...",
                     prefixIcon: Icons.map,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _eligibilityController,
+                    label: "Eligibility",
+                    hint: "Ex: Open to all college students",
+                    maxLines: 2,
                   ),
                 ],
 
