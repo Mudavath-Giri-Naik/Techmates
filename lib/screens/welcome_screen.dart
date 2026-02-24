@@ -139,12 +139,15 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   void _goHome() {
-    Navigator.of(context).pushReplacement(PageRouteBuilder(
-      pageBuilder: (_, __, ___) => const HomeScreen(),
-      transitionsBuilder: (_, a, __, c) =>
-          FadeTransition(opacity: a, child: c),
-      transitionDuration: const Duration(milliseconds: 400),
-    ));
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const HomeScreen(),
+        transitionsBuilder: (_, a, __, c) =>
+            FadeTransition(opacity: a, child: c),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+      (route) => false,
+    );
   }
 
   void _nextPage() {

@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import dotenv
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'core/supabase_client.dart';
 import 'services/auth_service.dart';
-import 'services/user_role_service.dart'; // Import Role Service
+import 'services/profile_service.dart';
+import 'services/user_role_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
-import 'services/notification_service.dart'; 
-import 'screens/splash_screen.dart'; 
+import 'screens/onboarding/onboarding_form_screen.dart';
+import 'services/notification_service.dart';
+import 'screens/splash_screen.dart';
 import 'screens/opportunity_detail_screen.dart';
 
 
@@ -79,10 +82,72 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  // Auth state subscription — handles routing after Google/email login
+  late final Stream<AuthState> _authStream =
+      SupabaseClientManager.instance.auth.onAuthStateChange;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _listenAuthState();
+  }
+
+  void _listenAuthState() {
+    _authStream.listen((data) async {
+      if (data.event != AuthChangeEvent.signedIn) return;
+      final user = data.session?.user;
+      if (user == null) return;
+
+      debugPrint('🧭 [App] signedIn → running routing for ${user.email}');
+
+      // Always wait a beat so the navigator is ready after login screen
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+
+      // 1. Fetch fresh role
+      await UserRoleService().fetchAndCacheRole(user.id);
+      final role = UserRoleService().role;
+      debugPrint('🧭 [App] Role = $role');
+
+      // 2. Admin → HomeScreen directly
+      if (role == 'admin' || role == 'super_admin') {
+        debugPrint('🧭 [App] Admin → HomeScreen');
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (r) => false,
+        );
+        return;
+      }
+
+      // 3. Student → check onboarding_completed
+      final profile = await ProfileService().fetchProfile(user.id);
+      final onboardingDone = profile?.onboardingCompleted ?? false;
+      debugPrint('🧭 [App] profile=${profile == null ? "null" : "exists"}, onboarding_completed=$onboardingDone');
+
+      if (onboardingDone) {
+        debugPrint('🧭 [App] onboarding done → HomeScreen');
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (r) => false,
+        );
+      } else {
+        debugPrint('🧭 [App] onboarding NOT done → OnboardingFormScreen');
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => OnboardingFormScreen(
+              userId: user.id,
+              initialName: profile?.name ??
+                  (user.userMetadata?['full_name'] as String?) ??
+                  '',
+            ),
+          ),
+          (r) => false,
+        );
+      }
+    });
   }
 
   @override

@@ -38,25 +38,29 @@ class AuthService {
 
   Future<void> _onLoginSuccess(User user) async {
     try {
-      // 1. Sync Profile
-      final profileService = ProfileService();
+      // Minimal upsert — only sync identity fields.
+      // NEVER overwrite onboarding_completed, college, branch, year, etc.
+      // Use ignoreDuplicates: false + onConflict so existing rows only get name/avatar updated.
       final metadata = user.userMetadata ?? {};
-      
-      final profile = UserProfile(
-        id: user.id,
-        email: user.email!,
-        name: metadata['full_name'] ?? metadata['name'] ?? '',
-        avatarUrl: metadata['avatar_url'] ?? metadata['picture'] ?? metadata['custom_avatar_url'],
-        role: metadata['role'] ?? 'student',
-        updatedAt: DateTime.now(),
+      await _client.from('profiles').upsert(
+        {
+          'id': user.id,
+          'email': user.email,
+          'name': metadata['full_name'] ?? metadata['name'] ?? '',
+          'avatar_url': metadata['avatar_url'] ??
+              metadata['picture'] ??
+              metadata['custom_avatar_url'],
+          'role': 'student', // only sets on INSERT; ignored on update via column list below
+          'is_active': true,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        onConflict: 'id',
+        // Only update these columns on conflict — onboarding_completed is NOT here
+        ignoreDuplicates: false,
       );
-      
-      await profileService.upsertProfile(profile);
-      
-      // 2. Fetch Role (Redundant call but ensures freshness)
-      // await UserRoleService().fetchAndCacheRole(user.id); 
+      debugPrint('✅ [AuthService] Profile synced for ${user.email}');
     } catch (e) {
-      debugPrint("⚠️ [AuthService] Failed to sync profile on login: $e");
+      debugPrint('⚠️ [AuthService] Failed to sync profile on login: $e');
     }
   }
 

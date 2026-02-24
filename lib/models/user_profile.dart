@@ -13,6 +13,11 @@ class UserProfile {
   final String? linkedinUrl;
   final String? githubUrl;
   final String? instagramUrl;
+  final String? collegeEmail;
+  final String? collegeEmailDomain;
+  final bool collegeVerified;
+  final String? collegeId;
+  final bool onboardingCompleted;
 
   UserProfile({
     required this.id,
@@ -29,6 +34,11 @@ class UserProfile {
     this.linkedinUrl,
     this.githubUrl,
     this.instagramUrl,
+    this.collegeEmail,
+    this.collegeEmailDomain,
+    this.collegeVerified = false,
+    this.collegeId,
+    this.onboardingCompleted = false,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -51,6 +61,11 @@ class UserProfile {
       linkedinUrl: json['linkedin_url'] as String?,
       githubUrl: json['github_url'] as String?,
       instagramUrl: json['instagram_url'] as String?,
+      collegeEmail: json['college_email'] as String?,
+      collegeEmailDomain: json['college_email_domain'] as String?,
+      collegeVerified: json['college_verified'] as bool? ?? false,
+      collegeId: json['college_id'] as String?,
+      onboardingCompleted: json['onboarding_completed'] as bool? ?? false,
     );
   }
 
@@ -70,6 +85,11 @@ class UserProfile {
       'linkedin_url': linkedinUrl,
       'github_url': githubUrl,
       'instagram_url': instagramUrl,
+      'college_email': collegeEmail,
+      'college_email_domain': collegeEmailDomain,
+      'college_verified': collegeVerified,
+      'college_id': collegeId,
+      'onboarding_completed': onboardingCompleted,
     };
   }
 
@@ -84,6 +104,11 @@ class UserProfile {
     String? linkedinUrl,
     String? githubUrl,
     String? instagramUrl,
+    String? collegeEmail,
+    String? collegeEmailDomain,
+    bool? collegeVerified,
+    String? collegeId,
+    bool? onboardingCompleted,
   }) {
     return UserProfile(
       id: id,
@@ -100,6 +125,11 @@ class UserProfile {
       linkedinUrl: linkedinUrl ?? this.linkedinUrl,
       githubUrl: githubUrl ?? this.githubUrl,
       instagramUrl: instagramUrl ?? this.instagramUrl,
+      collegeEmail: collegeEmail ?? this.collegeEmail,
+      collegeEmailDomain: collegeEmailDomain ?? this.collegeEmailDomain,
+      collegeVerified: collegeVerified ?? this.collegeVerified,
+      collegeId: collegeId ?? this.collegeId,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 }

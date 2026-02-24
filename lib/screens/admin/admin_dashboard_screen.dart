@@ -6,6 +6,7 @@ import '../../widgets/admin/user_management_tab.dart';
 import '../../widgets/admin/logs_tab.dart';
 import '../../widgets/admin/app_settings_tab.dart';
 import '../../core/supabase_client.dart';
+import 'colleges_management_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -28,7 +29,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() => _currentTab = _tabController.index);
@@ -95,6 +96,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     final List<_TabItem> tabs = [
       _TabItem(Icons.grid_view_rounded, "Overview"),
       _TabItem(Icons.people_outline_rounded, "Users"),
+      _TabItem(Icons.school_outlined, "Colleges"),
       _TabItem(Icons.history_rounded, "Logs"),
       _TabItem(Icons.settings_outlined, "Settings"),
     ];
@@ -239,9 +241,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                 ),
                 // Tab 2: Users
                 UserManagementTab(service: _service),
-                // Tab 3: Logs
+                // Tab 3: Colleges
+                const CollegesManagementScreen(),
+                // Tab 4: Logs
                 LogsTab(service: _service),
-                // Tab 4: Settings
+                // Tab 5: Settings
                 AppSettingsTab(service: _service),
               ],
             ),

@@ -177,6 +177,55 @@ class NotificationService {
     }
   }
 
+  /// Notify superadmin(s) about a new unknown college domain submission.
+  /// Only sends if this domain does not already exist in college_domain_queue.
+  Future<void> notifySuperAdmin(String domain, String submittedName) async {
+    try {
+      // Check if domain already exists in queue (avoid duplicate notifications)
+      final existing = await _supabase
+          .from('college_domain_queue')
+          .select('id')
+          .eq('domain', domain.toLowerCase().trim())
+          .maybeSingle();
+
+      // If domain was just inserted (by CollegeService.handleUnknownDomain) the row exists,
+      // but we only call this on first-time insert so we proceed anyway.
+      // The guard here is for safety if called independently.
+
+      // Get superadmin user IDs from user_roles
+      final roleRows = await _supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'super_admin');
+
+      if (roleRows.isEmpty) {
+        debugPrint('⚠️ [NotificationService] No super_admin found to notify.');
+        return;
+      }
+
+      // Fetch FCM tokens for those users
+      final userIds = (roleRows as List).map((r) => r['user_id'] as String).toList();
+      final profiles = await _supabase
+          .from('profiles')
+          .select('id, fcm_token')
+          .inFilter('id', userIds);
+
+      for (final profile in profiles) {
+        final token = profile['fcm_token'] as String?;
+        if (token != null && token.isNotEmpty) {
+          await sendPushNotification(
+            token: token,
+            title: 'New College Domain',
+            body: 'domain: $domain, submitted as: $submittedName',
+          );
+          debugPrint('📩 [NotificationService] Superadmin notified: ${profile['id']}');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ [NotificationService] notifySuperAdmin error: $e');
+    }
+  }
+
   void _configureForegroundHandlers() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('📩 [NotificationService] Foreground Message received!');

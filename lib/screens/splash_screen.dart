@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../services/auth_service.dart';
+import '../services/profile_service.dart';
 import 'home_screen.dart';
+import 'onboarding/onboarding_form_screen.dart';
 import 'auth/login_screen.dart';
 import '../services/app_update_service.dart';
 import '../services/opportunity_store.dart';
@@ -112,14 +114,51 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   Future<void> _navigateToNextScreen() async {
     final auth = AuthService();
-    if (auth.isLoggedIn) {
-      await UserRoleService().fetchAndCacheRole(auth.user!.id);
+    if (!auth.isLoggedIn) {
+      debugPrint('🔀 [Splash] Not logged in → LoginScreen');
+      if (mounted) {
+        Navigator.pushReplacement(context, FadePageRoute(page: const LoginScreen()));
+      }
+      return;
+    }
+
+    final userId = auth.user!.id;
+    debugPrint('🔀 [Splash] Logged in as ${auth.user!.email} (id: $userId)');
+
+    // 1. Fetch fresh role from DB and cache it
+    await UserRoleService().fetchAndCacheRole(userId);
+    final role = UserRoleService().role;
+    debugPrint('🔀 [Splash] Role = $role');
+
+    // 2. Admins → HomeScreen directly
+    if (role == 'admin' || role == 'super_admin') {
+      debugPrint('🔀 [Splash] Admin/SuperAdmin → HomeScreen');
       if (mounted) {
         Navigator.pushReplacement(context, FadePageRoute(page: const HomeScreen()));
       }
-    } else {
-      if (mounted) {
-        Navigator.pushReplacement(context, FadePageRoute(page: const LoginScreen()));
+      return;
+    }
+
+    // 3. Students — check onboarding_completed
+    final profile = await ProfileService().fetchProfile(userId);
+    final onboardingDone = profile?.onboardingCompleted ?? false;
+    debugPrint('🔀 [Splash] profile = ${profile == null ? "null (no row)" : "exists"}, onboarding_completed = $onboardingDone');
+
+    if (mounted) {
+      if (onboardingDone) {
+        debugPrint('🔀 [Splash] onboarding done → HomeScreen');
+        Navigator.pushReplacement(context, FadePageRoute(page: const HomeScreen()));
+      } else {
+        debugPrint('🔀 [Splash] onboarding NOT done → OnboardingFormScreen');
+        Navigator.pushReplacement(
+          context,
+          FadePageRoute(
+            page: OnboardingFormScreen(
+              userId: userId,
+              initialName: profile?.name ?? auth.user!.userMetadata?['full_name'] as String? ?? '',
+            ),
+          ),
+        );
       }
     }
   }
