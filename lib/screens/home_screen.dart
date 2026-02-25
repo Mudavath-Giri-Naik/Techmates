@@ -113,6 +113,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _exploreSearchController = TextEditingController();
     WidgetsBinding.instance.addObserver(this); // Register observer
     _selectedMonth = DateTime.now().month;
     _selectedYear = DateTime.now().year;
@@ -235,6 +236,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     OpportunityStore.instance.events.removeListener(_onStoreUpdate);
     _scrollController.dispose();
     _monthChipScrollController.dispose();
+    _exploreSearchController.dispose();
     super.dispose();
   }
 
@@ -1156,10 +1158,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // Search State
   String _searchQuery = '';
+  bool _isExploreSearching = false;
+  late final TextEditingController _exploreSearchController;
 
   void _handleSearch(String query) {
     setState(() {
       _searchQuery = query;
+      if (_exploreSearchController.text != query) {
+        _exploreSearchController.value = TextEditingValue(
+          text: query,
+          selection: TextSelection.collapsed(offset: query.length),
+        );
+      }
       _applyFilters();
     });
   }
@@ -1180,6 +1190,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _openExploreSearch() {
+    setState(() {
+      _isExploreSearching = true;
+      _exploreSearchController.value = TextEditingValue(
+        text: _searchQuery,
+        selection: TextSelection.collapsed(offset: _searchQuery.length),
+      );
+    });
+  }
+
+  void _closeExploreSearch() {
+    setState(() {
+      _isExploreSearching = false;
+      _searchQuery = '';
+      _exploreSearchController.clear();
+      _applyFilters();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final filterCount = _currentFilters.activeCount;
@@ -1193,8 +1222,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       },
       child: MainLayout(
       title: "Techmates",
-      onSearch: _handleSearch, // Pass search callback
-      searchHint: _getSearchHintForCategory(),
+      showAppBar: false,
       floatingActionButton: roleService.canEdit ? FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
@@ -1215,102 +1243,178 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         child: const Icon(Icons.add_rounded, size: 30, color: Color(0xFF1C4D8D)),
       ) : null,
-      child: Column(
+      child: SafeArea(
+        bottom: false,
+        child: Column(
         children: [
           // Category Chips + Filter
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             decoration: const BoxDecoration(
               color: Colors.white,
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(
-                children: [
-                   // Filter Icon
-                   Padding(
-                     padding: const EdgeInsets.only(right: 10.0),
-                     child: GestureDetector(
-                       onTap: _onOpenFilters,
-                       child: AnimatedContainer(
-                         duration: const Duration(milliseconds: 200),
-                         padding: const EdgeInsets.all(8),
-                         decoration: BoxDecoration(
-                           color: filterCount > 0 ? const Color(0xFF4B5563) : const Color(0xFFF5F5F5),
-                           borderRadius: BorderRadius.circular(10),
-                           border: Border.all(
-                             color: filterCount > 0 ? const Color(0xFF4B5563) : const Color(0xFFE0E0E0),
-                             width: 1,
-                           ),
-                         ),
-                         child: Icon(
-                           Icons.tune_rounded,
-                           size: 16,
-                           color: filterCount > 0 ? Colors.white : const Color(0xFF616161),
-                         ),
-                       ),
-                     ),
-                   ),
-                   // Chips
-                   ..._categories.map((category) {
-                  final isSelected = _selectedCategory == category;
-                  int? count = _categoryCounts[category];
-                  
-                  // Use dynamic count for Internships (verified list)
-                  if (category == 'Internships' && isSelected) {
-                     count = _eliteInternships.length;
-                  }
-
-                  return Padding(
-                   padding: const EdgeInsets.only(right: 8.0),
-                   child: GestureDetector(
-                     onTap: () => _onCategorySelected(category),
-                     child: AnimatedContainer(
-                       duration: const Duration(milliseconds: 200),
-                       curve: Curves.easeOut,
-                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                       decoration: BoxDecoration(
-                         color: Colors.transparent,
-                         borderRadius: BorderRadius.circular(10),
-                         border: Border.all(
-                           color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFFE5E5E5),
-                           width: 2,
-                         ),
-                       ),
-                        child: Text.rich(
-                          TextSpan(
+            child: _isExploreSearching
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _exploreSearchController,
+                          autofocus: true,
+                          onChanged: _handleSearch,
+                          decoration: InputDecoration(
+                            hintText: _getSearchHintForCategory(),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: Color(0xFF4B5563), width: 1.2),
+                            ),
+                            prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF616161)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: _closeExploreSearch,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFE0E0E0),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: Color(0xFF616161),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      // Filter Icon (fixed left)
+                      GestureDetector(
+                        onTap: _onOpenFilters,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: filterCount > 0 ? const Color(0xFF4B5563) : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: filterCount > 0 ? const Color(0xFF4B5563) : const Color(0xFFE0E0E0),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.tune_rounded,
+                            size: 16,
+                            color: filterCount > 0 ? Colors.white : const Color(0xFF616161),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Chips (scroll between fixed filter and search)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
                             children: [
-                              TextSpan(
-                                text: category,
-                                style: TextStyle(
-                                  color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFF6B7280),
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                  fontSize: 12.5,
-                                  letterSpacing: 0.1,
-                                ),
-                              ),
-                              if (count != null)
-                                TextSpan(
-                                  text: " ($count)",
-                                  style: TextStyle(
-                                    color: isSelected ? const Color(0xFF1C4D8D) : Colors.black,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                    fontSize: 12.5,
-                                    letterSpacing: 0.1,
+                              ..._categories.map((category) {
+                                final isSelected = _selectedCategory == category;
+                                int? count = _categoryCounts[category];
+                                if (category == 'Internships' && isSelected) {
+                                  count = _eliteInternships.length;
+                                }
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: GestureDetector(
+                                    onTap: () => _onCategorySelected(category),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      curve: Curves.easeOut,
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.transparent,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFFE5E5E5),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: Text.rich(
+                                        TextSpan(
+                                          children: [
+                                            TextSpan(
+                                              text: category,
+                                              style: TextStyle(
+                                                color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFF6B7280),
+                                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                                fontSize: 12.5,
+                                                letterSpacing: 0.1,
+                                              ),
+                                            ),
+                                            if (count != null)
+                                              TextSpan(
+                                                text: " ($count)",
+                                                style: TextStyle(
+                                                  color: isSelected ? const Color(0xFF1C4D8D) : Colors.black,
+                                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                                  fontSize: 12.5,
+                                                  letterSpacing: 0.1,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                );
+                              }),
                             ],
                           ),
                         ),
-                     ),
-                   ),
-                 );
-                }),
-                ],
-              ),
-            ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Search Icon (fixed right)
+                      GestureDetector(
+                        onTap: _openExploreSearch,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _searchQuery.trim().isNotEmpty ? const Color(0xFF4B5563) : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _searchQuery.trim().isNotEmpty ? const Color(0xFF4B5563) : const Color(0xFFE0E0E0),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.search_rounded,
+                            size: 16,
+                            color: _searchQuery.trim().isNotEmpty ? Colors.white : const Color(0xFF616161),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
           
           // List Area (Internships has special layout)
@@ -1342,6 +1446,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               : _buildMainList(UserRoleService()),
           ), 
         ],
+      ),
       ),
     )); 
   }

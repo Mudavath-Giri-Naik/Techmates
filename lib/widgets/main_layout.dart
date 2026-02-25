@@ -17,11 +17,13 @@ class MainLayout extends StatefulWidget {
     this.actions,
     this.onSearch,
     this.searchHint = 'Search...',
+    this.showAppBar = true,
   });
 
   final List<Widget>? actions;
   final ValueChanged<String>? onSearch; // Callback for search query
   final String searchHint;
+  final bool showAppBar;
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -60,7 +62,7 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
       key: _scaffoldKey,
       backgroundColor: Colors.white,
       floatingActionButton: widget.floatingActionButton,
-      appBar: AppBar(
+      appBar: widget.showAppBar ? AppBar(
         backgroundColor: Colors.white, // Flat White AppBar
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -176,7 +178,7 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
             ),
           ),
         ],
-      ),
+      ) : null,
 
       drawer: const ProfileDrawer(),
       body: widget.child,

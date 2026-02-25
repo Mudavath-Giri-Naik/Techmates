@@ -10,7 +10,7 @@ import 'services/auth_service.dart';
 import 'services/profile_service.dart';
 import 'services/user_role_service.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
 import 'screens/onboarding/onboarding_form_screen.dart';
 import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
@@ -112,11 +112,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final role = UserRoleService().role;
       debugPrint('🧭 [App] Role = $role');
 
-      // 2. Admin → HomeScreen directly
+      // 2. Admin → MainScreen (full bottom navigation)
       if (role == 'admin' || role == 'super_admin') {
-        debugPrint('🧭 [App] Admin → HomeScreen');
+        debugPrint('🧭 [App] Admin → MainScreen');
         navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainScreen()),
           (r) => false,
         );
         return;
@@ -128,9 +128,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugPrint('🧭 [App] profile=${profile == null ? "null" : "exists"}, onboarding_completed=$onboardingDone');
 
       if (onboardingDone) {
-        debugPrint('🧭 [App] onboarding done → HomeScreen');
+        debugPrint('🧭 [App] onboarding done → MainScreen');
         navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainScreen()),
           (r) => false,
         );
       } else {
