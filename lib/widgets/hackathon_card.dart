@@ -48,82 +48,82 @@ class _CardTheme {
 
 // Theme 1 — White & Ink
 const _t1 = _CardTheme(
-  cardBg:        Color(0xFFFFFFFF),
-  cardBorder:    Color(0xFFE4E7EC),
-  titleColor:    Color(0xFF0D1117),
-  companyColor:  Color(0xFF374151),
-  secondaryText: Color(0xFF6B7280),
-  mutedText:     Color(0xFFB0B7C3),
-  accentColor:   Color(0xFF2563EB),
-  accentBg:      Color(0xFFEFF6FF),
-  pillBg:        Color(0xFFF9FAFB),
-  pillBorder:    Color(0xFFE4E7EC),
-  pillText:      Color(0xFF374151),
-  buttonBg:      Color(0xFF0D1117),
-  buttonText:    Color(0xFF0D1117),
+  cardBg:         Color(0xFFFFFFFF),
+  cardBorder:     Color(0xFFE4E7EC),
+  titleColor:     Color(0xFF0D1117),
+  companyColor:   Color(0xFF374151),
+  secondaryText:  Color(0xFF6B7280),
+  mutedText:      Color(0xFFB0B7C3),
+  accentColor:    Color(0xFF2563EB),
+  accentBg:       Color(0xFFEFF6FF),
+  pillBg:         Color(0xFFF9FAFB),
+  pillBorder:     Color(0xFFE4E7EC),
+  pillText:       Color(0xFF374151),
+  buttonBg:       Color(0xFF0D1117),
+  buttonText:     Color(0xFF0D1117),
   buttonOutlined: true,
   bookmarkActive: Color(0xFF2563EB),
-  topBar:        Color(0xFF2563EB),
+  topBar:         Color(0xFF2563EB),
 );
 
 // Theme 2 — Parchment & Amber
 const _t2 = _CardTheme(
-  cardBg:        Color(0xFFFFFCF5),
-  cardBorder:    Color(0xFFEADFC9),
-  titleColor:    Color(0xFF1C1506),
-  companyColor:  Color(0xFF4A3418),
-  secondaryText: Color(0xFF7C5E3A),
-  mutedText:     Color(0xFFBEA98A),
-  accentColor:   Color(0xFFB45309),
-  accentBg:      Color(0xFFFFF7ED),
-  pillBg:        Color(0xFFFEF3C7),
-  pillBorder:    Color(0xFFF6D87A),
-  pillText:      Color(0xFF4A3418),
-  buttonBg:      Color(0xFF1C1506),
-  buttonText:    Color(0xFF1C1506),
+  cardBg:         Color(0xFFFFFCF5),
+  cardBorder:     Color(0xFFEADFC9),
+  titleColor:     Color(0xFF1C1506),
+  companyColor:   Color(0xFF4A3418),
+  secondaryText:  Color(0xFF7C5E3A),
+  mutedText:      Color(0xFFBEA98A),
+  accentColor:    Color(0xFFB45309),
+  accentBg:       Color(0xFFFFF7ED),
+  pillBg:         Color(0xFFFEF3C7),
+  pillBorder:     Color(0xFFF6D87A),
+  pillText:       Color(0xFF4A3418),
+  buttonBg:       Color(0xFF1C1506),
+  buttonText:     Color(0xFF1C1506),
   buttonOutlined: true,
   bookmarkActive: Color(0xFFB45309),
-  topBar:        Color(0xFFD97706),
+  topBar:         Color(0xFFD97706),
 );
 
-// Theme 3 — Slate & Teal (outlined button)
+// Theme 3 — Slate & Teal
 const _t3 = _CardTheme(
-  cardBg:        Color(0xFFF7FAFA),
-  cardBorder:    Color(0xFFCFE1E3),
-  titleColor:    Color(0xFF0C2229),
-  companyColor:  Color(0xFF2D5059),
-  secondaryText: Color(0xFF4A7A85),
-  mutedText:     Color(0xFF92B8BE),
-  accentColor:   Color(0xFF0D9488),
-  accentBg:      Color(0xFFF0FDFA),
-  pillBg:        Color(0xFFE6F7F6),
-  pillBorder:    Color(0xFFB2E0DC),
-  pillText:      Color(0xFF0C3A36),
-  buttonBg:      Color(0xFF0D9488),
-  buttonText:    Color(0xFF0D9488),
+  cardBg:         Color(0xFFF7FAFA),
+  cardBorder:     Color(0xFFCFE1E3),
+  titleColor:     Color(0xFF0C2229),
+  companyColor:   Color(0xFF2D5059),
+  secondaryText:  Color(0xFF4A7A85),
+  mutedText:      Color(0xFF92B8BE),
+  accentColor:    Color(0xFF0D9488),
+  accentBg:       Color(0xFFF0FDFA),
+  pillBg:         Color(0xFFE6F7F6),
+  pillBorder:     Color(0xFFB2E0DC),
+  pillText:       Color(0xFF0C3A36),
+  buttonBg:       Color(0xFF0D9488),
+  buttonText:     Color(0xFF0D9488),
   buttonOutlined: true,
   bookmarkActive: Color(0xFF0D9488),
-  topBar:        Color(0xFF0D9488),
+  topBar:         Color(0xFF0D9488),
 );
 
-// Theme 4 — Lavender & Violet (outlined button)
+// Theme 4 — Lavender & Violet
 const _t4 = _CardTheme(
-  cardBg:        Color(0xFFFAF9FF),
-  cardBorder:    Color(0xFFDDD6FE),
-  titleColor:    Color(0xFF12093A),
-  companyColor:  Color(0xFF3730A3),
-  secondaryText: Color(0xFF5B51A8),
-  mutedText:     Color(0xFFAEA8D3),
-  accentColor:   Color(0xFF5B21B6),
-  accentBg:      Color(0xFFF5F3FF),
-  pillBg:        Color(0xFFEDE9FE),
-  pillBorder:    Color(0xFFDDD6FE),
-  pillText:      Color(0xFF2E1065),
-  buttonBg:      Color(0xFF5B21B6),
-  buttonText:    Color(0xFF5B21B6),
+  cardBg:         Color(0xFFFAF9FF),
+  cardBorder:     Color(0xFFDDD6FE),
+  titleColor:     Color(0xFF12093A),
+  companyColor:   Color(0xFF3730A3),
+  secondaryText:  Color(0xFF5B51A8),
+  mutedText:      Color(0xFFAEA8D3),
+  accentColor:    Color(0xFF5B21B6),
+  accentBg:       Color(0xFFF5F3FF),
+  pillBg:         Color(0xFFEDE9FE),
+  pillBorder:     Color(0xFFDDD6FE),
+  pillText:       Color(0xFF2E1065),
+  buttonBg:       Color(0xFF5B21B6),
+  buttonText:     Color(0xFF5B21B6),
   buttonOutlined: true,
   bookmarkActive: Color(0xFF5B21B6),
-  topBar:        Color(0xFF7C3AED),
+  topBar:         Color(0xFF7C3AED),
 );
 
 const _themes = [_t1, _t2, _t3, _t4];
@@ -235,6 +235,9 @@ class _HackathonCardState extends State<HackathonCard> {
     }
 
     final formattedDeadline = DateFormat('MMM d, y').format(widget.hackathon.deadline);
+    final hasPrize    = widget.hackathon.prizes.isNotEmpty;
+    final hasLocation = widget.hackathon.location.isNotEmpty &&
+        widget.hackathon.location != 'N/A';
 
     return Container(
       margin: const EdgeInsets.only(left: 16, right: 16, bottom: 2),
@@ -255,268 +258,224 @@ class _HackathonCardState extends State<HackathonCard> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(13, 10, 13, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              // ══════════════════════════════════════════════════
+              //  TOP SECTION
+              // ══════════════════════════════════════════════════
+
+              // ── Row 1: Company | serial # | ⋮ ──────────────────
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-
-                  // ── Row 1: Company  |  serial #  |  ⋮ ───────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(Icons.business_outlined, size: 13, color: t.mutedText),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          widget.hackathon.company,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: t.companyColor,
-                            letterSpacing: 0.1,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  Icon(Icons.business_outlined, size: 13, color: t.mutedText),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      widget.hackathon.company,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: t.companyColor,
+                        letterSpacing: 0.1,
                       ),
-                      if (widget.serialNumber != null || widget.hackathon.typeSerialNo != null) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          "#${widget.serialNumber ?? widget.hackathon.typeSerialNo}",
-                          style: TextStyle(
-                            color: t.accentColor,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                      if (widget.onEdit != null && widget.onDelete != null) ...[
-                        const SizedBox(width: 2),
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            icon: Icon(Icons.more_vert, size: 18, color: t.mutedText),
-                            onPressed: () => showOpportunityOptions(
-                              context,
-                              onEdit: widget.onEdit!,
-                              onDelete: widget.onDelete!,
-                              title: widget.hackathon.title,
-                              subtitle: widget.hackathon.company,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-
-                  const SizedBox(height: 4),
-
-                  // ── Row 2: Location, Deadline & Prize ──────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Location & Prize
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.hackathon.location.isNotEmpty &&
-                                widget.hackathon.location != 'N/A') ...[
-                              Row(
-                                children: [
-                                  Icon(Icons.location_on_outlined, size: 11, color: t.accentColor),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      widget.hackathon.location,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: t.accentColor,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (widget.hackathon.prizes.isNotEmpty)
-                                const SizedBox(height: 4),
-                            ],
-                            if (widget.hackathon.prizes.isNotEmpty)
-                              Align(
-                                alignment: const Alignment(0.6, 0), // Shift slightly right of center
-                                child: _Pill(
-                                  icon: Icons.emoji_events_outlined,
-                                  text: widget.hackathon.prizes,
-                                  iconColor: t.accentColor,
-                                  textColor: t.accentColor,
-                                  bg: t.accentBg,
-                                  border: t.accentColor.withValues(alpha: 0.25),
-                                ),
-                              ),
-                          ],
+                  if (widget.serialNumber != null ||
+                      widget.hackathon.typeSerialNo != null) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      "#${widget.serialNumber ?? widget.hackathon.typeSerialNo}",
+                      style: TextStyle(
+                        color: t.accentColor,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                  if (widget.onEdit != null && widget.onDelete != null) ...[
+                    const SizedBox(width: 2),
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.more_vert, size: 18, color: t.mutedText),
+                        onPressed: () => showOpportunityOptions(
+                          context,
+                          onEdit: widget.onEdit!,
+                          onDelete: widget.onDelete!,
+                          title: widget.hackathon.title,
+                          subtitle: widget.hackathon.company,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                    ),
+                  ],
+                ],
+              ),
 
-                      // Deadline & Days Left
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
+              const SizedBox(height: 8),
+
+              // ── Row 2: Location + Prize (left)  |  Deadline + Days (right) ──
+              //    Prize pill is parallel to the days-left pill
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // LEFT column
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasLocation)
                           Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.event_outlined, size: 11, color: t.mutedText),
+                              Icon(Icons.location_on_outlined,
+                                  size: 11, color: t.accentColor),
                               const SizedBox(width: 3),
-                              Text(
-                                formattedDeadline,
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  color: t.secondaryText,
-                                  fontWeight: FontWeight.w500,
+                              Expanded(
+                                child: Text(
+                                  widget.hackathon.location,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: t.accentColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          _TimePill(
-                            text: timeLeftText,
-                            color: timeLeftColor,
-                            bg: timeLeftBg,
-                          ),
-                        ]
-                      )
-                    ],
+                        // Spacing mirrors the deadline text height so pills align
+                        SizedBox(height: hasLocation ? 5 : 0),
+                        if (hasPrize)
+                          _Pill(
+                            icon: Icons.emoji_events_outlined,
+                            text: widget.hackathon.prizes,
+                            iconColor: t.accentColor,
+                            textColor: t.accentColor,
+                            bg: t.accentBg,
+                            // ── CHANGE 1: no border on prize pill ──
+                            border: Colors.transparent,
+                          )
+                        else
+                          // Empty box keeps row height stable when no prize
+                          const SizedBox(height: 22),
+                      ],
+                    ),
                   ),
 
-                  const SizedBox(height: 4),
+                  const SizedBox(width: 10),
 
-                  // ── Event date range (centered) ──────────────────
-                  if (widget.hackathon.startDate != null &&
-                      widget.hackathon.endDate != null) ...[
-                    Center(
-                      child: Row(
+                  // RIGHT column
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.date_range_outlined, size: 11, color: t.mutedText),
+                          Icon(Icons.event_outlined,
+                              size: 11, color: t.mutedText),
                           const SizedBox(width: 3),
                           Text(
-                            "${DateFormat('MMM d').format(widget.hackathon.startDate!)}  →  "
-                            "${widget.hackathon.startDate!.year == widget.hackathon.endDate!.year ? DateFormat('MMM d').format(widget.hackathon.endDate!) : DateFormat('MMM d, y').format(widget.hackathon.endDate!)}",
+                            formattedDeadline,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10.5,
                               color: t.secondaryText,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                  ],
-
-                  // ── Hero Title ───────────────────────────────────
-                  SizedBox(
-                    height: 38,
-                    child: Center(
-                      child: Text(
-                        widget.hackathon.title.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: _titleFontSize(widget.hackathon.title) * 0.9,
-                          fontWeight: FontWeight.w800,
-                          color: t.titleColor,
-                          letterSpacing: 0.5,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // ── Team + Rounds pills ──────────────────────────
-                  if ((widget.hackathon.teamSize.isNotEmpty && widget.hackathon.teamSize != 'N/A') ||
-                      widget.hackathon.rounds > 0) ...[
-                    const SizedBox(height: 2),
-                    Center(
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 6,
-                        children: [
-                          if (widget.hackathon.teamSize.isNotEmpty &&
-                              widget.hackathon.teamSize != 'N/A')
-                            _Pill(
-                              icon: Icons.group_outlined,
-                              text: "Team: ${widget.hackathon.teamSize}",
-                              iconColor: t.secondaryText,
-                              textColor: t.pillText,
-                              bg: t.pillBg,
-                              border: t.pillBorder,
-                            ),
-                          if (widget.hackathon.rounds > 0)
-                            _Pill(
-                              icon: Icons.layers_outlined,
-                              text: "${widget.hackathon.rounds} Rounds",
-                              iconColor: t.secondaryText,
-                              textColor: t.pillText,
-                              bg: t.pillBg,
-                              border: t.pillBorder,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 6),
-
-                  // ── Apply button & Bookmark ─────────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ApplyButton(
-                          onTap: _launchURL,
-                          outlined: t.buttonOutlined,
-                          bgColor: t.buttonBg,
-                          textColor: t.buttonText,
-                          borderColor: t.buttonText,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: _toggleBookmark,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: _isSaved ? t.bookmarkActive.withValues(alpha: 0.1) : t.pillBg,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: _isSaved ? t.bookmarkActive.withValues(alpha: 0.3) : t.cardBorder,
-                            ),
-                          ),
-                          child: Icon(
-                            _isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
-                            size: 18,
-                            color: _isSaved ? t.bookmarkActive : t.mutedText,
-                          ),
-                        ),
+                      const SizedBox(height: 5),
+                      _TimePill(
+                        text: timeLeftText,
+                        color: timeLeftColor,
+                        bg: timeLeftBg,
                       ),
                     ],
                   ),
                 ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 11),
+
+              // ── Divider ──────────────────────────────────────────
+              Divider(height: 1, thickness: 0.8, color: t.cardBorder),
+
+              const SizedBox(height: 12),
+
+              // ══════════════════════════════════════════════════
+              //  BOTTOM SECTION
+              // ══════════════════════════════════════════════════
+
+              // ── Centered Title ───────────────────────────────────
+              Center(
+                child: Text(
+                  widget.hackathon.title.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: _titleFontSize(widget.hackathon.title),
+                    fontWeight: FontWeight.w800,
+                    color: t.titleColor,
+                    letterSpacing: 0.5,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // ── Apply (left edge)  |  Bookmark (right edge) ─────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _ApplyButton(
+                    onTap: _launchURL,
+                    outlined: t.buttonOutlined,
+                    bgColor: t.buttonBg,
+                    textColor: t.buttonText,
+                    borderColor: t.buttonText,
+                  ),
+                  GestureDetector(
+                    onTap: _toggleBookmark,
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: _isSaved
+                            ? t.bookmarkActive.withValues(alpha: 0.1)
+                            : t.pillBg,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _isSaved
+                              ? t.bookmarkActive.withValues(alpha: 0.3)
+                              : t.cardBorder,
+                        ),
+                      ),
+                      child: Icon(
+                        _isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
+                        size: 16,
+                        color: _isSaved ? t.bookmarkActive : t.mutedText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -524,10 +483,10 @@ class _HackathonCardState extends State<HackathonCard> {
 
   double _titleFontSize(String title) {
     final len = title.length;
-    if (len <= 20) return 22;
-    if (len <= 35) return 18;
-    if (len <= 50) return 15;
-    return 13;
+    if (len <= 20) return 17;
+    if (len <= 35) return 15;
+    if (len <= 50) return 13.5;
+    return 12;
   }
 }
 
@@ -590,21 +549,22 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
+        // ── CHANGE 1 applied here: border uses passed color (transparent) ──
         border: Border.all(color: border, width: 0.9),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: iconColor),
-          const SizedBox(width: 4),
+          Icon(icon, size: 11, color: iconColor),
+          const SizedBox(width: 3),
           Text(
             text,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: 11,
               color: textColor,
               fontWeight: FontWeight.w600,
             ),
@@ -640,49 +600,37 @@ class _ApplyButtonState extends State<_ApplyButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _down = true),
-      onTapUp:   (_) => setState(() => _down = false),
+      onTapDown:   (_) => setState(() => _down = true),
+      onTapUp:     (_) => setState(() => _down = false),
       onTapCancel: ()  => setState(() => _down = false),
       onTap: widget.onTap,
       child: AnimatedScale(
-        scale: _down ? 0.975 : 1.0,
+        scale: _down ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 100),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: widget.outlined ? Colors.transparent : widget.bgColor,
+            // ── CHANGE 2: always transparent background, no border ──
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(9),
-            border: widget.outlined
-                ? Border.all(color: widget.borderColor, width: 1.3)
-                : null,
-            boxShadow: widget.outlined || _down
-                ? null
-                : [
-                    BoxShadow(
-                      color: widget.bgColor.withValues(alpha: 0.22),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 "Apply Now",
                 style: TextStyle(
                   color: widget.textColor,
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
+                  letterSpacing: 0.3,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
               Icon(
                 Icons.arrow_outward_rounded,
-                size: 13,
-                color: widget.textColor.withValues(alpha: 0.75),
+                size: 12,
+                color: widget.textColor.withValues(alpha: 0.7),
               ),
             ],
           ),
