@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/user_role_service.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 
 // ══════════════════════════════════════════════════════════════════════
 //  WELCOME SCREEN — Role-Personalised Onboarding for Techmates
@@ -141,7 +141,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   void _goHome() {
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const HomeScreen(),
+        pageBuilder: (_, __, ___) => const MainScreen(),
         transitionsBuilder: (_, a, __, c) =>
             FadeTransition(opacity: a, child: c),
         transitionDuration: const Duration(milliseconds: 400),

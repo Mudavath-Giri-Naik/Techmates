@@ -9,7 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/college_service.dart';
 import '../../services/college_otp_service.dart';
 import '../../utils/email_validator.dart';
-import '../home_screen.dart';
+import '../main_screen.dart';
 import '../auth/login_screen.dart';
 
 enum _CollegeState { emailInput, otpEntry, verified }
@@ -289,14 +289,11 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
 
   Future<void> _detectCollege(String domain) async {
     try {
-      final results = await _college.searchColleges(domain);
-      if (results.isNotEmpty) {
-        final match = results.firstWhere(
-          (c) => (c['email_domain'] ?? '').toString().toLowerCase() == domain,
-          orElse: () => results.first,
-        );
-        _colName = match['name'] as String?;
-        _colId   = match['id']   as String?;
+      final normalizedDomain = domain.trim().toLowerCase();
+      final result = await _college.getCollegeIdByDomain(normalizedDomain);
+      if (result != null) {
+        _colId   = result['id'] as String?;
+        _colName = result['name'] as String?;
         _colInDb = true;
       } else {
         _colName = null; _colId = null; _colInDb = false;
@@ -348,7 +345,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
       if (_colId == null) await _college.handleUnknownDomain(domain, _colName ?? domain);
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()), (r) => false);
+          MaterialPageRoute(builder: (_) => const MainScreen()), (r) => false);
       }
     } catch (e) {
       debugPrint('❌ submit: $e');
@@ -745,8 +742,6 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         )),
       ]),
       const Spacer(),
-      _avatarChip(),
-      const SizedBox(width: 10),
       GestureDetector(
         onTap: _signOut,
         child: Container(

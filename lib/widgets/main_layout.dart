@@ -1,12 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import '../screens/auth/login_screen.dart';
-import '../screens/notifications_screen.dart';
-import '../screens/admin_dashboard_screen.dart';
 import 'smart_avatar.dart';
-import '../screens/edit_profile_screen.dart';
-import '../services/profile_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'profile_drawer.dart';
 
 class MainLayout extends StatefulWidget {
@@ -36,11 +29,8 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final AuthService _auth = AuthService();
-  final ProfileService _profileService = ProfileService();
   final TextEditingController _searchController = TextEditingController();
   
-  String? _userName;
   bool _isSearching = false;
   late AnimationController _searchAnimationController;
   late Animation<double> _scaleAnimation;
@@ -48,7 +38,6 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _fetchProfileName();
     _searchAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 100),
@@ -65,31 +54,11 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  Future<void> _fetchProfileName() async {
-    final user = _auth.user;
-    if (user != null) {
-      final profile = await _profileService.fetchProfile(user.id);
-      if (mounted) {
-        setState(() {
-          _userName = profile?.name;
-        });
-      }
-    }
-  }
-
-  /* Feedback and logout moved to ProfileDrawer */
-
-
   @override
   Widget build(BuildContext context) {
-    // Check if user is logged in to show correct avatar/name
-    final userEmail = _auth.user?.email ?? "User";
-    final displayName = _userName ?? "User";
-
-
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white, // Global White Background
+      backgroundColor: Colors.white,
       floatingActionButton: widget.floatingActionButton,
       appBar: AppBar(
         backgroundColor: Colors.white, // Flat White AppBar
@@ -209,10 +178,7 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
         ],
       ),
 
-      drawer: ProfileDrawer(
-         displayName: displayName,
-         email: userEmail,
-      ),
+      drawer: const ProfileDrawer(),
       body: widget.child,
     );
   }

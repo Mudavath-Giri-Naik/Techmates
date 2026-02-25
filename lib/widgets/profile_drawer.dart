@@ -5,19 +5,12 @@ import '../services/user_role_service.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/regular_admin_dashboard_screen.dart';
-import 'smart_avatar.dart';
 import '../screens/bookmarks_screen.dart';
 import '../screens/about_us_screen.dart';
+import '../screens/profile/profile_screen.dart';
 
 class ProfileDrawer extends StatelessWidget {
-  final String displayName;
-  final String email;
-
-  const ProfileDrawer({
-    super.key,
-    required this.displayName,
-    required this.email,
-  });
+  const ProfileDrawer({super.key});
 
   // ── Brand colors ──
   static const Color _black = Color(0xFF111827);
@@ -32,20 +25,6 @@ class ProfileDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final roleService = UserRoleService();
 
-    Color badgeColor = _grey;
-    String badgeText = "STUDENT";
-    IconData badgeIcon = Icons.school_rounded;
-
-    if (roleService.isSuperAdmin) {
-      badgeColor = _red;
-      badgeText = "SUPER ADMIN";
-      badgeIcon = Icons.shield_rounded;
-    } else if (roleService.isAdmin) {
-      badgeColor = _blue;
-      badgeText = "ADMIN";
-      badgeIcon = Icons.admin_panel_settings_rounded;
-    }
-
     return Drawer(
       width: 280,
       backgroundColor: Colors.white,
@@ -55,78 +34,7 @@ class ProfileDrawer extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // ═══════════════════════════════════════════════
-            // PROFILE HEADER
-            // ═══════════════════════════════════════════════
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Avatar
-                  const SmartAvatar(size: 56, isEditable: true),
-                  const SizedBox(width: 14),
-                  // Name + Email + Role
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: _black,
-                            height: 1.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          email,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: _muted,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        // Role badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: badgeColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(badgeIcon, size: 11, color: badgeColor),
-                              const SizedBox(width: 4),
-                              Text(
-                                badgeText,
-                                style: TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: badgeColor,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Divider
-            Container(height: 0.8, color: _border, margin: const EdgeInsets.symmetric(horizontal: 20)),
+            const SizedBox(height: 12),
 
             // ═══════════════════════════════════════════════
             // MENU ITEMS (SCROLLABLE TOP)
@@ -135,7 +43,22 @@ class ProfileDrawer extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  // ── Bookmarks (FIRST) ──
+                  // ── My DevCard ──
+                  _DrawerItem(
+                    icon: Icons.badge_rounded,
+                    label: "My DevCard",
+                    subtitle: "View your developer profile",
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      );
+                    },
+                  ),
+
+                  Container(height: 0.6, color: _border, margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4)),
+
+                  // ── Bookmarks ──
                   _DrawerItem(
                     icon: Icons.bookmark_border_rounded,
                     label: "Bookmarks",

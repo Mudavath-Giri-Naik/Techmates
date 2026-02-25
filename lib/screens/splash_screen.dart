@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 import 'onboarding/onboarding_form_screen.dart';
 import 'auth/login_screen.dart';
 import '../services/app_update_service.dart';
@@ -134,7 +134,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (role == 'admin' || role == 'super_admin') {
       debugPrint('🔀 [Splash] Admin/SuperAdmin → HomeScreen');
       if (mounted) {
-        Navigator.pushReplacement(context, FadePageRoute(page: const HomeScreen()));
+        Navigator.pushReplacement(context, FadePageRoute(page: const MainScreen()));
       }
       return;
     }
@@ -147,7 +147,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (mounted) {
       if (onboardingDone) {
         debugPrint('🔀 [Splash] onboarding done → HomeScreen');
-        Navigator.pushReplacement(context, FadePageRoute(page: const HomeScreen()));
+        Navigator.pushReplacement(context, FadePageRoute(page: const MainScreen()));
       } else {
         debugPrint('🔀 [Splash] onboarding NOT done → OnboardingFormScreen');
         Navigator.pushReplacement(

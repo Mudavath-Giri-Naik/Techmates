@@ -26,16 +26,15 @@ class CollegeService {
   }
 
   /// Look up a college by its email domain.
-  /// Returns the college id if found, null if not.
-  Future<String?> getCollegeIdByDomain(String domain) async {
+  /// Returns a map with 'id' and 'name' if found, null if not.
+  Future<Map<String, dynamic>?> getCollegeIdByDomain(String domain) async {
     try {
       final response = await _client
           .from('colleges')
-          .select('id')
+          .select('id, name, domain, is_verified')
           .eq('domain', domain.toLowerCase().trim())
           .maybeSingle();
-      if (response == null) return null;
-      return response['id'] as String?;
+      return response;
     } catch (e) {
       debugPrint('❌ [CollegeService] getCollegeIdByDomain error: $e');
       return null;

@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/supabase_client.dart';
 import '../services/college_service.dart';
 import '../services/college_otp_service.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 
 class CollegeOtpScreen extends StatefulWidget {
   final String userId;
@@ -183,7 +183,7 @@ class _CollegeOtpScreenState extends State<CollegeOtpScreen> {
 
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainScreen()),
           (route) => false,
         );
       }
