@@ -178,8 +178,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ? SingleChildScrollView(
                   child: Column(
                     children: [
-                      ProfileHeaderCard(profile: _userProfile!),
-                      _buildDevCardTile(),
+                      ProfileHeaderCard(
+                        profile: _userProfile!,
+                        isCurrentUser: true,
+                        onProfileUpdated: (updatedProfile) {
+                          setState(() {
+                            _userProfile = updatedProfile;
+                          });
+                        },
+                        onEditProfile: () {
+                          Navigator.pushNamed(context, '/edit_profile');
+                        },
+                        onViewArchive: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const DevCardScreen()),
+                          );
+                        },
+                      ),
                       _buildDashboardTile(),
                       _buildLogoutButton(),
                     ],

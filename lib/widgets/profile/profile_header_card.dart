@@ -8,12 +8,18 @@ import '../../models/user_profile.dart';
 /// Takes a [UserProfile] and a callback to update it after edits.
 class ProfileHeaderCard extends StatefulWidget {
   final UserProfile profile;
+  final bool isCurrentUser;
   final ValueChanged<UserProfile>? onProfileUpdated;
+  final VoidCallback? onEditProfile;
+  final VoidCallback? onViewArchive;
 
   const ProfileHeaderCard({
     super.key,
     required this.profile,
+    this.isCurrentUser = true,
     this.onProfileUpdated,
+    this.onEditProfile,
+    this.onViewArchive,
   });
 
   @override
@@ -33,11 +39,42 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
   static const _green = Color(0xFF2E7D32);
 
   late UserProfile _profile;
+  String _repoCount = '-';
 
   @override
   void initState() {
     super.initState();
     _profile = widget.profile;
+    _fetchRepoCount();
+  }
+
+  Future<void> _fetchRepoCount() async {
+    try {
+      final cached = await Supabase.instance.client
+          .from('devcard_cache')
+          .select('analyzed_data')
+          .eq('user_id', _profile.id)
+          .maybeSingle();
+
+      if (cached != null) {
+        final data = cached['analyzed_data'] as Map<String, dynamic>?;
+        if (data != null && data['total_repos'] != null) {
+          if (mounted) {
+            setState(() {
+              _repoCount = data['total_repos'].toString();
+            });
+          }
+          return;
+        }
+      }
+      
+      // If not in cache but we have github URL, fetch real count if possible
+      // But for now, just default to 0 if we can't find it easily
+      if (mounted) setState(() => _repoCount = '0');
+    } catch (e) {
+      debugPrint('Error fetching repo count: $e');
+      if (mounted) setState(() => _repoCount = '0');
+    }
   }
 
   @override
@@ -45,6 +82,7 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
     super.didUpdateWidget(oldWidget);
     if (widget.profile != oldWidget.profile) {
       _profile = widget.profile;
+      _fetchRepoCount();
     }
   }
 
@@ -56,8 +94,8 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Container(
-      width: 56,
-      height: 56,
+      width: 76,
+      height: 76,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: _border, width: 1.5),
@@ -67,8 +105,8 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
             ? CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.cover,
-                width: 56,
-                height: 56,
+                width: 76,
+                height: 76,
                 errorWidget: (_, __, ___) => _initialsCircle(initial),
                 placeholder: (_, __) => _initialsCircle(initial),
               )
@@ -79,15 +117,15 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
 
   Widget _initialsCircle(String initial) {
     return Container(
-      width: 56,
-      height: 56,
+      width: 76,
+      height: 76,
       color: _primaryBlue,
       alignment: Alignment.center,
       child: Text(
         initial,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 20,
+          fontSize: 28,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -115,156 +153,56 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
     );
   }
 
-  // ── Info chips ───────────────────────────────────────────────────────────
+  // ── Stat Column ──────────────────────────────────────────────────────────
 
-  Widget _infoChip(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: _lightBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _border, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: _primaryBlue),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: _muted,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Social items ─────────────────────────────────────────────────────────
-
-  Widget _socialItem({
-    required IconData icon,
-    required String label,
-    required Color iconColor,
-    required VoidCallback onTap,
-    bool showAddLabel = false,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: iconColor),
-              const SizedBox(height: 4),
-              Text(
-                showAddLabel ? 'Add' : label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: showAddLabel ? _primaryRed : _muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Add URL dialog ───────────────────────────────────────────────────────
-
-  Future<void> _showAddUrlDialog({
-    required String title,
-    required String hint,
-    required String field,
-  }) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Text(
-          title,
+  Widget _statColumn(String count, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          count,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: _textBlack,
           ),
         ),
-        content: TextField(
-          controller: controller,
-          style: const TextStyle(fontSize: 14, color: _textBlack),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(fontSize: 13, color: _disabled),
-            filled: true,
-            fillColor: _lightBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _primaryBlue, width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            color: _textBlack,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: _muted, fontSize: 13, fontWeight: FontWeight.w600),
+      ],
+    );
+  }
+
+  // ── Buttons ──────────────────────────────────────────────────────────────
+
+  Widget _actionButton({required String label, required VoidCallback onTap}) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9), // Slight gray background
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _textBlack,
             ),
           ),
-          TextButton(
-            onPressed: () {
-              final text = controller.text.trim();
-              if (text.isNotEmpty) Navigator.pop(ctx, text);
-            },
-            child: const Text(
-              'Save',
-              style: TextStyle(color: _primaryBlue, fontSize: 13, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
+        ),
       ),
     );
-
-    if (result != null && result.isNotEmpty) {
-      try {
-        await Supabase.instance.client
-            .from('profiles')
-            .update({field: result})
-            .eq('id', _profile.id);
-
-        final updated = field == 'linkedin_url'
-            ? _profile.copyWith(linkedinUrl: result)
-            : _profile.copyWith(githubUrl: result);
-
-        setState(() => _profile = updated);
-        widget.onProfileUpdated?.call(updated);
-      } catch (e) {
-        debugPrint('❌ [ProfileHeaderCard] save $field error: $e');
-      }
-    }
   }
 
   // ── Launch URL ───────────────────────────────────────────────────────────
@@ -285,67 +223,55 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Abbreviate branch if it has parentheses, e.g. "Computer Science (CSE)" -> "CSE"
+    String? branchAbbr = _profile.branch;
+    if (branchAbbr != null && branchAbbr.contains('(') && branchAbbr.contains(')')) {
+      final startIndex = branchAbbr.indexOf('(') + 1;
+      final endIndex = branchAbbr.indexOf(')');
+      if (endIndex > startIndex) {
+        branchAbbr = branchAbbr.substring(startIndex, endIndex).trim();
+      }
+    }
+
+    final String handle = _profile.githubUrl != null && _profile.githubUrl!.isNotEmpty
+        ? _profile.githubUrl!.split('/').last
+        : (_profile.name?.replaceAll(' ', '').toLowerCase() ?? 'user');
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      color: Colors.white,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── ROW 1: Avatar + Name + College ──
+          // ── ROW 1: Avatar + Stats ──
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildAvatar(),
-              const SizedBox(width: 14),
+              const SizedBox(width: 24),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name
                     Text(
-                      _profile.name ?? 'User',
+                      handle,
                       style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                         color: _textBlack,
-                        height: 1.2,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    // College row
+                    const SizedBox(height: 12),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.business_rounded, size: 14, color: _primaryBlue),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            _profile.college ?? 'College not set',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: _muted,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_profile.collegeVerified) _verifiedChip(),
+                        _statColumn(_repoCount, 'Repos'),
+                        _statColumn('0', 'followers'),
+                        _statColumn('0', 'following'),
+                        const SizedBox(width: 8), // Padding on right
                       ],
                     ),
                   ],
@@ -354,81 +280,116 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
             ],
           ),
 
-          // ── ROW 2: Academic chips ──
-          if (_profile.branch != null || _profile.year != null) ...[
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                if (_profile.branch != null)
-                  _infoChip(Icons.school_rounded, _profile.branch!),
-                if (_profile.year != null)
-                  _infoChip(Icons.calendar_today_rounded, _profile.year!),
-              ],
+          const SizedBox(height: 16),
+
+          // ── Bio Section ──
+          Text(
+            _profile.name ?? 'User',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: _textBlack,
             ),
-          ],
-
-          // ── Divider ──
-          Container(
-            height: 1,
-            color: _lightBg,
-            margin: const EdgeInsets.symmetric(vertical: 14),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          if (_profile.year != null || branchAbbr != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                '${_profile.year ?? ''}${_profile.year != null && branchAbbr != null ? ' · ' : ''}${branchAbbr ?? ''}',
+                style: const TextStyle(fontSize: 14, color: _textBlack),
+              ),
+            ),
+          if (_profile.college != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      _profile.college!,
+                      style: const TextStyle(fontSize: 14, color: _textBlack),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (_profile.collegeVerified) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.verified, size: 14, color: _primaryBlue),
+                  ],
+                ],
+              ),
+            ),
 
-          // ── ROW 3: Social links ──
+          // Links
+          if (_profile.githubUrl != null || _profile.linkedinUrl != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.link_rounded, size: 16, color: _primaryBlue),
+                  const SizedBox(width: 4),
+                  if (_profile.githubUrl != null && _profile.githubUrl!.isNotEmpty)
+                    GestureDetector(
+                      onTap: () => _launch(_profile.githubUrl),
+                      child: Text(
+                         'github.com/${_profile.githubUrl!.split('/').last}',
+                        style: const TextStyle(
+                            fontSize: 14, color: _primaryBlue, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  if (_profile.linkedinUrl != null && _profile.linkedinUrl!.isNotEmpty) ...[
+                    if (_profile.githubUrl != null && _profile.githubUrl!.isNotEmpty)
+                      const Text(' · ', style: TextStyle(color: _textBlack)),
+                    GestureDetector(
+                      onTap: () => _launch(_profile.linkedinUrl),
+                      child: Text(
+                        'linkedin.com/in/${_profile.linkedinUrl!.split('in/').last.split('/').first}',
+                        style: const TextStyle(
+                            fontSize: 14, color: _primaryBlue, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ]
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 16),
+
+          // ── Buttons ──
           Row(
-            children: [
-              // Email
-              _socialItem(
-                icon: Icons.email_outlined,
-                label: 'Email',
-                iconColor: _muted,
-                onTap: () {},
-              ),
-
-              // LinkedIn
-              _socialItem(
-                icon: Icons.link_rounded,
-                label: 'LinkedIn',
-                iconColor: _profile.linkedinUrl != null && _profile.linkedinUrl!.isNotEmpty
-                    ? _linkedInBlue
-                    : _disabled,
-                showAddLabel: _profile.linkedinUrl == null || _profile.linkedinUrl!.isEmpty,
-                onTap: () {
-                  if (_profile.linkedinUrl != null && _profile.linkedinUrl!.isNotEmpty) {
-                    _launch(_profile.linkedinUrl);
-                  } else {
-                    _showAddUrlDialog(
-                      title: 'Add LinkedIn',
-                      hint: 'linkedin.com/in/yourname',
-                      field: 'linkedin_url',
-                    );
-                  }
-                },
-              ),
-
-              // GitHub
-              _socialItem(
-                icon: Icons.code_rounded,
-                label: 'GitHub',
-                iconColor: _profile.githubUrl != null && _profile.githubUrl!.isNotEmpty
-                    ? _textBlack
-                    : _disabled,
-                showAddLabel: _profile.githubUrl == null || _profile.githubUrl!.isEmpty,
-                onTap: () {
-                  if (_profile.githubUrl != null && _profile.githubUrl!.isNotEmpty) {
-                    _launch(_profile.githubUrl);
-                  } else {
-                    _showAddUrlDialog(
-                      title: 'Add GitHub',
-                      hint: 'github.com/username',
-                      field: 'github_url',
-                    );
-                  }
-                },
-              ),
-            ],
+            children: widget.isCurrentUser
+                ? [
+                    _actionButton(
+                      label: 'Edit profile',
+                      onTap: () {
+                        if (widget.onEditProfile != null) {
+                          widget.onEditProfile!();
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _actionButton(
+                      label: 'View archive',
+                      onTap: () {
+                        if (widget.onViewArchive != null) {
+                          widget.onViewArchive!();
+                        }
+                      },
+                    ),
+                  ]
+                : [
+                    _actionButton(
+                      label: 'Follow',
+                      onTap: () {
+                        // Mock follow action for now
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Following feature coming soon!')),
+                        );
+                      },
+                    ),
+                  ],
           ),
         ],
       ),
