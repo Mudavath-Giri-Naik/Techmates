@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
-
 import '../../models/devcard/devcard_model.dart';
 
 class LanguagesSection extends StatelessWidget {
   final List<LanguageStat> languages;
+  final List<ProjectAnalysis> projects;
+  final bool isDark;
 
-  const LanguagesSection({super.key, required this.languages});
+  const LanguagesSection({
+    super.key,
+    required this.languages,
+    required this.isDark,
+    this.projects = const [],
+  });
+
+  Color get _cardBg => isDark ? const Color(0xFF0D1120) : Colors.white;
+  Color get _text1 => isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
+  Color get _text2 => isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
+  Color get _borderCol => isDark ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
 
   Color _parseHex(String hex) {
     final cleaned = hex.replaceAll('#', '');
@@ -16,87 +27,75 @@ class LanguagesSection extends StatelessWidget {
     }
   }
 
+  int _projectCount(String langName) {
+    return projects
+        .where((p) =>
+            p.primaryLanguage?.toLowerCase() == langName.toLowerCase())
+        .length;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (languages.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: _cardBg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'LANGUAGES',
-            style: TextStyle(
-              color: Color(0xFF8B949E),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
+          ...languages.map((l) => _row(l)),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(LanguageStat l) {
+    final color = _parseHex(l.color);
+    final pct = (l.percentage * 100).toStringAsFixed(0);
+    final count = _projectCount(l.name);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        children: [
+          Container(
+              width: 7,
+              height: 7,
+              decoration:
+                  BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 80,
+            child: Text(l.name,
+                style: TextStyle(
+                    color: _text1,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+          ),
+          SizedBox(
+            width: 80,
+            height: 4,
+            child: Container(
+              decoration: BoxDecoration(
+                  color: _borderCol, borderRadius: BorderRadius.circular(2)),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: l.percentage.clamp(0.0, 1.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                      color: color, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          ...languages.map((l) {
-            final color = _parseHex(l.color);
-            final pct = (l.percentage * 100).toStringAsFixed(0);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 80,
-                    child: Text(
-                      l.name,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        Container(
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: Colors.white10,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: l.percentage.clamp(0.0, 1.0),
-                          child: Container(
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 36,
-                    child: Text(
-                      '$pct%',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                          color: Color(0xFF8B949E), fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
+          const SizedBox(width: 8),
+          Text('$pct%',
+              style: TextStyle(
+                  color: _text2, fontSize: 9, fontFamily: 'monospace')),
+          const Spacer(),
+          Text('$count projects',
+              style: TextStyle(
+                  color: _text2, fontSize: 9, fontFamily: 'monospace')),
         ],
       ),
     );
