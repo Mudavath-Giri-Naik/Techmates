@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
 import '../../models/user_profile.dart';
+import '../../core/theme_notifier.dart';
 
 // ─── Brand Constants ──────────────────────────────────────────────
 const _brandRed = Color(0xFFC62828);
@@ -140,12 +141,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _darkMode = value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dark_mode', value);
+    ThemeNotifier.instance.toggleTheme(value);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Theme switching coming soon!',
+            value ? 'Dark Mode Enabled' : 'Light Mode Enabled',
             style: GoogleFonts.sora(fontSize: 12),
           ),
           behavior: SnackBarBehavior.floating,
@@ -153,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           backgroundColor: Theme.of(context).colorScheme.inverseSurface,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         ),
       );
     }

@@ -95,10 +95,10 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
           ),
           const SizedBox(height: 12),
           // Cards
-          ...widget.items
-              .map((item) => Padding(
+          ...widget.items.asMap().entries
+              .map((entry) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: _buildEliteCard(item, context),
+                    child: _buildEliteCard(entry.value, context, entry.key),
                   ))
               ,
         ],
@@ -106,7 +106,7 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
     );
   }
 
-  Widget _buildEliteCard(Map<String, dynamic> item, BuildContext context) {
+  Widget _buildEliteCard(Map<String, dynamic> item, BuildContext context, int index) {
     final opportunityId = (item['opportunity_id'] ?? '').toString();
     final company = (item['company'] as String?) ?? '';
     final title = (item['title'] as String?) ?? '';
@@ -117,6 +117,18 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
     final duration = (item['duration'] as String?) ?? '';
     final rawTags = item['tags'];
     final isBookmarked = _bookmarkService.isBookmarked(opportunityId);
+
+    // Dynamic background color based on index
+    final List<Color> bgColors = [
+      HomeTheme.accentBlue,
+      HomeTheme.accentGreen,
+      HomeTheme.accentOrange,
+      Theme.of(context).colorScheme.primary,
+      Theme.of(context).colorScheme.tertiary,
+    ];
+    final Color baseColor = bgColors[index % bgColors.length];
+    final Color dynamicBgColor = baseColor.withValues(
+        alpha: Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.08);
 
     // Format stipend
     String stipendText = 'Stipend N/A';
@@ -154,9 +166,8 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: HomeTheme.surfaceContainerHigh(context),
+        color: dynamicBgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: HomeTheme.outlineVariant(context), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +182,6 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
                 decoration: BoxDecoration(
                   color: HomeTheme.primaryContainer(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: HomeTheme.outlineVariant(context)),
                 ),
                 child: Center(
                   child: Text(
@@ -249,8 +259,6 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
                 decoration: BoxDecoration(
                   color: HomeTheme.surfaceContainer(context),
                   borderRadius: BorderRadius.circular(6),
-                  border:
-                      Border.all(color: HomeTheme.outlineVariant(context), width: 1),
                 ),
                 child: Text(
                   tag,

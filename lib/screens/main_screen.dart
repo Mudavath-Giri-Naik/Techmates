@@ -64,6 +64,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Allows content to flow under the curved navbar
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -71,15 +72,31 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
-              width: 0.5,
-            ),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
-        child: NavigationBar(
-          height: 72,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
+          ),
+          child: NavigationBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            indicatorColor: Theme.of(context).colorScheme.secondaryContainer,
+            height: 72,
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) =>
               setState(() => _currentIndex = index),
@@ -121,6 +138,7 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }

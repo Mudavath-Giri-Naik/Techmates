@@ -19,6 +19,7 @@ import 'screens/onboarding/onboarding_form_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/opportunity_detail_screen.dart';
+import 'core/theme_notifier.dart';
 
 
 
@@ -46,6 +47,8 @@ void main() async {
     final packageInfo = await PackageInfo.fromPlatform();
     debugPrint("🚀 Techmates App Version: ${packageInfo.version}");
     debugPrint("📦 Build Number: ${packageInfo.buildNumber}");
+
+    await ThemeNotifier.instance.init();
 
     // Load env file (local asset)
     await dotenv.load(fileName: ".env");
@@ -269,52 +272,88 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: 'Techmates Auth',
-      scrollBehavior: const SmoothScrollBehavior(),
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          systemOverlayStyle: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.dark,
-            statusBarBrightness: Brightness.light,
-            systemNavigationBarColor: Colors.white,
-            systemNavigationBarIconBrightness: Brightness.dark,
+    return AnimatedBuilder(
+      animation: ThemeNotifier.instance,
+      builder: (context, child) {
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'Techmates Auth',
+          scrollBehavior: const SmoothScrollBehavior(),
+          themeMode: ThemeNotifier.instance.themeMode,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+            appBarTheme: const AppBarTheme(
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.dark,
+                statusBarBrightness: Brightness.light,
+                systemNavigationBarColor: Colors.white,
+                systemNavigationBarIconBrightness: Brightness.dark,
+              ),
+            ),
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.iOS: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.linux: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.macOS: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.windows: _NoAnimationPageTransitionsBuilder(),
+              },
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              cursorColor: Colors.deepPurple,
+              selectionColor: Colors.deepPurple.withOpacity(0.4),
+              selectionHandleColor: Colors.deepPurple,
+            ),
           ),
-        ),
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: _NoAnimationPageTransitionsBuilder(),
-            TargetPlatform.iOS: _NoAnimationPageTransitionsBuilder(),
-            TargetPlatform.linux: _NoAnimationPageTransitionsBuilder(),
-            TargetPlatform.macOS: _NoAnimationPageTransitionsBuilder(),
-            TargetPlatform.windows: _NoAnimationPageTransitionsBuilder(),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+            appBarTheme: const AppBarTheme(
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.light,
+                statusBarBrightness: Brightness.dark,
+                systemNavigationBarColor: Colors.black,
+                systemNavigationBarIconBrightness: Brightness.light,
+              ),
+            ),
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.iOS: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.linux: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.macOS: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.windows: _NoAnimationPageTransitionsBuilder(),
+              },
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              cursorColor: Colors.deepPurpleAccent,
+              selectionColor: Colors.deepPurple.withOpacity(0.4),
+              selectionHandleColor: Colors.deepPurpleAccent,
+            ),
+          ),
+          home: const SplashScreen(),
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            '/opportunity_detail': (context) {
+               final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+               return OpportunityDetailScreen(
+                 opportunityId: args['opportunityId'],
+                 type: args['type'],
+               );
+            },
+            '/edit_profile': (context) => const EditProfileScreen(),
           },
-        ),
-        textSelectionTheme: TextSelectionThemeData(
-          cursorColor: Colors.deepPurple,
-          selectionColor: Colors.deepPurple.withOpacity(0.4),
-          selectionHandleColor: Colors.deepPurple,
-        ),
-      ),
-      home: const SplashScreen(),
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/opportunity_detail': (context) {
-           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-           return OpportunityDetailScreen(
-             opportunityId: args['opportunityId'],
-             type: args['type'],
-           );
-        },
-        '/edit_profile': (context) => const EditProfileScreen(),
-      },
+        );
+      }
     );
   }
 }

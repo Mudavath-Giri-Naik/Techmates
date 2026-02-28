@@ -86,39 +86,21 @@ class ClosingSoonSection extends StatelessWidget {
     final isUrgent = daysLeft <= 3;
 
     // Type chip colors
-    Color chipBg;
-    Color chipText;
-    String chipLabel;
-    switch (type) {
-      case 'internship':
-        chipBg = const Color(0xFFD3E4FF);
-        chipText = const Color(0xFF0061A4);
-        chipLabel = 'INTERNSHIP';
-        break;
-      case 'hackathon':
-        chipBg = const Color(0xFFB8F5D4);
-        chipText = const Color(0xFF1A7A4A);
-        chipLabel = 'HACKATHON';
-        break;
-      default:
-        chipBg = const Color(0xFFFFD8E4);
-        chipText = const Color(0xFF7D5260);
-        chipLabel = 'EVENT';
-    }
+    final chipBg = HomeTheme.typeChipBg(context, type);
+    final chipText = HomeTheme.typeChipText(context, type);
+    final chipLabel = type.toUpperCase();
 
     // Countdown colors
-    final countdownBg =
-        isUrgent ? HomeTheme.errorContainer(context) : const Color(0xFFB8F5D4);
-    final countdownText =
-        isUrgent ? HomeTheme.error(context) : const Color(0xFF1A7A4A);
+    final countdownCols = HomeTheme.countdownColors(context, daysLeft);
+    final countdownBg = countdownCols.bg;
+    final countdownText = countdownCols.text;
 
     return Container(
       width: 180,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: HomeTheme.surfaceContainer(context),
+        color: HomeTheme.surfaceContainerLow(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: HomeTheme.outlineVariant(context), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

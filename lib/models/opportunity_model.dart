@@ -68,7 +68,11 @@ class Opportunity {
     
     // Extract common fields
     final title = json['title'] ?? detailMap['title'] ?? 'Untitled';
-    final org = json['organization'] ?? detailMap['organization'] ?? 'Unknown Org';
+    final org = json['organization'] ?? 
+                detailMap['company'] ?? 
+                detailMap['organiser'] ?? 
+                detailMap['organization'] ?? 
+                'Unknown Org';
     final loc = json['location'] ?? detailMap['location'] ?? 'Remote';
     final link = json['link'] ?? detailMap['link'] ?? '';
 

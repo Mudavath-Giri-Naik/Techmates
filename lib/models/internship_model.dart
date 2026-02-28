@@ -48,10 +48,10 @@ class Internship {
 
     return Internship(
       id: json['id'].toString(),
-      title: json['title'] ?? 'Untitled Internship',
-      organization: json['organization'] ?? 'Unknown Org',
-      location: json['location'] ?? 'Remote',
-      link: json['link'] ?? '',
+      title: json['title'] ?? detailMap?['title'] ?? 'Untitled Internship',
+      organization: json['organization'] ?? detailMap?['company'] ?? detailMap?['organization'] ?? 'Unknown Org',
+      location: json['location'] ?? detailMap?['location'] ?? 'Remote',
+      link: json['link'] ?? detailMap?['link'] ?? '',
       deadline: parsedDeadline ?? DateTime.now().add(const Duration(days: 30)),
       stipend: detailMap?['stipend']?.toString(),
       duration: detailMap?['duration']?.toString(),
