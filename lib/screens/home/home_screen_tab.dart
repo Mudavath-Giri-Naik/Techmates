@@ -252,8 +252,14 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
                           ),
                         ),
 
-                      // Bottom spacing
-                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                      // Bottom spacing to keep last section clear of bottom nav/safe area.
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 32 +
+                              MediaQuery.paddingOf(context).bottom +
+                              kBottomNavigationBarHeight,
+                        ),
+                      ),
                     ],
                   ),
                 ),

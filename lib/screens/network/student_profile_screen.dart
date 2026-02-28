@@ -1,604 +1,444 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../models/student_network_model.dart';
-import '../../models/follow_model.dart';
-import '../../models/devcard/devcard_model.dart';
-import '../../services/devcard/devcard_service.dart';
-import '../../widgets/network/follow_button.dart';
-import '../devcard/devcard_screen.dart';
-import 'follow_list_screen.dart';
 
-class StudentProfileScreen extends StatefulWidget {
+import '../../models/student_network_model.dart';
+import '../devcard/devcard_screen.dart';
+
+const _blue = Color(0xFF1565C0);
+
+class StudentProfileScreen extends StatelessWidget {
   final StudentNetworkModel student;
 
   const StudentProfileScreen({super.key, required this.student});
 
   @override
-  State<StudentProfileScreen> createState() => _StudentProfileScreenState();
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      backgroundColor: cs.surface,
+      appBar: AppBar(
+        backgroundColor: cs.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          'Student Profile',
+          style: GoogleFonts.sora(
+            fontWeight: FontWeight.w700,
+            color: cs.onSurface,
+          ),
+        ),
+      ),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: _HeaderCard(student: student),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _StatsCard(student: student),
+            ),
+          ),
+          if (!student.isContentHidden)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _SocialLinksCard(student: student),
+              ),
+            ),
+          if (student.isContentHidden)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _PrivateProfileCard(),
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DevCardScreen(userId: student.id),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.badge_rounded, size: 18),
+                  label: Text(
+                    'View DevCard',
+                    style: GoogleFonts.sora(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 24 +
+                  MediaQuery.paddingOf(context).bottom +
+                  kBottomNavigationBarHeight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _StudentProfileScreenState extends State<StudentProfileScreen> {
-  late StudentNetworkModel _student;
-  DevCardModel? _devCardModel;
-  bool _devCardLoading = false;
-  bool _devCardLoaded = false;
+class _HeaderCard extends StatelessWidget {
+  final StudentNetworkModel student;
+
+  const _HeaderCard({required this.student});
 
   @override
-  void initState() {
-    super.initState();
-    _student = widget.student;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDevCard());
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Avatar(student: student),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: student.displayName),
+                      if (student.collegeVerified)
+                        const TextSpan(text: '\u00A0'),
+                      if (student.collegeVerified)
+                        const WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Icon(
+                            Icons.verified_rounded,
+                            size: 16,
+                            color: _blue,
+                          ),
+                        ),
+                    ],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.sora(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  [student.branch, student.yearTabLabel]
+                      .where((e) => e != null && e.isNotEmpty)
+                      .join('  -  '),
+                  style: GoogleFonts.sora(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+                if ((student.college ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    student.college!,
+                    style: GoogleFonts.sora(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
+}
 
-  Future<void> _loadDevCard() async {
-    if (_devCardLoaded) return;
-    setState(() => _devCardLoading = true);
-    try {
-      final card = await DevCardService.getOtherUserDevCard(_student.id);
-      if (mounted) {
-        setState(() {
-          _devCardModel = card;
-          _devCardLoading = false;
-          _devCardLoaded = true;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _devCardLoading = false;
-          _devCardLoaded = true;
-        });
-      }
-    }
-  }
+class _Avatar extends StatelessWidget {
+  final StudentNetworkModel student;
 
-  void _onFollowStatusChanged(FollowStatus newStatus) {
-    final previousStatus = _student.followStatus;
-    int delta = 0;
-    if (previousStatus == FollowStatus.none && newStatus == FollowStatus.following) {
-      delta = 1;
-    } else if (previousStatus == FollowStatus.following && newStatus == FollowStatus.none) {
-      delta = -1;
-    }
-    setState(() {
-      _student = _student.copyWith(
-        followStatus: newStatus,
-        followerCount: (_student.followerCount + delta).clamp(0, 999999999),
-      );
-    });
-  }
+  const _Avatar({required this.student});
 
-  Future<void> _refresh() async {
-    try {
-      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-      if (currentUserId == null) return;
-      final results = await Future.wait([
-        Supabase.instance.client.rpc('get_follow_status', params: {
-          'p_viewer_id': currentUserId,
-          'p_target_id': _student.id,
-        }),
-        Supabase.instance.client.rpc('get_follower_count', params: {'p_user_id': _student.id}),
-        Supabase.instance.client.rpc('get_following_count', params: {'p_user_id': _student.id}),
-      ]);
-      if (mounted) {
-        setState(() {
-          _student = _student.copyWith(
-            followStatus: FollowStatus.fromString(results[0] as String?),
-            followerCount: (results[1] as num?)?.toInt() ?? _student.followerCount,
-            followingCount: (results[2] as num?)?.toInt() ?? _student.followingCount,
-          );
-        });
-      }
-    } catch (e) {
-      debugPrint('Error refreshing student profile: $e');
+  static String _initials(String? name) {
+    if (name == null || name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-  }
-
-  Future<void> _launch(String? url) async {
-    if (url == null || url.isEmpty) return;
-    var uri = url;
-    if (!uri.startsWith('http://') && !uri.startsWith('https://')) {
-      uri = 'https://$uri';
-    }
-    final parsed = Uri.tryParse(uri);
-    if (parsed != null && await canLaunchUrl(parsed)) {
-      await launchUrl(parsed, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Color _parseHex(String hex) {
-    final cleaned = hex.replaceAll('#', '');
-    try {
-      return Color(int.parse('FF$cleaned', radix: 16));
-    } catch (_) {
-      return const Color(0xFF8B8B8B);
-    }
+    return parts[0][0].toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        color: const Color(0xFF0F172A),
-        strokeWidth: 1.5,
-        child: CustomScrollView(
-          slivers: [
-            // ── App bar ──────────────────────────────────────────────────
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              pinned: true,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A), size: 22),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Avatar + follow row ───────────────────────────────
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _buildAvatar(72),
-                        const Spacer(),
-                        FollowButton(
-                          targetUserId: _student.id,
-                          initialStatus: _student.followStatus,
-                          compact: false,
-                          onStatusChanged: _onFollowStatusChanged,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // ── Name ──────────────────────────────────────────────
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _student.displayName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
-                              letterSpacing: -0.3,
-                              height: 1.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_student.collegeVerified) ...[
-                          const SizedBox(width: 5),
-                          const Icon(Icons.verified_rounded,
-                              size: 16, color: Color(0xFF38BDF8)),
-                        ],
-                        if (_student.isPrivate) ...[
-                          const SizedBox(width: 5),
-                          const Icon(Icons.lock_outline,
-                              size: 14, color: Color(0xFFB0BEC5)),
-                        ],
-                      ],
-                    ),
-
-                    const SizedBox(height: 3),
-
-                    // ── Branch · Year ─────────────────────────────────────
-                    if (_buildSubtitle().isNotEmpty)
-                      Text(
-                        _buildSubtitle(),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF94A3B8),
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-
-                    // ── College ───────────────────────────────────────────
-                    if (_student.college != null && _student.college!.isNotEmpty) ...[
-                      const SizedBox(height: 1),
-                      Text(
-                        _student.college!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFB0BEC5),
-                          fontWeight: FontWeight.w400,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-
-                    const SizedBox(height: 20),
-
-                    // ── Stats row ─────────────────────────────────────────
-                    _buildStatsRow(),
-
-                    const SizedBox(height: 24),
-                    const Divider(height: 1, thickness: 0.5, color: Color(0xFFF1F5F9)),
-                    const SizedBox(height: 24),
-
-                    // ── Private state ─────────────────────────────────────
-                    if (_student.isContentHidden)
-                      _buildPrivateState()
-                    else ...[
-                      _buildSocialLinks(),
-                      _buildDevCardSection(),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Avatar ────────────────────────────────────────────────────────────────
-  Widget _buildAvatar(double size) {
-    final url = _student.avatarUrl;
-    final initial = _student.displayName.isNotEmpty
-        ? _student.displayName[0].toUpperCase()
-        : '?';
-
-    Widget fallback = Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF1F5F9),
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 68,
+      height: 68,
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
+        color: cs.primaryContainer,
       ),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          fontSize: size * 0.36,
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF94A3B8),
-        ),
-      ),
-    );
-
-    if (url != null && url.isNotEmpty) {
-      return ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: url,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorWidget: (_, _, _) => fallback,
-          placeholder: (_, _) => fallback,
-        ),
-      );
-    }
-    return fallback;
-  }
-
-  // ── Subtitle ──────────────────────────────────────────────────────────────
-  String _buildSubtitle() {
-    final parts = <String>[];
-    if (_student.branch != null && _student.branch!.isNotEmpty) parts.add(_student.branch!);
-    if (_student.year != null && _student.year!.isNotEmpty) {
-      parts.add(_student.isAlumni ? 'Alumni' : _student.year!);
-    }
-    return parts.join(' · ');
-  }
-
-  // ── Stats row ─────────────────────────────────────────────────────────────
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => FollowListScreen(
-                userId: _student.id, title: 'Followers', isFollowers: true),
-          )),
-          child: _statItem('${_student.followerCount}', 'followers'),
-        ),
-        const SizedBox(width: 24),
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => FollowListScreen(
-                userId: _student.id, title: 'Following', isFollowers: false),
-          )),
-          child: _statItem('${_student.followingCount}', 'following'),
-        ),
-        if (_student.githubScore > 0) ...[
-          const SizedBox(width: 24),
-          _statItem('${_student.githubScore}', 'github score'),
-        ],
-      ],
-    );
-  }
-
-  Widget _statItem(String value, String label) {
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF0F172A),
-              letterSpacing: -0.2,
-            ),
-          ),
-          const TextSpan(text: ' '),
-          TextSpan(
-            text: label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF94A3B8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Social links ──────────────────────────────────────────────────────────
-  Widget _buildSocialLinks() {
-    final links = <_SocialLink>[];
-
-    if (_student.githubUrl != null && _student.githubUrl!.isNotEmpty) {
-      links.add(_SocialLink(
-          icon: FontAwesomeIcons.github, label: 'GitHub', url: _student.githubUrl!));
-    }
-    if (_student.linkedinUrl != null && _student.linkedinUrl!.isNotEmpty) {
-      links.add(_SocialLink(
-          icon: FontAwesomeIcons.linkedin, label: 'LinkedIn', url: _student.linkedinUrl!));
-    }
-    if (_student.instagramUrl != null && _student.instagramUrl!.isNotEmpty) {
-      links.add(_SocialLink(
-          icon: FontAwesomeIcons.instagram, label: 'Instagram', url: _student.instagramUrl!));
-    }
-
-    if (links.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Row(
-        children: links
-            .map((link) => Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: GestureDetector(
-                    onTap: () => _launch(link.url),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FaIcon(link.icon, size: 14, color: const Color(0xFF64748B)),
-                        const SizedBox(width: 6),
-                        Text(
-                          link.label,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ))
-            .toList(),
-      ),
-    );
-  }
-
-  // ── DevCard section ───────────────────────────────────────────────────────
-  Widget _buildDevCardSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'DevCard',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF94A3B8),
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        if (_devCardLoading)
-          const SizedBox(
-            height: 20,
-            width: 20,
-            child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFFB0BEC5)),
-          )
-
-        else if (_devCardModel == null && _devCardLoaded)
-          const Text(
-            'No DevCard yet',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFFB0BEC5),
-              fontWeight: FontWeight.w400,
-            ),
-          )
-
-        else if (_devCardModel != null)
-          GestureDetector(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => DevCardScreen(userId: _student.id),
-            )),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Score + rank
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _parseHex(_devCardModel!.scoreBreakdown.rankColor),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${_devCardModel!.scoreBreakdown.total}',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F172A),
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _devCardModel!.scoreBreakdown.rank,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Stats inline
-                Text(
-                  [
-                    '${_devCardModel!.totalPublicRepos} repos',
-                    '${_devCardModel!.totalCommitsLastYear} commits',
-                    '${_devCardModel!.currentStreak}d streak',
-                  ].join('  ·  '),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w400,
+      clipBehavior: Clip.antiAlias,
+      child: student.avatarUrl != null && student.avatarUrl!.isNotEmpty
+          ? Image.network(
+              student.avatarUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Center(
+                child: Text(
+                  _initials(student.name),
+                  style: GoogleFonts.sora(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onPrimaryContainer,
                   ),
                 ),
-
-                // Top languages
-                if (_devCardModel!.topLanguages.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 6,
-                    children: _devCardModel!.topLanguages.take(5).map((lang) {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: _parseHex(lang.color),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            lang.name,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF94A3B8),
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ],
-
-                // Personality tags
-                if (_devCardModel!.personalityTags.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: _devCardModel!.personalityTags.take(3).map((tag) {
-                      return Text(
-                        tag,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFB0BEC5),
-                          fontWeight: FontWeight.w400,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-
-                const SizedBox(height: 14),
-
-                // View full
-                Row(
-                  children: const [
-                    Text(
-                      'View full DevCard',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_rounded, size: 13, color: Color(0xFF0F172A)),
-                  ],
+              ),
+            )
+          : Center(
+              child: Text(
+                _initials(student.name),
+                style: GoogleFonts.sora(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onPrimaryContainer,
                 ),
-              ],
+              ),
             ),
-          ),
-      ],
-    );
-  }
-
-  // ── Private state ─────────────────────────────────────────────────────────
-  Widget _buildPrivateState() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Icon(Icons.lock_outline, size: 22, color: Color(0xFFB0BEC5)),
-        SizedBox(height: 10),
-        Text(
-          'This account is private',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF0F172A),
-          ),
-        ),
-        SizedBox(height: 3),
-        Text(
-          'Follow to see their profile.',
-          style: TextStyle(
-            fontSize: 13,
-            color: Color(0xFF94A3B8),
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ],
     );
   }
 }
 
-class _SocialLink {
+class _StatsCard extends StatelessWidget {
+  final StudentNetworkModel student;
+
+  const _StatsCard({required this.student});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          _StatItem(
+            label: 'Followers',
+            value: student.followerCount.toString(),
+          ),
+          _divider(cs),
+          _StatItem(
+            label: 'Following',
+            value: student.followingCount.toString(),
+          ),
+          _divider(cs),
+          _StatItem(
+            label: 'GitHub Score',
+            value: student.githubScore.toString(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider(ColorScheme cs) =>
+      Container(width: 1, height: 26, color: cs.outlineVariant);
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.sora(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GoogleFonts.sora(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SocialLinksCard extends StatelessWidget {
+  final StudentNetworkModel student;
+
+  const _SocialLinksCard({required this.student});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Connect',
+            style: GoogleFonts.sora(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if ((student.githubUrl ?? '').isNotEmpty)
+                _LinkButton(
+                  icon: Icons.code_rounded,
+                  label: 'GitHub',
+                  url: student.githubUrl!,
+                ),
+              if ((student.linkedinUrl ?? '').isNotEmpty)
+                _LinkButton(
+                  icon: Icons.business_center_rounded,
+                  label: 'LinkedIn',
+                  url: student.linkedinUrl!,
+                ),
+              if ((student.instagramUrl ?? '').isNotEmpty)
+                _LinkButton(
+                  icon: Icons.camera_alt_rounded,
+                  label: 'Instagram',
+                  url: student.instagramUrl!,
+                ),
+              if ((student.githubUrl ?? '').isEmpty &&
+                  (student.linkedinUrl ?? '').isEmpty &&
+                  (student.instagramUrl ?? '').isEmpty)
+                Text(
+                  'No social links available',
+                  style: GoogleFonts.sora(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LinkButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final String url;
 
-  _SocialLink({required this.icon, required this.label, required this.url});
+  const _LinkButton({
+    required this.icon,
+    required this.label,
+    required this.url,
+  });
+
+  Future<void> _open() async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return OutlinedButton.icon(
+      onPressed: _open,
+      icon: Icon(icon, size: 16),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: cs.onSurface,
+        textStyle: GoogleFonts.sora(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+        side: BorderSide(color: cs.outlineVariant),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivateProfileCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_rounded, color: cs.onSurfaceVariant),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'This profile is private. Limited details are visible.',
+              style: GoogleFonts.sora(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

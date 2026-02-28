@@ -200,7 +200,13 @@ class _NetworkScreenState extends State<NetworkScreen>
                       childCount: listColleges.length,
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 24 +
+                          MediaQuery.paddingOf(context).bottom +
+                          kBottomNavigationBarHeight,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -506,26 +512,28 @@ class _NetworkScreenState extends State<NetworkScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    college.name,
-                                    style: GoogleFonts.sora(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: cs.onSurface,
+                            Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(text: college.name),
+                                  if (college.isVerified)
+                                    const TextSpan(text: '\u00A0'),
+                                  if (college.isVerified)
+                                    const WidgetSpan(
+                                      alignment: PlaceholderAlignment.baseline,
+                                      baseline: TextBaseline.alphabetic,
+                                      child: Icon(Icons.verified_rounded,
+                                          size: 14, color: _blue),
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (college.isVerified) ...[
-                                  const SizedBox(width: 5),
-                                  const Icon(Icons.verified_rounded,
-                                      size: 14, color: _blue),
                                 ],
-                              ],
+                              ),
+                              style: GoogleFonts.sora(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: cs.onSurface,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               [college.state, college.location]

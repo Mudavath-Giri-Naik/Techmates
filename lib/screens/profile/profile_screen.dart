@@ -22,6 +22,9 @@ import '../admin/admin_dashboard_screen.dart' as techmates_superadmin;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../admin/regular_admin_dashboard_screen.dart' as techmates_admin;
 import '../../utils/time_ago.dart';
+import '../../widgets/network/follow_button.dart';
+import '../../models/follow_model.dart';
+import '../../services/follow_service.dart';
 
 // Brand Color Constants from reference
 const _brandRed = Color(0xFFC62828);
@@ -31,7 +34,9 @@ const _brandRedContainer = Color(0xFFFFEBEE);
 const _brandBlueContainer = Color(0xFFE3F2FD);
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId; // Optional: If provided, displays this user's profile. Otherwise displays current logged in user.
+
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -40,7 +45,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with TickerProviderStateMixin {
   final AuthService _authService = AuthService();
-  
+
   // Data State
   UserProfile? _profile;
   DevCardModel? _devCard;
@@ -51,8 +56,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   int _totalOpsCount = 33; // Mocked for explore just like reference
   int _pendingRequests = 0;
   
+  FollowStatus _followStatus = FollowStatus.none; // Status for other users
+  
   bool _isLoading = true;
   bool _hasError = false;
+
+  bool get _isCurrentUser => widget.userId == null || widget.userId == _authService.user?.id;
+
+  String get _targetUserId => widget.userId ?? _authService.user?.id ?? '';
 
   // Animations
   late AnimationController _rankGlowController;
@@ -79,33 +90,47 @@ class _ProfileScreenState extends State<ProfileScreen>
       _isLoading = true;
       _hasError = false;
     });
-    
+
     try {
-      final userId = _authService.user?.id;
-      if (userId == null) throw Exception("User not logged in");
+      final userId = _targetUserId;
+      if (userId.isEmpty) throw Exception("User ID could not be determined");
 
       // We use Future.wait for parallel execution
-      final results = await Future.wait([
+      final futures = <Future>[
         ProfileService().fetchProfile(userId),
         DevCardService.getOtherUserDevCard(userId),
         // Wait on bookmark service initialization if needed
         BookmarkService().init().then((_) => BookmarkService().getBookmarks()),
         StatusService().init().then((_) => StatusService().getItemsByStatus('applied')),
         _fetchFollowCounts(userId),
-      ]);
+      ];
+
+      // If viewing another user, fetch follow status
+      if (!_isCurrentUser && _authService.user?.id != null) {
+         futures.add(Supabase.instance.client.rpc('get_follow_status', params: {
+          'p_viewer_id': _authService.user!.id,
+          'p_target_id': userId,
+        }));
+      }
+
+      final results = await Future.wait(futures);
 
       if (!mounted) return;
       
       setState(() {
         _profile = results[0] as UserProfile?;
         _devCard = results[1] as DevCardModel?;
-        
+
         final bookmarks = results[2] as List;
         _savedOpsCount = bookmarks.length;
-        
+
         final applied = results[3] as List;
         _appliedCount = applied.length;
         
+        if (!_isCurrentUser && results.length > 5) {
+           _followStatus = FollowStatus.fromString(results[futures.length - 1] as String?);
+        }
+
         _isLoading = false;
       });
     } catch (e) {
@@ -123,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _fetchFollowCounts(String userId) async {
     try {
       final client = SupabaseClientManager.instance;
-      
+
       // Follower Count
       final followerResponse = await client
           .from('follows')
@@ -131,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           .eq('following_id', userId)
           .eq('status', 'accepted')
           .count();
-      
+
       // Following Count
       final followingResponse = await client
           .from('follows')
@@ -139,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           .eq('follower_id', userId)
           .eq('status', 'accepted')
           .count();
-          
+
       // Pending requests (if user is private)
       final pendingResponse = await client
           .from('follows')
@@ -164,8 +189,17 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     final cs = Theme.of(context).colorScheme;
 
+    // Build the appbar conditionally if it's pushed from the network screen
+    final hasAppBar = !_isCurrentUser || Navigator.of(context).canPop();
+
     return Scaffold(
       backgroundColor: cs.surface,
+      appBar: hasAppBar ? AppBar(
+        title: Text(_isCurrentUser ? 'Profile' : (_profile?.name ?? 'Profile'), style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.bold)),
+        backgroundColor: cs.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ) : null,
       body: RefreshIndicator(
         onRefresh: _loadData,
         color: cs.primary,
@@ -175,49 +209,84 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           slivers: [
             SliverToBoxAdapter(child: _buildHeroHeader(_profile!, cs)),
-            SliverToBoxAdapter(
-              child: _buildSection(
-                label: 'Developer Profile',
-                child: _buildDevCard(cs),
+            if (_profile!.isPrivate && !_isCurrentUser)
+               SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.lock_outline, size: 48, color: cs.onSurfaceVariant.withOpacity(0.5)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'This account is private',
+                          style: GoogleFonts.sora(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Follow to see their profile.',
+                          style: GoogleFonts.sora(
+                            fontSize: 14,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+               )
+            else ...[
+              SliverToBoxAdapter(
+                child: _buildSection(
+                  label: 'Developer Profile',
+                  child: _buildDevCard(cs),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSection(
-                label: 'Strong At',
-                child: _buildStrongAt(cs),
+              SliverToBoxAdapter(
+                child: _buildSection(
+                  label: 'Strong At',
+                  child: _buildStrongAt(cs),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSection(
-                label: 'Builds With',
-                child: _buildBuildsWith(cs),
+              SliverToBoxAdapter(
+                child: _buildSection(
+                  label: 'Builds With',
+                  child: _buildBuildsWith(cs),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSection(
-                label: 'Top Projects',
-                child: _buildTopProjects(cs),
+              SliverToBoxAdapter(
+                child: _buildSection(
+                  label: 'Top Projects',
+                  child: _buildTopProjects(cs),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSection(
-                label: 'Opportunity Journey',
-                child: _buildJourneyRow(cs),
+              if (_isCurrentUser)
+                SliverToBoxAdapter(
+                  child: _buildSection(
+                    label: 'Opportunity Journey',
+                    child: _buildJourneyRow(cs),
+                  ),
+                ),
+              SliverToBoxAdapter(
+                child: _buildSection(
+                  label: 'Connect',
+                  child: _buildSocialRow(_profile!, cs),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSection(
-                label: 'Connect',
-                child: _buildSocialRow(_profile!, cs),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSection(
-                label: 'Account',
-                child: _buildAccountActions(cs),
-              ),
-            ),
-            SliverToBoxAdapter(child: _buildLogoutButton()),
+              if (_isCurrentUser) ...[
+                SliverToBoxAdapter(
+                  child: _buildSection(
+                    label: 'Account',
+                    child: _buildAccountActions(cs),
+                  ),
+                ),
+                SliverToBoxAdapter(child: _buildLogoutButton()),
+              ]
+            ],
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
@@ -226,184 +295,351 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // HERO HEADER
+  // HERO HEADER  — redesigned to match the doctor-card layout
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildHeroHeader(UserProfile profile, ColorScheme cs) {
-    return Container(
-      color: cs.surface,
+    return Padding(
       padding: EdgeInsets.fromLTRB(
-        20,
+        16,
         MediaQuery.of(context).padding.top + 12,
-        20,
+        16,
         0,
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Background subtle gradients
-          Positioned(
-            top: -40,
-            right: -40,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [Color(0x12C52828), Colors.transparent],
-                  stops: [0.0, 0.7],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -30,
-            left: -20,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [Color(0x0F1565C0), Colors.transparent],
-                  stops: [0.0, 0.7],
-                ),
-              ),
-            ),
-          ),
-          
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── AVATAR AND EDIT ROW ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Container(
+        decoration: BoxDecoration(
+          // Very light tinted background — no gradients, no shadows
+          color: cs.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: cs.outlineVariant, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── TOP ROW : avatar  +  info  ──────────────────────
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── AVATAR ──────────────────────────────────
                   Stack(
                     children: [
-                      Container(
-                        width: 86,
-                        height: 86,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: cs.outlineVariant, width: 3),
-                          gradient: profile.avatarUrl == null
-                              ? const LinearGradient(
-                                  colors: [_brandBlue, _brandRedLight],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                              : null,
-                        ),
-                        child: profile.avatarUrl != null &&
-                                profile.avatarUrl!.isNotEmpty
-                            ? ClipOval(
-                                child: CachedNetworkImage(
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: SizedBox(
+                          width: 96,
+                          height: 110,
+                          child: profile.avatarUrl != null &&
+                                  profile.avatarUrl!.isNotEmpty
+                              ? CachedNetworkImage(
                                   imageUrl: profile.avatarUrl!,
                                   fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      const CircularProgressIndicator(),
-                                  errorWidget: (context, url, error) =>
-                                      _buildInitials(profile),
-                                ),
-                              )
-                            : _buildInitials(profile),
+                                  placeholder: (_, __) => Container(
+                                    color: cs.surfaceContainerLow,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: cs.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (_, __, ___) =>
+                                      _buildInitialsBox(profile, cs),
+                                )
+                              : _buildInitialsBox(profile, cs),
+                        ),
                       ),
+                      // Verified badge bottom-right of avatar
                       Positioned(
-                        bottom: 2,
-                        right: 2,
+                        bottom: 6,
+                        right: 6,
                         child: Container(
-                          width: 24,
-                          height: 24,
+                          width: 22,
+                          height: 22,
                           decoration: BoxDecoration(
                             color: _brandBlue,
                             shape: BoxShape.circle,
-                            border: Border.all(color: cs.surface, width: 2.5),
+                            border: Border.all(
+                              color: cs.surfaceContainerLowest,
+                              width: 2,
+                            ),
                           ),
                           child: const Icon(
                             Icons.verified_rounded,
-                            size: 12,
+                            size: 11,
                             color: Colors.white,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const EditProfileScreen(),
+
+                  const SizedBox(width: 14),
+
+                  // ── INFO COLUMN ──────────────────────────────
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Status chip + edit button row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // "Active" status pill
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFFA5D6A7),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(0xFF2E7D32),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Active',
+                                    style: GoogleFonts.sora(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF2E7D32),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Edit Profile button
+                            if (_isCurrentUser)
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const EditProfileScreen(),
+                                    ),
+                                  );
+                                  _loadData(); // Re-load on back
+                                },
+                                icon: const Icon(Icons.edit_outlined, size: 15),
+                                label: const Text('Edit Profile'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: cs.onSurface,
+                                  textStyle: GoogleFonts.sora(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  side: BorderSide(color: cs.outline),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 9,
+                                  ),
+                                ),
+                              )
+                            else
+                              FollowButton(
+                                targetUserId: _targetUserId,
+                                initialStatus: _followStatus,
+                                compact: false,
+                                onStatusChanged: (newStatus) {
+                                   setState(() {
+                                     final oldStatus = _followStatus;
+                                     _followStatus = newStatus;
+
+                                     if (oldStatus == FollowStatus.none && newStatus == FollowStatus.following) {
+                                         _followerCount++;
+                                     } else if (oldStatus == FollowStatus.following && newStatus == FollowStatus.none) {
+                                         _followerCount--;
+                                     }
+                                   });
+                                }
+                              ),
+                          ],
                         ),
-                      );
-                      _loadData(); // Re-load on back
-                    },
-                    icon: const Icon(Icons.edit_outlined, size: 15),
-                    label: const Text('Edit Profile'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: cs.onSurface,
-                      textStyle: GoogleFonts.sora(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      side: BorderSide(color: cs.outline),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 9,
-                      ),
+
+                        const SizedBox(height: 14),
+
+                        // Name
+                        Text(
+                          profile.name ?? 'New User',
+                          style: GoogleFonts.sora(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                            color: cs.onSurface,
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                        const SizedBox(height: 3),
+
+                        // Branch · Year
+                        if (profile.branch != null || profile.year != null)
+                          Text(
+                            [
+                              if (profile.branch != null) profile.branch!,
+                              if (profile.year != null) profile.year!,
+                            ].join('  ·  '),
+                            style: GoogleFonts.sora(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: cs.onSurfaceVariant,
+                              height: 1.5,
+                            ),
+                          ),
+
+                        const SizedBox(height: 5),
+
+                        // Followers + Following row (like rating · distance)
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.people_outline_rounded,
+                              size: 13,
+                              color: const Color(0xFFE65100),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '$_followerCount',
+                              style: GoogleFonts.sora(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFE65100),
+                              ),
+                            ),
+                            Text(
+                              ' followers',
+                              style: GoogleFonts.sora(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 5),
+                              child: Text(
+                                '·',
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '$_followingCount following',
+                              style: GoogleFonts.sora(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        // View DevCard — styled like "Provide video visit"
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const DevCardScreen(),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: _brandBlueContainer,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Icon(
+                                  Icons.code_rounded,
+                                  size: 10,
+                                  color: _brandBlue,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                'View DevCard',
+                                style: GoogleFonts.sora(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _brandBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+            ),
 
-              // ── NAME AND INFO ──
-              Text(
-                profile.name ?? 'New User',
-                style: GoogleFonts.sora(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: cs.onSurface,
-                ),
-              ),
-              const SizedBox(height: 5),
-
-              if (profile.branch != null || profile.year != null)
-                Text(
-                  '${profile.branch ?? ''}  ·  ${profile.year ?? ''}',
-                  style: GoogleFonts.sora(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurfaceVariant,
-                    height: 1.6,
+            // ── COLLEGE ROW ─────────────────────────────────────
+            if (profile.college != null) ...[
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLow,
+                  border: Border.symmetric(
+                    horizontal: BorderSide(
+                      color: cs.outlineVariant,
+                      width: 1,
+                    ),
                   ),
                 ),
-              const SizedBox(height: 3),
-
-              if (profile.college != null)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                child: Row(
                   children: [
-                    Flexible(
+                    Icon(
+                      Icons.school_outlined,
+                      size: 15,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: Text(
                         profile.college!,
                         style: GoogleFonts.sora(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    if (profile.collegeVerified)
+                    if (profile.collegeVerified) ...[
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 7,
@@ -412,19 +648,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                         decoration: BoxDecoration(
                           color: _brandBlueContainer,
                           borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFF90CAF9),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
                               Icons.verified_rounded,
-                              size: 11,
+                              size: 10,
                               color: _brandBlue,
                             ),
                             const SizedBox(width: 3),
                             Text(
                               'Verified',
                               style: GoogleFonts.sora(
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.w700,
                                 color: _brandBlue,
                               ),
@@ -432,59 +673,36 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ],
                         ),
                       ),
-                  ],
-                ),
-              const SizedBox(height: 4),
-
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: 13,
-                    color: cs.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Member since ${_formatJoinDate(profile.createdAt)}',
-                    style: GoogleFonts.sora(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
+                    ],
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
                       color: cs.onSurfaceVariant,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 14),
+            ],
 
-              // ── STATS STRIP ──
-              Container(
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerLow,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                child: Row(
-                  children: [
+            // ── STATS CHIPS ROW ──────────────────────────────────
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
+                children: [
                     _StatItem(
                       value: _followerCount.toString(),
                       label: 'Followers',
                       cs: cs,
                       onTap: () {
-                        final u = Supabase.instance.client.auth.currentUser;
-                        if (u != null) {
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (_) => FollowListScreen(
-                              userId: u.id,
+                              userId: _targetUserId,
                               title: 'Followers',
                               isFollowers: true,
                             ),
                           ));
-                        }
                       },
                     ),
                     _VerticalDivider(cs: cs),
@@ -493,36 +711,57 @@ class _ProfileScreenState extends State<ProfileScreen>
                       label: 'Following',
                       cs: cs,
                       onTap: () {
-                        final u = Supabase.instance.client.auth.currentUser;
-                        if (u != null) {
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (_) => FollowListScreen(
-                              userId: u.id,
+                              userId: _targetUserId,
                               title: 'Following',
                               isFollowers: false,
                             ),
                           ));
-                        }
                       },
                     ),
-                    _VerticalDivider(cs: cs),
-                    _StatItem(
-                      value: _totalOpsCount.toString(),
-                      label: 'Explored',
-                      cs: cs,
-                    ),
-                    _VerticalDivider(cs: cs),
-                    _StatItem(
-                      value: _appliedCount.toString(),
-                      label: 'Applied',
-                      cs: cs,
-                    ),
+                    if (_isCurrentUser) ...[
+                      _VerticalDivider(cs: cs),
+                      _StatItem(
+                        value: _totalOpsCount.toString(),
+                        label: 'Explored',
+                        cs: cs,
+                      ),
+                      _VerticalDivider(cs: cs),
+                      _StatItem(
+                        value: _appliedCount.toString(),
+                        label: 'Applied',
+                        cs: cs,
+                      ),
+                    ]
                   ],
                 ),
               ),
-            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInitialsBox(UserProfile profile, ColorScheme cs) {
+    String initials = 'U';
+    if (profile.name != null && profile.name!.isNotEmpty) {
+      final parts = profile.name!.trim().split(' ');
+      initials = parts.length > 1 && parts[1].isNotEmpty
+          ? parts[0][0] + parts[1][0]
+          : parts[0][0];
+    }
+    return Container(
+      color: cs.surfaceContainerLow,
+      child: Center(
+        child: Text(
+          initials.toUpperCase(),
+          style: GoogleFonts.sora(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: cs.onSurfaceVariant,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1016,7 +1255,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             const Icon(
                               Icons.star_rounded,
                               size: 12,
-                              color: Color(0xFFE65100), // Amber Accent
+                              color: Color(0xFFE65100),
                             ),
                             const SizedBox(width: 3),
                             Text(
@@ -1107,9 +1346,11 @@ class _ProfileScreenState extends State<ProfileScreen>
             cs: cs,
           ),
         ],
-        if (profile.instagramUrl != null && profile.instagramUrl!.isNotEmpty) ...[
+        if (profile.instagramUrl != null &&
+            profile.instagramUrl!.isNotEmpty) ...[
           if ((profile.githubUrl != null && profile.githubUrl!.isNotEmpty) ||
-              (profile.linkedinUrl != null && profile.linkedinUrl!.isNotEmpty))
+              (profile.linkedinUrl != null &&
+                  profile.linkedinUrl!.isNotEmpty))
             const SizedBox(width: 8),
           _SocialBtn(
             label: 'Instagram',
@@ -1155,13 +1396,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                 : Icon(Icons.chevron_right_rounded, color: cs.outline),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const FollowRequestsScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const FollowRequestsScreen()),
               );
             },
             cs: cs,
           ),
           Divider(height: 1, indent: 56, color: cs.outlineVariant),
-          
           _ActionItem(
             iconBg: cs.surfaceContainerHigh,
             icon: Icons.notifications_rounded,
@@ -1182,7 +1423,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             cs: cs,
           ),
           Divider(height: 1, indent: 56, color: cs.outlineVariant),
-          
           _ActionItem(
             iconBg: cs.surfaceContainerHigh,
             icon: Icons.settings_rounded,
@@ -1197,8 +1437,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             },
             cs: cs,
           ),
-          
-          if (UserRoleService().role == 'admin' || UserRoleService().role == 'super_admin') ...[
+          if (UserRoleService().role == 'admin' ||
+              UserRoleService().role == 'super_admin') ...[
             Divider(height: 1, indent: 56, color: cs.outlineVariant),
             _ActionItem(
               iconBg: const Color(0xFFFFF3E0),
@@ -1206,15 +1446,20 @@ class _ProfileScreenState extends State<ProfileScreen>
               iconColor: const Color(0xFFEF6C00),
               title: 'Admin Dashboard',
               subtitle: 'Manage app data & users',
-              trailing: Icon(Icons.chevron_right_rounded, color: cs.outline),
+              trailing:
+                  Icon(Icons.chevron_right_rounded, color: cs.outline),
               onTap: () {
                 if (UserRoleService().role == 'super_admin') {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const techmates_superadmin.AdminDashboardScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const techmates_superadmin
+                            .AdminDashboardScreen()),
                   );
                 } else if (UserRoleService().role == 'admin') {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const techmates_admin.RegularAdminDashboardScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const techmates_admin
+                            .RegularAdminDashboardScreen()),
                   );
                 }
               },
@@ -1405,6 +1650,65 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: const Text('Retry'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HERO STAT CHIP — used in the redesigned header stats row
+// ═══════════════════════════════════════════════════════════════
+
+class _HeroStatChip extends StatelessWidget {
+  final String value;
+  final String label;
+  final ColorScheme cs;
+  final VoidCallback? onTap;
+
+  const _HeroStatChip({
+    required this.value,
+    required this.label,
+    required this.cs,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 6),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: cs.outlineVariant, width: 1),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.sora(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w500,
+                  color: cs.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1742,48 +2046,74 @@ Color _parseHexColor(String hex) {
 
 Color _langColor(String lang, ColorScheme cs) {
   switch (lang.toLowerCase()) {
-    case 'typescript': return const Color(0xFF3178C6);
-    case 'dart': return const Color(0xFF00B4AB);
-    case 'javascript': return const Color(0xFFD4A017);
-    case 'python': return const Color(0xFF3572A5);
+    case 'typescript':
+      return const Color(0xFF3178C6);
+    case 'dart':
+      return const Color(0xFF00B4AB);
+    case 'javascript':
+      return const Color(0xFFD4A017);
+    case 'python':
+      return const Color(0xFF3572A5);
     case 'c++':
-    case 'cpp': return const Color(0xFFF34B7D);
-    case 'java': return const Color(0xFFB07219);
-    case 'kotlin': return const Color(0xFF7F52FF);
-    case 'swift': return const Color(0xFFF05138);
-    case 'go': return const Color(0xFF00ADD8);
-    case 'rust': return const Color(0xFFDEA584);
-    default: return cs.primary;
+    case 'cpp':
+      return const Color(0xFFF34B7D);
+    case 'java':
+      return const Color(0xFFB07219);
+    case 'kotlin':
+      return const Color(0xFF7F52FF);
+    case 'swift':
+      return const Color(0xFFF05138);
+    case 'go':
+      return const Color(0xFF00ADD8);
+    case 'rust':
+      return const Color(0xFFDEA584);
+    default:
+      return cs.primary;
   }
 }
 
 Color _techColor(String tech, ColorScheme cs) {
   switch (tech.toLowerCase()) {
-    case 'flutter': return const Color(0xFF00B4AB);
-    case 'react': return const Color(0xFF61DAFB);
+    case 'flutter':
+      return const Color(0xFF00B4AB);
+    case 'react':
+      return const Color(0xFF61DAFB);
     case 'node.js':
-    case 'nodejs': return const Color(0xFF68A063);
-    case 'supabase': return const Color(0xFF3ECF8E);
-    case 'firebase': return const Color(0xFFFFCA28);
-    case 'typescript': return const Color(0xFF3178C6);
-    case 'git': return const Color(0xFFF05032);
-    default: return cs.primary;
+    case 'nodejs':
+      return const Color(0xFF68A063);
+    case 'supabase':
+      return const Color(0xFF3ECF8E);
+    case 'firebase':
+      return const Color(0xFFFFCA28);
+    case 'typescript':
+      return const Color(0xFF3178C6);
+    case 'git':
+      return const Color(0xFFF05032);
+    default:
+      return cs.primary;
   }
 }
 
 String _formatJoinDate(DateTime? dt) {
   if (dt == null) return 'Recently';
-  const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                  'July', 'August', 'September', 'October', 'November', 'December'];
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
   return '${months[dt.month - 1]} ${dt.year}';
 }
 
 String _projectEmoji(String repoName) {
   final name = repoName.toLowerCase();
   if (name.contains('app') || name.contains('flutter')) return '📱';
-  if (name.contains('web') || name.contains('site') || name.contains('portfolio')) return '🌐';
-  if (name.contains('api') || name.contains('server') || name.contains('backend')) return '⚙️';
-  if (name.contains('ml') || name.contains('ai') || name.contains('bot')) return '🤖';
+  if (name.contains('web') ||
+      name.contains('site') ||
+      name.contains('portfolio')) return '🌐';
+  if (name.contains('api') ||
+      name.contains('server') ||
+      name.contains('backend')) return '⚙️';
+  if (name.contains('ml') || name.contains('ai') || name.contains('bot'))
+    return '🤖';
   if (name.contains('game')) return '🎮';
   return '📦';
 }

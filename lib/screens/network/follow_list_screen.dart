@@ -4,7 +4,7 @@ import '../../models/follow_model.dart';
 import '../../models/student_network_model.dart';
 import '../../services/follow_service.dart';
 import '../../widgets/network/follow_button.dart';
-import 'student_profile_screen.dart';
+import '../profile/profile_screen.dart';
 
 /// Reusable screen that shows a list of followers or following.
 class FollowListScreen extends StatefulWidget {
@@ -87,22 +87,10 @@ class _FollowListScreenState extends State<FollowListScreen> {
   }
 
   void _navigateToProfile(FollowUserItem user) {
-    // Construct a minimal StudentNetworkModel from the FollowUserItem
-    final student = StudentNetworkModel(
-      id: user.id,
-      name: user.name,
-      branch: user.branch,
-      year: user.year,
-      avatarUrl: user.avatarUrl,
-      college: user.college,
-      isPrivate: user.isPrivate,
-      followStatus: user.followStatus,
-    );
-
     Navigator.of(context)
         .push(
       MaterialPageRoute(
-        builder: (_) => StudentProfileScreen(student: student),
+        builder: (_) => ProfileScreen(userId: user.id),
       ),
     )
         .then((_) => _fetchList());
