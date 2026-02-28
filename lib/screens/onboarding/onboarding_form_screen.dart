@@ -116,7 +116,9 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   bool get _canSubmit =>
       _nameCtrl.text.trim().length >= 2 &&
       _cs == _CollegeState.verified &&
-      _from != null;
+      _from != null &&
+      _branch != null &&
+      _githubCtrl.text.trim().isNotEmpty;
 
   bool _submitting = false;
 
@@ -735,9 +737,9 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         RichText(text: TextSpan(
           style: GoogleFonts.plusJakartaSans(
             fontSize: 15.5, fontWeight: FontWeight.w800, letterSpacing: -0.4),
-          children: [
-            TextSpan(text: 'Tech', style: TextStyle(color: _ink(context))),
-            TextSpan(text: 'mates', style: TextStyle(color: _blue(context))),
+          children: const [
+            TextSpan(text: 'Tech', style: TextStyle(color: Color(0xFFF0190A))),
+            TextSpan(text: 'mates', style: TextStyle(color: Color(0xFF0B19D9))),
           ],
         )),
       ]),

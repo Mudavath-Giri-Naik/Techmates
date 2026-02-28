@@ -341,7 +341,12 @@ class _CollegeLeaderboardCardState extends State<CollegeLeaderboardCard>
     final branch = (student['branch'] as String?) ?? '';
     final year = (student['year'] as String?) ?? '';
     final score = (student['score'] as int?) ?? 0;
-    final rank = DevScoreBreakdown.rankInfoFromScore(score)['rank'] ?? 'Beginner';
+    // Normalize global score (0-1000) down to UI index (0-100)
+    final rankInfo = DevScoreBreakdown.rankInfoFromScore((score / 10).round());
+    final rank = rankInfo['rank'] ?? 'Beginner';
+    final hexCode = (rankInfo['color'] ?? '#9E9E9E').replaceAll('#', '');
+    final fg = Color(int.parse('FF$hexCode', radix: 16));
+    final bg = fg.withValues(alpha: 0.12);
     final commits = (student['commits'] as int?) ?? 0;
     final repos = (student['repos'] as int?) ?? 0;
     final collegeRank = (student['collegeRank'] as int?) ?? 1;
@@ -419,23 +424,25 @@ class _CollegeLeaderboardCardState extends State<CollegeLeaderboardCard>
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: HomeTheme.primaryContainer(context).withValues(alpha: 0.6),
+              color: bg,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                  color: HomeTheme.primary(context).withValues(alpha: 0.2)),
+                  color: fg.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.code_rounded,
-                    color: HomeTheme.primary(context), size: 12),
+                Text(
+                  rankInfo['emoji'] ?? '🌱',
+                  style: const TextStyle(fontSize: 12),
+                ),
                 const SizedBox(width: 5),
                 Text(
                   rank,
                   style: GoogleFonts.nunito(
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: HomeTheme.primary(context),
+                    fontWeight: FontWeight.w800,
+                    color: fg,
                   ),
                 ),
               ],

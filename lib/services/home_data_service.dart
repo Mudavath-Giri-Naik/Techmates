@@ -288,8 +288,8 @@ class HomeDataService {
         final sb = ad?['scoreBreakdown'] as Map<String, dynamic>?;
 
         final score = (sb?['total'] as num?)?.toInt() ?? 0;
-        // Always compute rank from score — never trust cached strings
-        final rankInfo = DevScoreBreakdown.rankInfoFromScore(score);
+        // Always compute rank from score (normalize to 0-100 scale)
+        final rankInfo = DevScoreBreakdown.rankInfoFromScore((score / 10).round());
 
         students.add({
           'id': uid,

@@ -17,7 +17,9 @@ import '../edit_profile_screen.dart';
 import '../devcard/devcard_screen.dart';
 import '../settings/settings_screen.dart';
 import '../network/follow_requests_screen.dart';
+import '../network/follow_list_screen.dart';
 import '../admin/admin_dashboard_screen.dart' as techmates_superadmin;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../admin/regular_admin_dashboard_screen.dart' as techmates_admin;
 import '../../utils/time_ago.dart';
 
@@ -473,7 +475,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                       label: 'Followers',
                       cs: cs,
                       onTap: () {
-                        // TODO: Navigate to Network / Connections Screen
+                        final u = Supabase.instance.client.auth.currentUser;
+                        if (u != null) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => FollowListScreen(
+                              userId: u.id,
+                              title: 'Followers',
+                              isFollowers: true,
+                            ),
+                          ));
+                        }
                       },
                     ),
                     _VerticalDivider(cs: cs),
@@ -481,7 +492,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                       value: _followingCount.toString(),
                       label: 'Following',
                       cs: cs,
-                      onTap: () {},
+                      onTap: () {
+                        final u = Supabase.instance.client.auth.currentUser;
+                        if (u != null) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => FollowListScreen(
+                              userId: u.id,
+                              title: 'Following',
+                              isFollowers: false,
+                            ),
+                          ));
+                        }
+                      },
                     ),
                     _VerticalDivider(cs: cs),
                     _StatItem(

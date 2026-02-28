@@ -194,174 +194,216 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-
-              // ── Logo + Brand ──────────────────────────────────────────
-              Center(child: Column(children: [
-                Image.asset('assets/images/logo.png', height: 52, width: 52),
-                const SizedBox(height: 14),
-                RichText(text: TextSpan(
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 32, // -32 for vertical padding
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextSpan(text: 'Tech', style: TextStyle(color: _red(context))),
-                    TextSpan(text: 'mates', style: TextStyle(color: _blue(context))),
-                  ],
-                )),
-              ])),
-              const SizedBox(height: 36),
-
-              // ── Welcome ───────────────────────────────────────────────
-              Text("Welcome back",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _ink(context), letterSpacing: -0.5)),
-              const SizedBox(height: 4),
-              Text("Sign in to explore opportunities",
-                style: TextStyle(fontSize: 13, color: _muted(context))),
-              const SizedBox(height: 32),
-
-              // ── Continue with Google (primary) ────────────────────────
-              GestureDetector(
-                onTap: _isLoading ? null : _handleGoogleLogin,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: _ink(context),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Image.network(
-                      'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
-                      height: 16,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 20, color: Colors.white),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text("Continue with Google",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
+                    // ── Logo + Brand ──────────────────────────────────────────
+                    Center(child: Column(children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            )
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo.png', 
+                          height: 56, 
+                          width: 56,
+                        ),
                       ),
-                      child: const Text("✦ Recommended",
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.2)),
+                      const SizedBox(height: 16),
+                      RichText(text: const TextSpan(
+                        style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.2),
+                        children: [
+                          TextSpan(text: 'Tech', style: TextStyle(color: Color(0xFFF0190A))),
+                          TextSpan(text: 'mates', style: TextStyle(color: Color(0xFF0B19D9))),
+                        ],
+                      )),
+                    ])),
+                    const SizedBox(height: 48),
+
+                    // ── Welcome ───────────────────────────────────────────────
+                    Center(
+                      child: Text("Welcome back",
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _ink(context), letterSpacing: -0.5)),
                     ),
-                  ]),
+                    const SizedBox(height: 6),
+                    Center(
+                      child: Text("Sign in to explore opportunities",
+                        style: TextStyle(fontSize: 14, color: _muted(context))),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // ── Continue with Google (primary) ────────────────────────
+                    GestureDetector(
+                      onTap: _isLoading ? null : _handleGoogleLogin,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _ink(context),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _ink(context).withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            )
+                          ]
+                        ),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Image.network(
+                            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
+                            height: 18,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24, color: Colors.white),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text("Continue with Google",
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // ── Continue with Gmail (secondary — reveals email form) ──
+                    if (!_showEmailForm) ...[
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _showEmailForm = true);
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _border(context), width: 1.5),
+                          ),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Icon(Icons.email_outlined, size: 18, color: _ink(context)),
+                            const SizedBox(width: 10),
+                            Text("Continue with Email",
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                                color: _ink(context))),
+                          ]),
+                        ),
+                      ),
+                    ],
+
+                    // ── Email form (only visible after tap) ───────────────────
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      child: _showEmailForm ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 24),
+                          Row(children: [
+                            Expanded(child: Container(height: 1, color: _border(context))),
+                            Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
+                              child: Text("or sign in with email", style: TextStyle(fontSize: 12, color: _muted(context), fontWeight: FontWeight.w600))),
+                            Expanded(child: Container(height: 1, color: _border(context))),
+                          ]),
+                          const SizedBox(height: 24),
+
+                          _label(context, "Email"),
+                          const SizedBox(height: 8),
+                          _field(
+                            context: context,
+                            controller: _emailController,
+                            hint: "you@example.com",
+                            icon: Icons.mail_outline_rounded,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 20),
+
+                          _label(context, "Password"),
+                          const SizedBox(height: 8),
+                          _field(
+                            context: context,
+                            controller: _passwordController,
+                            hint: "••••••••",
+                            icon: Icons.lock_outline_rounded,
+                            isPassword: true,
+                          ),
+
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
+                              child: Padding(padding: const EdgeInsets.only(top: 12),
+                                child: Text("Forgot password?",
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue(context)))),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          // Sign In button
+                          GestureDetector(
+                            onTap: _isLoading ? null : _handleEmailLogin,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: _blue(context),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _blue(context).withValues(alpha: 0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ]
+                              ),
+                              child: Center(
+                                child: _isLoading
+                                  ? const SizedBox(height: 18, width: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                                  : const Text("Sign In",
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ) : const SizedBox.shrink(),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Sign up link
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text("Don't have an account?",
+                        style: TextStyle(fontSize: 13, color: _muted(context))),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const SignupScreen())),
+                        child: Text("Sign Up",
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _red(context))),
+                      ),
+                    ]),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // ── Continue with Gmail (secondary — reveals email form) ──
-              GestureDetector(
-                onTap: () {
-                  if (!_showEmailForm) setState(() => _showEmailForm = true);
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _border(context), width: 1),
-                  ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.email_outlined, size: 17, color: _showEmailForm ? _blue(context) : _muted(context)),
-                    const SizedBox(width: 10),
-                    Text("Continue with Email",
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                        color: _showEmailForm ? _blue(context) : _ink(context))),
-                  ]),
-                ),
-              ),
-
-              // ── Email form (only visible after tap) ───────────────────
-              if (_showEmailForm) ...[
-                const SizedBox(height: 24),
-                Row(children: [
-                  Expanded(child: Container(height: 0.6, color: _border(context))),
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Text("sign in with email", style: TextStyle(fontSize: 11, color: _muted(context), fontWeight: FontWeight.w500))),
-                  Expanded(child: Container(height: 0.6, color: _border(context))),
-                ]),
-                const SizedBox(height: 18),
-
-                _label(context, "Email"),
-                const SizedBox(height: 6),
-                _field(
-                  context: context,
-                  controller: _emailController,
-                  hint: "you@example.com",
-                  icon: Icons.mail_outline_rounded,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-
-                _label(context, "Password"),
-                const SizedBox(height: 6),
-                _field(
-                  context: context,
-                  controller: _passwordController,
-                  hint: "••••••••",
-                  icon: Icons.lock_outline_rounded,
-                  isPassword: true,
-                ),
-
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
-                    child: Padding(padding: const EdgeInsets.only(top: 8),
-                      child: Text("Forgot password?",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _blue(context)))),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Sign In button
-                GestureDetector(
-                  onTap: _isLoading ? null : _handleEmailLogin,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: _blue(context),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: _isLoading
-                        ? const SizedBox(height: 18, width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text("Sign In",
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.3)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Sign up link
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text("Don't have an account?",
-                    style: TextStyle(fontSize: 12, color: _muted(context))),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SignupScreen())),
-                    child: Text("Sign Up",
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _red(context))),
-                  ),
-                ]),
-              ],
-
-              const SizedBox(height: 20),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

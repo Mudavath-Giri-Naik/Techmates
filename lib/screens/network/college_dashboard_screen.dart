@@ -78,7 +78,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
           _topScore =
               students.isNotEmpty ? '${students.first.githubScore}' : '—';
           _topRank = students.isNotEmpty
-              ? DevScoreBreakdown.rankInfoFromScore(students.first.githubScore)['rank']!
+              ? DevScoreBreakdown.rankInfoFromScore((students.first.githubScore / 10).round())['rank']!
               : '—';
           _isLoading = false;
         });
@@ -94,7 +94,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
   }
 
   static String _scoreToRank(int score) {
-    return DevScoreBreakdown.rankInfoFromScore(score)['rank']!;
+    return DevScoreBreakdown.rankInfoFromScore((score / 10).round())['rank']!;
   }
 
   void _applyFilters() {
@@ -810,58 +810,36 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
   }
 
   Widget _buildRankBadge(String rank, ColorScheme cs) {
-    Color bg;
-    Color fg;
+    // Reverse-lookup the score bounds to match the DevCard color config
+    int mockScoreForRank = 0;
     switch (rank) {
-      case 'Legend':
-        bg = const Color(0xFFFFF3E0);
-        fg = const Color(0xFFFF6F00);
-        break;
-      case 'Grandmaster':
-        bg = const Color(0xFFFFFBEB);
-        fg = const Color(0xFFB8860B);
-        break;
-      case 'Master':
-        bg = const Color(0xFFF3E8FF);
-        fg = const Color(0xFF6B21A8);
-        break;
-      case 'Elite':
-        bg = const Color(0xFFFFF7ED);
-        fg = const Color(0xFF9A3412);
-        break;
-      case 'Expert':
-        bg = const Color(0xFFF3E8FF);
-        fg = const Color(0xFF7C3AED);
-        break;
-      case 'Experienced':
-        bg = const Color(0xFFFFF7ED);
-        fg = const Color(0xFFE65100);
-        break;
-      case 'Skilled':
-        bg = const Color(0xFFFFFBEB);
-        fg = const Color(0xFF92400E);
-        break;
-      case 'Intermediate':
-        bg = const Color(0xFFDCFCE7);
-        fg = const Color(0xFF15803D);
-        break;
-      case 'Learner':
-        bg = _blueCont;
-        fg = _blueOn;
-        break;
-      default: // Beginner
-        bg = cs.surfaceContainer;
-        fg = cs.onSurfaceVariant;
+      case 'Legend':      mockScoreForRank = 90; break;
+      case 'Grandmaster': mockScoreForRank = 80; break;
+      case 'Master':      mockScoreForRank = 70; break;
+      case 'Elite':       mockScoreForRank = 60; break;
+      case 'Expert':      mockScoreForRank = 50; break;
+      case 'Experienced': mockScoreForRank = 40; break;
+      case 'Skilled':     mockScoreForRank = 30; break;
+      case 'Intermediate':mockScoreForRank = 20; break;
+      case 'Learner':     mockScoreForRank = 10; break;
+      default:            mockScoreForRank = 0; break;
     }
+
+    // Always compute rank from normalized score (0-100)
+    final rankInfo = DevScoreBreakdown.rankInfoFromScore(mockScoreForRank);
+    final hexCode = (rankInfo['color'] ?? '#9E9E9E').replaceAll('#', '');
+    final fg = Color(int.parse('FF$hexCode', radix: 16));
+    final bg = fg.withValues(alpha: 0.12);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: fg.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Text(
-        rank,
+        "${rankInfo['emoji']} $rank",
         style: GoogleFonts.sora(
           fontSize: 9,
           fontWeight: FontWeight.w700,

@@ -282,23 +282,23 @@ class _StatsCardsRowState extends State<StatsCardsRow>
     }
 
     final rank = devCard.scoreBreakdown.rank;
-    final commits = devCard.totalCommitsLastYear;
-    // Estimate next rank threshold
-    final thresholds = {
-      'Beginner': 50,
-      'Learner': 100,
-      'Intermediate': 150,
-      'Skilled': 200,
-      'Experienced': 250,
-      'Expert': 300,
-      'Elite': 400,
-      'Master': 500,
-      'Grandmaster': 750,
-      'Legend': 1000,
-    };
-    final nextThreshold = thresholds[rank] ?? 100;
-    final progress = (commits / nextThreshold).clamp(0.0, 1.0);
-    final commitsNeeded = (nextThreshold - commits).clamp(0, nextThreshold);
+    final score = devCard.scoreBreakdown.total;
+
+    // Estimate next rank threshold based on score logic (out of 1000)
+    int nextThreshold = 100;
+    if (score < 100) nextThreshold = 100;
+    else if (score < 200) nextThreshold = 200;
+    else if (score < 300) nextThreshold = 300;
+    else if (score < 400) nextThreshold = 400;
+    else if (score < 500) nextThreshold = 500;
+    else if (score < 600) nextThreshold = 600;
+    else if (score < 700) nextThreshold = 700;
+    else if (score < 800) nextThreshold = 800;
+    else if (score < 900) nextThreshold = 900;
+    else nextThreshold = 1000;
+
+    final progress = (score / nextThreshold).clamp(0.0, 1.0);
+    final pointsNeeded = (nextThreshold - score).clamp(0, nextThreshold);
 
     return Container(
       width: 152,
@@ -348,49 +348,71 @@ class _StatsCardsRowState extends State<StatsCardsRow>
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
           Text(
-            '$commits commits',
+            '$score Points',
             style: GoogleFonts.nunito(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
               color: HomeTheme.onSurface(context),
             ),
           ),
-          const Spacer(),
-          // Animated progress bar
-          AnimatedBuilder(
-            animation: _githubBarCtrl,
-            builder: (_, __) {
-              return Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: HomeTheme.surfaceContainerHighest(context),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: progress * _githubBarCtrl.value,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [HomeTheme.primary(context), HomeTheme.tertiary(context)],
-                      ),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 6),
           Text(
-            '$commitsNeeded more commits to next rank',
+            'DevCard Score',
             style: GoogleFonts.nunito(
-              fontSize: 10,
+              fontSize: 9,
               color: HomeTheme.onSurfaceVariant(context),
             ),
-            maxLines: 2,
+          ),
+          const Spacer(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '$pointsNeeded pts to next rank',
+                    style: GoogleFonts.nunito(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
+                      color: HomeTheme.primary(context),
+                    ),
+                  ),
+                  Text(
+                    '${(progress * 100).toInt()}%',
+                    style: GoogleFonts.nunito(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      color: HomeTheme.onSurfaceVariant(context),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              AnimatedBuilder(
+                animation: _githubBarCtrl,
+                builder: (_, __) {
+                  return Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: HomeTheme.surfaceContainerHighest(context),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: progress * _githubBarCtrl.value,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: HomeTheme.primary(context),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
