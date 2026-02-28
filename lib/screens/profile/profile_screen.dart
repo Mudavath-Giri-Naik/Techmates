@@ -34,7 +34,7 @@ const _brandRedContainer = Color(0xFFFFEBEE);
 const _brandBlueContainer = Color(0xFFE3F2FD);
 
 class ProfileScreen extends StatefulWidget {
-  final String? userId; // Optional: If provided, displays this user's profile. Otherwise displays current logged in user.
+  final String? userId;
 
   const ProfileScreen({super.key, this.userId});
 
@@ -46,26 +46,26 @@ class _ProfileScreenState extends State<ProfileScreen>
     with TickerProviderStateMixin {
   final AuthService _authService = AuthService();
 
-  // Data State
   UserProfile? _profile;
   DevCardModel? _devCard;
   int _followerCount = 0;
   int _followingCount = 0;
   int _savedOpsCount = 0;
   int _appliedCount = 0;
-  int _totalOpsCount = 33; // Mocked for explore just like reference
+  int _totalOpsCount = 33;
   int _pendingRequests = 0;
-  
-  FollowStatus _followStatus = FollowStatus.none; // Status for other users
-  
+
+  FollowStatus _followStatus = FollowStatus.none;
+
   bool _isLoading = true;
   bool _hasError = false;
 
-  bool get _isCurrentUser => widget.userId == null || widget.userId == _authService.user?.id;
+  bool get _isCurrentUser =>
+      widget.userId == null || widget.userId == _authService.user?.id;
 
-  String get _targetUserId => widget.userId ?? _authService.user?.id ?? '';
+  String get _targetUserId =>
+      widget.userId ?? _authService.user?.id ?? '';
 
-  // Animations
   late AnimationController _rankGlowController;
 
   @override
@@ -95,19 +95,18 @@ class _ProfileScreenState extends State<ProfileScreen>
       final userId = _targetUserId;
       if (userId.isEmpty) throw Exception("User ID could not be determined");
 
-      // We use Future.wait for parallel execution
       final futures = <Future>[
         ProfileService().fetchProfile(userId),
         DevCardService.getOtherUserDevCard(userId),
-        // Wait on bookmark service initialization if needed
         BookmarkService().init().then((_) => BookmarkService().getBookmarks()),
-        StatusService().init().then((_) => StatusService().getItemsByStatus('applied')),
+        StatusService()
+            .init()
+            .then((_) => StatusService().getItemsByStatus('applied')),
         _fetchFollowCounts(userId),
       ];
 
-      // If viewing another user, fetch follow status
       if (!_isCurrentUser && _authService.user?.id != null) {
-         futures.add(Supabase.instance.client.rpc('get_follow_status', params: {
+        futures.add(Supabase.instance.client.rpc('get_follow_status', params: {
           'p_viewer_id': _authService.user!.id,
           'p_target_id': userId,
         }));
@@ -116,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       final results = await Future.wait(futures);
 
       if (!mounted) return;
-      
+
       setState(() {
         _profile = results[0] as UserProfile?;
         _devCard = results[1] as DevCardModel?;
@@ -126,9 +125,10 @@ class _ProfileScreenState extends State<ProfileScreen>
 
         final applied = results[3] as List;
         _appliedCount = applied.length;
-        
+
         if (!_isCurrentUser && results.length > 5) {
-           _followStatus = FollowStatus.fromString(results[futures.length - 1] as String?);
+          _followStatus = FollowStatus.fromString(
+              results[futures.length - 1] as String?);
         }
 
         _isLoading = false;
@@ -144,12 +144,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  // Fetch follower network stats from DB
   Future<void> _fetchFollowCounts(String userId) async {
     try {
       final client = SupabaseClientManager.instance;
 
-      // Follower Count
       final followerResponse = await client
           .from('follows')
           .select('id')
@@ -157,7 +155,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           .eq('status', 'accepted')
           .count();
 
-      // Following Count
       final followingResponse = await client
           .from('follows')
           .select('id')
@@ -165,7 +162,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           .eq('status', 'accepted')
           .count();
 
-      // Pending requests (if user is private)
       final pendingResponse = await client
           .from('follows')
           .select('id')
@@ -188,18 +184,24 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_profile == null) return _buildError();
 
     final cs = Theme.of(context).colorScheme;
-
-    // Build the appbar conditionally if it's pushed from the network screen
     final hasAppBar = !_isCurrentUser || Navigator.of(context).canPop();
 
     return Scaffold(
       backgroundColor: cs.surface,
-      appBar: hasAppBar ? AppBar(
-        title: Text(_isCurrentUser ? 'Profile' : (_profile?.name ?? 'Profile'), style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.bold)),
-        backgroundColor: cs.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ) : null,
+      appBar: hasAppBar
+          ? AppBar(
+              title: Text(
+                _isCurrentUser
+                    ? 'Profile'
+                    : (_profile?.name ?? 'Profile'),
+                style: GoogleFonts.sora(
+                    fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: cs.surface,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: _loadData,
         color: cs.primary,
@@ -210,35 +212,37 @@ class _ProfileScreenState extends State<ProfileScreen>
           slivers: [
             SliverToBoxAdapter(child: _buildHeroHeader(_profile!, cs)),
             if (_profile!.isPrivate && !_isCurrentUser)
-               SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.lock_outline, size: 48, color: cs.onSurfaceVariant.withOpacity(0.5)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'This account is private',
-                          style: GoogleFonts.sora(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface,
-                          ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline,
+                          size: 48,
+                          color: cs.onSurfaceVariant.withOpacity(0.5)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'This account is private',
+                        style: GoogleFonts.sora(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Follow to see their profile.',
-                          style: GoogleFonts.sora(
-                            fontSize: 14,
-                            color: cs.onSurfaceVariant,
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Follow to see their profile.',
+                        style: GoogleFonts.sora(
+                          fontSize: 14,
+                          color: cs.onSurfaceVariant,
                         ),
-                      ],
-                    ),
-                  )
-               )
+                      ),
+                    ],
+                  ),
+                ),
+              )
             else ...[
               SliverToBoxAdapter(
                 child: _buildSection(
@@ -285,7 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
                 SliverToBoxAdapter(child: _buildLogoutButton()),
-              ]
+              ],
             ],
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
@@ -295,41 +299,42 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // HERO HEADER  — redesigned to match the doctor-card layout
+  // HERO HEADER
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildHeroHeader(UserProfile profile, ColorScheme cs) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
         16,
-        MediaQuery.of(context).padding.top + 12,
+        _isCurrentUser
+            ? MediaQuery.of(context).padding.top + 12
+            : 8,
         16,
         0,
       ),
       child: Container(
         decoration: BoxDecoration(
-          // Very light tinted background — no gradients, no shadows
           color: cs.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: cs.outlineVariant, width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── TOP ROW : avatar  +  info  ──────────────────────
+            // ── TOP ROW: avatar + info ───────────────────────────
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── AVATAR ──────────────────────────────────
+                  // ── AVATAR ──────────────────────────────────────
                   Stack(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                         child: SizedBox(
-                          width: 96,
-                          height: 110,
+                          width: 82,
+                          height: 94,
                           child: profile.avatarUrl != null &&
                                   profile.avatarUrl!.isNotEmpty
                               ? CachedNetworkImage(
@@ -350,24 +355,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                               : _buildInitialsBox(profile, cs),
                         ),
                       ),
-                      // Verified badge bottom-right of avatar
                       Positioned(
-                        bottom: 6,
-                        right: 6,
+                        bottom: 5,
+                        right: 5,
                         child: Container(
-                          width: 22,
-                          height: 22,
+                          width: 20,
+                          height: 20,
                           decoration: BoxDecoration(
                             color: _brandBlue,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: cs.surfaceContainerLowest,
-                              width: 2,
+                              width: 1.5,
                             ),
                           ),
                           child: const Icon(
                             Icons.verified_rounded,
-                            size: 11,
+                            size: 10,
                             color: Colors.white,
                           ),
                         ),
@@ -375,124 +379,103 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ],
                   ),
 
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
 
-                  // ── INFO COLUMN ──────────────────────────────
+                  // ── INFO COLUMN ──────────────────────────────────
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Status chip + edit button row
+                        // ── NAME + EDIT/FOLLOW on same row at very top ──
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // "Active" status pill
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE8F5E9),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: const Color(0xFFA5D6A7),
-                                  width: 1,
+                            Expanded(
+                              child: Text(
+                                profile.name ?? 'New User',
+                                style: GoogleFonts.sora(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
+                                  color: cs.onSurface,
+                                  height: 1.2,
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Color(0xFF2E7D32),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Active',
-                                    style: GoogleFonts.sora(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF2E7D32),
-                                    ),
-                                  ),
-                                ],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-
-                            // Edit Profile button
-                            if (_isCurrentUser)
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const EditProfileScreen(),
+                            const SizedBox(width: 8),
+                            // Edit / Follow button — aligned to name row
+                            _isCurrentUser
+                                ? GestureDetector(
+                                    onTap: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const EditProfileScreen(),
+                                        ),
+                                      );
+                                      _loadData();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 9,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: cs.surfaceContainerLow,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: cs.outlineVariant,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.edit_outlined,
+                                            size: 11,
+                                            color: cs.onSurfaceVariant,
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            'Edit',
+                                            style: GoogleFonts.sora(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: cs.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  );
-                                  _loadData(); // Re-load on back
-                                },
-                                icon: const Icon(Icons.edit_outlined, size: 15),
-                                label: const Text('Edit Profile'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: cs.onSurface,
-                                  textStyle: GoogleFonts.sora(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
+                                  )
+                                : FollowButton(
+                                    targetUserId: _targetUserId,
+                                    initialStatus: _followStatus,
+                                    compact: false,
+                                    onStatusChanged: (newStatus) {
+                                      setState(() {
+                                        final old = _followStatus;
+                                        _followStatus = newStatus;
+                                        if (old == FollowStatus.none &&
+                                            newStatus ==
+                                                FollowStatus.following) {
+                                          _followerCount++;
+                                        } else if (old ==
+                                                FollowStatus.following &&
+                                            newStatus == FollowStatus.none) {
+                                          _followerCount--;
+                                        }
+                                      });
+                                    },
                                   ),
-                                  side: BorderSide(color: cs.outline),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 9,
-                                  ),
-                                ),
-                              )
-                            else
-                              FollowButton(
-                                targetUserId: _targetUserId,
-                                initialStatus: _followStatus,
-                                compact: false,
-                                onStatusChanged: (newStatus) {
-                                   setState(() {
-                                     final oldStatus = _followStatus;
-                                     _followStatus = newStatus;
-
-                                     if (oldStatus == FollowStatus.none && newStatus == FollowStatus.following) {
-                                         _followerCount++;
-                                     } else if (oldStatus == FollowStatus.following && newStatus == FollowStatus.none) {
-                                         _followerCount--;
-                                     }
-                                   });
-                                }
-                              ),
                           ],
                         ),
 
-                        const SizedBox(height: 14),
-
-                        // Name
-                        Text(
-                          profile.name ?? 'New User',
-                          style: GoogleFonts.sora(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.3,
-                            color: cs.onSurface,
-                            height: 1.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
 
                         // Branch · Year
                         if (profile.branch != null || profile.year != null)
@@ -502,7 +485,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               if (profile.year != null) profile.year!,
                             ].join('  ·  '),
                             style: GoogleFonts.sora(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: cs.onSurfaceVariant,
                               height: 1.5,
@@ -511,47 +494,76 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                         const SizedBox(height: 5),
 
-                        // Followers + Following row (like rating · distance)
+                        // Followers · Following — both tappable
                         Row(
                           children: [
-                            Icon(
-                              Icons.people_outline_rounded,
-                              size: 13,
-                              color: const Color(0xFFE65100),
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '$_followerCount',
-                              style: GoogleFonts.sora(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFFE65100),
-                              ),
-                            ),
-                            Text(
-                              ' followers',
-                              style: GoogleFonts.sora(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: cs.onSurfaceVariant,
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => FollowListScreen(
+                                    userId: _targetUserId,
+                                    title: 'Followers',
+                                    isFollowers: true,
+                                  ),
+                                ));
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.people_outline_rounded,
+                                    size: 12,
+                                    color: const Color(0xFFE65100),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '$_followerCount',
+                                    style: GoogleFonts.sora(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFFE65100),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    ' followers',
+                                    style: GoogleFonts.sora(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 5),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 5),
                               child: Text(
                                 '·',
                                 style: TextStyle(
-                                  color: cs.onSurfaceVariant,
+                                  color: cs.outlineVariant,
                                   fontSize: 12,
                                 ),
                               ),
                             ),
-                            Text(
-                              '$_followingCount following',
-                              style: GoogleFonts.sora(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: cs.onSurfaceVariant,
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => FollowListScreen(
+                                    userId: _targetUserId,
+                                    title: 'Following',
+                                    isFollowers: false,
+                                  ),
+                                ));
+                              },
+                              child: Text(
+                                '$_followingCount following',
+                                style: GoogleFonts.sora(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           ],
@@ -559,36 +571,34 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                         const SizedBox(height: 6),
 
-                        // View DevCard — styled like "Provide video visit"
+                        // View DevCard link
                         GestureDetector(
                           onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const DevCardScreen(),
-                              ),
-                            );
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => const DevCardScreen(),
+                            ));
                           },
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: 16,
-                                height: 16,
+                                width: 15,
+                                height: 15,
                                 decoration: BoxDecoration(
                                   color: _brandBlueContainer,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Icon(
                                   Icons.code_rounded,
-                                  size: 10,
+                                  size: 9,
                                   color: _brandBlue,
                                 ),
                               ),
-                              const SizedBox(width: 5),
+                              const SizedBox(width: 4),
                               Text(
                                 'View DevCard',
                                 style: GoogleFonts.sora(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   color: _brandBlue,
                                 ),
@@ -603,34 +613,29 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
 
-            // ── COLLEGE ROW ─────────────────────────────────────
-            if (profile.college != null) ...[
+            // ── COLLEGE ROW ──────────────────────────────────────
+            if (profile.college != null)
               Container(
                 width: double.infinity,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                 decoration: BoxDecoration(
                   color: cs.surfaceContainerLow,
                   border: Border.symmetric(
-                    horizontal: BorderSide(
-                      color: cs.outlineVariant,
-                      width: 1,
-                    ),
+                    horizontal:
+                        BorderSide(color: cs.outlineVariant, width: 1),
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.school_outlined,
-                      size: 15,
-                      color: cs.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
+                    Icon(Icons.school_outlined,
+                        size: 14, color: cs.onSurfaceVariant),
+                    const SizedBox(width: 7),
                     Expanded(
                       child: Text(
                         profile.college!,
                         style: GoogleFonts.sora(
-                          fontSize: 12.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
                         ),
@@ -639,33 +644,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     if (profile.collegeVerified) ...[
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: _brandBlueContainer,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(5),
                           border: Border.all(
-                            color: const Color(0xFF90CAF9),
-                            width: 1,
-                          ),
+                              color: const Color(0xFF90CAF9), width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
-                              Icons.verified_rounded,
-                              size: 10,
-                              color: _brandBlue,
-                            ),
-                            const SizedBox(width: 3),
+                            const Icon(Icons.verified_rounded,
+                                size: 9, color: _brandBlue),
+                            const SizedBox(width: 2),
                             Text(
                               'Verified',
                               style: GoogleFonts.sora(
-                                fontSize: 9.5,
+                                fontSize: 9,
                                 fontWeight: FontWeight.w700,
                                 color: _brandBlue,
                               ),
@@ -674,71 +672,81 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                     ],
-                    const SizedBox(width: 6),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 16,
-                      color: cs.onSurfaceVariant,
-                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 15, color: cs.onSurfaceVariant),
                   ],
                 ),
               ),
-            ],
 
-            // ── STATS CHIPS ROW ──────────────────────────────────
+            // ── SOCIAL QUICK-LINKS ROW — official brand icons only ────
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
               child: Row(
                 children: [
-                    _StatItem(
-                      value: _followerCount.toString(),
-                      label: 'Followers',
-                      cs: cs,
-                      onTap: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => FollowListScreen(
-                              userId: _targetUserId,
-                              title: 'Followers',
-                              isFollowers: true,
-                            ),
-                          ));
-                      },
-                    ),
-                    _VerticalDivider(cs: cs),
-                    _StatItem(
-                      value: _followingCount.toString(),
-                      label: 'Following',
-                      cs: cs,
-                      onTap: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => FollowListScreen(
-                              userId: _targetUserId,
-                              title: 'Following',
-                              isFollowers: false,
-                            ),
-                          ));
-                      },
-                    ),
-                    if (_isCurrentUser) ...[
-                      _VerticalDivider(cs: cs),
-                      _StatItem(
-                        value: _totalOpsCount.toString(),
-                        label: 'Explored',
-                        cs: cs,
-                      ),
-                      _VerticalDivider(cs: cs),
-                      _StatItem(
-                        value: _appliedCount.toString(),
-                        label: 'Applied',
-                        cs: cs,
-                      ),
-                    ]
-                  ],
-                ),
+                  // GitHub
+                  _buildBrandIconBtn(
+                    icon: Icons.code_rounded,
+                    url: profile.githubUrl,
+                    color: cs.onSurface,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 20),
+                  // LinkedIn
+                  _buildBrandIconBtn(
+                    icon: Icons.business_center_rounded,
+                    url: profile.linkedinUrl,
+                    color: const Color(0xFF0A66C2),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 20),
+                  // Email
+                  _buildBrandIconBtn(
+                    icon: Icons.mail_rounded,
+                    url: profile.email != null && profile.email!.isNotEmpty
+                        ? 'mailto:${profile.email}'
+                        : null,
+                    color: const Color(0xFFEA4335),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 20),
+                  // Instagram
+                  _buildBrandIconBtn(
+                    icon: Icons.camera_alt_rounded,
+                    url: profile.instagramUrl,
+                    color: const Color(0xFFE1306C),
+                    size: 22,
+                  ),
+                ],
               ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Bare brand icon button — no background, no border, no label.
+  Widget _buildBrandIconBtn({
+    required IconData icon,
+    required String? url,
+    required Color color,
+    double size = 22,
+  }) {
+    final bool active = url != null && url.isNotEmpty;
+    return GestureDetector(
+      onTap: active
+          ? () async {
+              final uri = Uri.parse(url!);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }
+          : null,
+      child: Icon(
+        icon,
+        size: size,
+        color: active ? color : color.withOpacity(0.25),
       ),
     );
   }
@@ -757,7 +765,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Text(
           initials.toUpperCase(),
           style: GoogleFonts.sora(
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: FontWeight.w800,
             color: cs.onSurfaceVariant,
           ),
@@ -793,10 +801,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   // SECTION WRAPPER
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildSection({
-    required String label,
-    required Widget child,
-  }) {
+  Widget _buildSection({required String label, required Widget child}) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -817,10 +822,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Divider(
-                  color: cs.outlineVariant,
-                  thickness: 1,
-                  height: 1,
-                ),
+                    color: cs.outlineVariant, thickness: 1, height: 1),
               ),
             ],
           ),
@@ -860,11 +862,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             const SizedBox(height: 12),
             FilledButton.tonal(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DevCardScreen()),
-                );
-              },
+              onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DevCardScreen())),
               child: const Text('Generate DevCard'),
             ),
           ],
@@ -891,9 +890,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     builder: (context, child) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)],
@@ -904,17 +901,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                               color: const Color(0xFFD32F2F).withOpacity(
                                 0.25 + _rankGlowController.value * 0.3,
                               ),
-                              blurRadius: 8 + _rankGlowController.value * 8,
+                              blurRadius:
+                                  8 + _rankGlowController.value * 8,
                             ),
                           ],
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.military_tech_rounded,
-                              size: 13,
-                              color: Colors.white,
-                            ),
+                            const Icon(Icons.military_tech_rounded,
+                                size: 13, color: Colors.white),
                             const SizedBox(width: 4),
                             Text(
                               _devCard!.scoreBreakdown.rank,
@@ -941,11 +936,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ],
               ),
               InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const DevCardScreen()),
-                  );
-                },
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const DevCardScreen())),
                 child: Row(
                   children: [
                     Text(
@@ -957,11 +949,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     const SizedBox(width: 2),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 13,
-                      color: cs.primary,
-                    ),
+                    Icon(Icons.arrow_forward_rounded,
+                        size: 13, color: cs.primary),
                   ],
                 ),
               ),
@@ -972,22 +961,19 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: Row(
               children: [
                 _DevMetric(
-                  val: _devCard!.totalCommitsLastYear.toString(),
-                  label: 'Commits',
-                  cs: cs,
-                ),
+                    val: _devCard!.totalCommitsLastYear.toString(),
+                    label: 'Commits',
+                    cs: cs),
                 VerticalDivider(color: cs.outlineVariant),
                 _DevMetric(
-                  val: _devCard!.totalPublicRepos.toString(),
-                  label: 'Repos',
-                  cs: cs,
-                ),
+                    val: _devCard!.totalPublicRepos.toString(),
+                    label: 'Repos',
+                    cs: cs),
                 VerticalDivider(color: cs.outlineVariant),
                 _DevMetric(
-                  val: _devCard!.longestStreak.toString(),
-                  label: 'Streak Days',
-                  cs: cs,
-                ),
+                    val: _devCard!.longestStreak.toString(),
+                    label: 'Streak Days',
+                    cs: cs),
               ],
             ),
           ),
@@ -1004,8 +990,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_devCard == null || _devCard!.topLanguages.isEmpty) {
       return _buildEmptySection(cs, 'No language data available');
     }
-
-    // Sort by percentage just to be sure and grab top 5
     final langs = List<LanguageStat>.from(_devCard!.topLanguages)
       ..sort((a, b) => b.percentage.compareTo(a.percentage));
     final top5 = langs.take(5).toList();
@@ -1023,7 +1007,8 @@ class _ProfileScreenState extends State<ProfileScreen>
           ...top5.map((lang) {
             final color = _parseHexColor(lang.color);
             final pct = (lang.percentage * 100).toStringAsFixed(0);
-            final count = _languageProjectCount(lang.name, lang.projectCount);
+            final count =
+                _languageProjectCount(lang.name, lang.projectCount);
             return Padding(
               padding: const EdgeInsets.only(bottom: 5),
               child: Row(
@@ -1031,63 +1016,50 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Container(
                     width: 7,
                     height: 7,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
+                    decoration:
+                        BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 6),
                   SizedBox(
                     width: 80,
-                    child: Text(
-                      lang.name,
-                      style: TextStyle(
-                        color: cs.onSurface,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: Text(lang.name,
+                        style: TextStyle(
+                            color: cs.onSurface,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
                   SizedBox(
                     width: 80,
                     height: 4,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: cs.outlineVariant,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+                          color: cs.outlineVariant,
+                          borderRadius: BorderRadius.circular(2)),
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
                         widthFactor: lang.percentage.clamp(0.0, 1.0),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
+                              color: color,
+                              borderRadius: BorderRadius.circular(2)),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '$pct%',
-                    style: TextStyle(
-                      color: cs.onSurfaceVariant,
-                      fontSize: 9,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
+                  Text('$pct%',
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 9,
+                          fontFamily: 'monospace')),
                   const Spacer(),
-                  Text(
-                    '$count projects',
-                    style: TextStyle(
-                      color: cs.onSurfaceVariant,
-                      fontSize: 9,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
+                  Text('$count projects',
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 9,
+                          fontFamily: 'monospace')),
                 ],
               ),
             );
@@ -1099,9 +1071,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   int _languageProjectCount(String langName, int fallback) {
     final devCard = _devCard;
-    if (devCard == null || devCard.projects.isEmpty) {
-      return fallback;
-    }
+    if (devCard == null || devCard.projects.isEmpty) return fallback;
     return devCard.projects
         .where((p) =>
             p.primaryLanguage?.toLowerCase() == langName.toLowerCase())
@@ -1116,9 +1086,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_devCard == null || _devCard!.topFrameworks.isEmpty) {
       return _buildEmptySection(cs, 'No framework data available');
     }
-
     final frameworks = _devCard!.topFrameworks.map((e) => e.name).take(10);
-
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -1140,19 +1108,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                   width: 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _techColor(tech, cs),
-                  ),
+                      shape: BoxShape.circle,
+                      color: _techColor(tech, cs)),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  tech,
-                  style: GoogleFonts.sora(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface,
-                  ),
-                ),
+                Text(tech,
+                    style: GoogleFonts.sora(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface)),
               ],
             ),
           ),
@@ -1169,7 +1133,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_devCard == null || _devCard!.projects.isEmpty) {
       return _buildEmptySection(cs, 'No popular projects available');
     }
-
     final projectsList = List<ProjectAnalysis>.from(_devCard!.projects)
       ..sort((a, b) => b.stars.compareTo(a.stars));
     final topProjects = projectsList.take(3).toList();
@@ -1181,15 +1144,11 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
-              if (project.url.isNotEmpty) {
-                launchUrl(Uri.parse(project.url));
-              }
+              if (project.url.isNotEmpty) launchUrl(Uri.parse(project.url));
             },
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 13,
-              ),
+                  horizontal: 14, vertical: 13),
               decoration: BoxDecoration(
                 color: cs.surface,
                 border: Border.all(color: cs.outlineVariant),
@@ -1201,31 +1160,25 @@ class _ProfileScreenState extends State<ProfileScreen>
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: cs.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        color: cs.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(8)),
                     alignment: Alignment.center,
-                    child: Text(
-                      _projectEmoji(project.name),
-                      style: const TextStyle(fontSize: 18),
-                      textAlign: TextAlign.center,
-                    ),
+                    child: Text(_projectEmoji(project.name),
+                        style: const TextStyle(fontSize: 18),
+                        textAlign: TextAlign.center),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          project.name,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: cs.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        Text(project.name,
+                            style: GoogleFonts.jetBrainsMono(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: cs.onSurface),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 3),
                         Row(
                           children: [
@@ -1234,48 +1187,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 width: 6,
                                 height: 6,
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _langColor(
-                                    project.primaryLanguage!,
-                                    cs,
-                                  ),
-                                ),
+                                    shape: BoxShape.circle,
+                                    color: _langColor(
+                                        project.primaryLanguage!, cs)),
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                project.primaryLanguage!,
-                                style: GoogleFonts.sora(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
+                              Text(project.primaryLanguage!,
+                                  style: GoogleFonts.sora(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: cs.onSurfaceVariant)),
                               const SizedBox(width: 8),
                             ],
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 12,
-                              color: Color(0xFFE65100),
-                            ),
+                            const Icon(Icons.star_rounded,
+                                size: 12, color: Color(0xFFE65100)),
                             const SizedBox(width: 3),
-                            Text(
-                              '${project.stars}',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFFE65100),
-                              ),
-                            ),
+                            Text('${project.stars}',
+                                style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFFE65100))),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.open_in_new_rounded,
-                    size: 18,
-                    color: cs.outline,
-                  ),
+                  Icon(Icons.open_in_new_rounded,
+                      size: 18, color: cs.outline),
                 ],
               ),
             ),
@@ -1293,31 +1231,28 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Row(
       children: [
         _JourneyCard(
-          icon: Icons.explore_rounded,
-          iconBg: _brandBlueContainer,
-          iconColor: _brandBlue,
-          value: _totalOpsCount.toString(),
-          label: 'Explored',
-          cs: cs,
-        ),
+            icon: Icons.explore_rounded,
+            iconBg: _brandBlueContainer,
+            iconColor: _brandBlue,
+            value: _totalOpsCount.toString(),
+            label: 'Explored',
+            cs: cs),
         const SizedBox(width: 8),
         _JourneyCard(
-          icon: Icons.bookmark_rounded,
-          iconBg: _brandRedContainer,
-          iconColor: _brandRed,
-          value: _savedOpsCount.toString(),
-          label: 'Saved',
-          cs: cs,
-        ),
+            icon: Icons.bookmark_rounded,
+            iconBg: _brandRedContainer,
+            iconColor: _brandRed,
+            value: _savedOpsCount.toString(),
+            label: 'Saved',
+            cs: cs),
         const SizedBox(width: 8),
         _JourneyCard(
-          icon: Icons.send_rounded,
-          iconBg: const Color(0xFFE8F5E9),
-          iconColor: const Color(0xFF2E7D32),
-          value: _appliedCount.toString(),
-          label: 'Applied',
-          cs: cs,
-        ),
+            icon: Icons.send_rounded,
+            iconBg: const Color(0xFFE8F5E9),
+            iconColor: const Color(0xFF2E7D32),
+            value: _appliedCount.toString(),
+            label: 'Applied',
+            cs: cs),
       ],
     );
   }
@@ -1331,33 +1266,32 @@ class _ProfileScreenState extends State<ProfileScreen>
       children: [
         if (profile.githubUrl != null && profile.githubUrl!.isNotEmpty)
           _SocialBtn(
-            label: 'GitHub',
-            icon: Icons.code_rounded,
-            url: profile.githubUrl!,
-            cs: cs,
-          ),
-        if (profile.linkedinUrl != null && profile.linkedinUrl!.isNotEmpty) ...[
+              label: 'GitHub',
+              icon: Icons.code_rounded,
+              url: profile.githubUrl!,
+              cs: cs),
+        if (profile.linkedinUrl != null &&
+            profile.linkedinUrl!.isNotEmpty) ...[
           if (profile.githubUrl != null && profile.githubUrl!.isNotEmpty)
             const SizedBox(width: 8),
           _SocialBtn(
-            label: 'LinkedIn',
-            icon: Icons.work_outline_rounded,
-            url: profile.linkedinUrl!,
-            cs: cs,
-          ),
+              label: 'LinkedIn',
+              icon: Icons.work_outline_rounded,
+              url: profile.linkedinUrl!,
+              cs: cs),
         ],
         if (profile.instagramUrl != null &&
             profile.instagramUrl!.isNotEmpty) ...[
-          if ((profile.githubUrl != null && profile.githubUrl!.isNotEmpty) ||
+          if ((profile.githubUrl != null &&
+                  profile.githubUrl!.isNotEmpty) ||
               (profile.linkedinUrl != null &&
                   profile.linkedinUrl!.isNotEmpty))
             const SizedBox(width: 8),
           _SocialBtn(
-            label: 'Instagram',
-            icon: Icons.photo_camera_outlined,
-            url: profile.instagramUrl!,
-            cs: cs,
-          ),
+              label: 'Instagram',
+              icon: Icons.photo_camera_outlined,
+              url: profile.instagramUrl!,
+              cs: cs),
         ],
       ],
     );
@@ -1389,17 +1323,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                     width: 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: _brandRedLight,
-                      shape: BoxShape.circle,
-                    ),
+                        color: _brandRedLight, shape: BoxShape.circle),
                   )
                 : Icon(Icons.chevron_right_rounded, color: cs.outline),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => const FollowRequestsScreen()),
-              );
-            },
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const FollowRequestsScreen())),
             cs: cs,
           ),
           Divider(height: 1, indent: 56, color: cs.outlineVariant),
@@ -1413,13 +1341,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               width: 7,
               height: 7,
               decoration: BoxDecoration(
-                color: _brandRedLight,
-                shape: BoxShape.circle,
-              ),
+                  color: _brandRedLight, shape: BoxShape.circle),
             ),
-            onTap: () {
-              // TODO Navigate to Notifications
-            },
+            onTap: () {},
             cs: cs,
           ),
           Divider(height: 1, indent: 56, color: cs.outlineVariant),
@@ -1430,11 +1354,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             title: 'Settings',
             subtitle: 'Privacy, account, preferences',
             trailing: Icon(Icons.chevron_right_rounded, color: cs.outline),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen())),
             cs: cs,
           ),
           if (UserRoleService().role == 'admin' ||
@@ -1450,17 +1371,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Icon(Icons.chevron_right_rounded, color: cs.outline),
               onTap: () {
                 if (UserRoleService().role == 'super_admin') {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (_) => const techmates_superadmin
-                            .AdminDashboardScreen()),
-                  );
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const techmates_superadmin
+                          .AdminDashboardScreen()));
                 } else if (UserRoleService().role == 'admin') {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (_) => const techmates_admin
-                            .RegularAdminDashboardScreen()),
-                  );
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const techmates_admin
+                          .RegularAdminDashboardScreen()));
                 }
               },
               cs: cs,
@@ -1491,20 +1408,13 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.logout_rounded,
-                size: 18,
-                color: _brandRed,
-              ),
+              const Icon(Icons.logout_rounded, size: 18, color: _brandRed),
               const SizedBox(width: 8),
-              Text(
-                'Log out',
-                style: GoogleFonts.sora(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: _brandRed,
-                ),
-              ),
+              Text('Log out',
+                  style: GoogleFonts.sora(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: _brandRed)),
             ],
           ),
         ),
@@ -1516,30 +1426,24 @@ class _ProfileScreenState extends State<ProfileScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(
-          'Log out?',
-          style: GoogleFonts.sora(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'You will be signed out of Techmates.',
-          style: GoogleFonts.sora(),
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Log out?',
+            style: GoogleFonts.sora(fontWeight: FontWeight.bold)),
+        content: Text('You will be signed out of Techmates.',
+            style: GoogleFonts.sora()),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.sora(fontWeight: FontWeight.w600),
-            ),
+            child: Text('Cancel',
+                style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: _brandRedLight),
-            child: Text(
-              'Log out',
-              style: GoogleFonts.sora(fontWeight: FontWeight.bold),
-            ),
+            style:
+                FilledButton.styleFrom(backgroundColor: _brandRedLight),
+            child: Text('Log out',
+                style: GoogleFonts.sora(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1550,17 +1454,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     try {
       await _authService.signOut();
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/login', (_) => false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not log out. Please try again.',
-            style: GoogleFonts.sora(),
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Could not log out. Please try again.',
+            style: GoogleFonts.sora()),
+      ));
       debugPrint('Profile logout failed: $e');
     }
   }
@@ -1584,9 +1485,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Container(
                   height: 60,
                   decoration: BoxDecoration(
-                    color: cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                      color: cs.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1595,9 +1495,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Container(
                   height: 100,
                   decoration: BoxDecoration(
-                    color: cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                      color: cs.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(20)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1606,9 +1505,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Container(
                   height: 160,
                   decoration: BoxDecoration(
-                    color: cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                      color: cs.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(20)),
                 ),
               ),
             ],
@@ -1626,89 +1524,22 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_off_rounded, size: 56, color: cs.onSurfaceVariant),
+            Icon(Icons.cloud_off_rounded,
+                size: 56, color: cs.onSurfaceVariant),
             const SizedBox(height: 16),
-            Text(
-              'Could not load profile',
-              style: GoogleFonts.sora(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
-              ),
-            ),
+            Text('Could not load profile',
+                style: GoogleFonts.sora(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface)),
             const SizedBox(height: 8),
-            Text(
-              'Check your connection and try again',
-              style: GoogleFonts.sora(
-                fontSize: 14,
-                color: cs.onSurfaceVariant,
-              ),
-            ),
+            Text('Check your connection and try again',
+                style: GoogleFonts.sora(
+                    fontSize: 14, color: cs.onSurfaceVariant)),
             const SizedBox(height: 24),
             FilledButton.tonal(
-              onPressed: _loadData,
-              child: const Text('Retry'),
-            ),
+                onPressed: _loadData, child: const Text('Retry')),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// HERO STAT CHIP — used in the redesigned header stats row
-// ═══════════════════════════════════════════════════════════════
-
-class _HeroStatChip extends StatelessWidget {
-  final String value;
-  final String label;
-  final ColorScheme cs;
-  final VoidCallback? onTap;
-
-  const _HeroStatChip({
-    required this.value,
-    required this.label,
-    required this.cs,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 6),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: cs.outlineVariant, width: 1),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: cs.onSurface,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: GoogleFonts.sora(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -1725,12 +1556,11 @@ class _StatItem extends StatelessWidget {
   final ColorScheme cs;
   final VoidCallback? onTap;
 
-  const _StatItem({
-    required this.value,
-    required this.label,
-    required this.cs,
-    this.onTap,
-  });
+  const _StatItem(
+      {required this.value,
+      required this.label,
+      required this.cs,
+      this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1741,24 +1571,18 @@ class _StatItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              value,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: cs.onSurface,
-                height: 1,
-              ),
-            ),
+            Text(value,
+                style: GoogleFonts.jetBrainsMono(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
+                    height: 1)),
             const SizedBox(height: 1),
-            Text(
-              label,
-              style: GoogleFonts.sora(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-                color: cs.onSurfaceVariant,
-              ),
-            ),
+            Text(label,
+                style: GoogleFonts.sora(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurfaceVariant)),
           ],
         ),
       ),
@@ -1771,13 +1595,8 @@ class _VerticalDivider extends StatelessWidget {
   const _VerticalDivider({required this.cs});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 28,
-      color: cs.outlineVariant,
-    );
-  }
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 28, color: cs.outlineVariant);
 }
 
 class _DevMetric extends StatelessWidget {
@@ -1785,11 +1604,8 @@ class _DevMetric extends StatelessWidget {
   final String label;
   final ColorScheme cs;
 
-  const _DevMetric({
-    required this.val,
-    required this.label,
-    required this.cs,
-  });
+  const _DevMetric(
+      {required this.val, required this.label, required this.cs});
 
   @override
   Widget build(BuildContext context) {
@@ -1797,25 +1613,19 @@ class _DevMetric extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            val,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: cs.onSurface,
-              height: 1,
-            ),
-          ),
+          Text(val,
+              style: GoogleFonts.jetBrainsMono(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                  height: 1)),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.sora(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.2,
-              color: cs.onSurfaceVariant,
-            ),
-          ),
+          Text(label,
+              style: GoogleFonts.sora(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
+                  color: cs.onSurfaceVariant)),
         ],
       ),
     );
@@ -1830,14 +1640,13 @@ class _JourneyCard extends StatelessWidget {
   final String label;
   final ColorScheme cs;
 
-  const _JourneyCard({
-    required this.icon,
-    required this.iconBg,
-    required this.iconColor,
-    required this.value,
-    required this.label,
-    required this.cs,
-  });
+  const _JourneyCard(
+      {required this.icon,
+      required this.iconBg,
+      required this.iconColor,
+      required this.value,
+      required this.label,
+      required this.cs});
 
   @override
   Widget build(BuildContext context) {
@@ -1856,29 +1665,21 @@ class _JourneyCard extends StatelessWidget {
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  color: iconBg, borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, size: 16, color: iconColor),
             ),
             const SizedBox(height: 3),
-            Text(
-              value,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: cs.onSurface,
-                height: 1,
-              ),
-            ),
-            Text(
-              label,
-              style: GoogleFonts.sora(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: cs.onSurfaceVariant,
-              ),
-            ),
+            Text(value,
+                style: GoogleFonts.jetBrainsMono(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
+                    height: 1)),
+            Text(label,
+                style: GoogleFonts.sora(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurfaceVariant)),
           ],
         ),
       ),
@@ -1892,12 +1693,11 @@ class _SocialBtn extends StatelessWidget {
   final String url;
   final ColorScheme cs;
 
-  const _SocialBtn({
-    required this.label,
-    required this.icon,
-    required this.url,
-    required this.cs,
-  });
+  const _SocialBtn(
+      {required this.label,
+      required this.icon,
+      required this.url,
+      required this.cs});
 
   @override
   Widget build(BuildContext context) {
@@ -1905,9 +1705,7 @@ class _SocialBtn extends StatelessWidget {
       child: InkWell(
         onTap: () async {
           final uri = Uri.parse(url);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri);
-          }
+          if (await canLaunchUrl(uri)) await launchUrl(uri);
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -1922,14 +1720,11 @@ class _SocialBtn extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: cs.onSurface),
               const SizedBox(width: 7),
-              Text(
-                label,
-                style: GoogleFonts.sora(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
-                ),
-              ),
+              Text(label,
+                  style: GoogleFonts.sora(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface)),
             ],
           ),
         ),
@@ -1948,16 +1743,15 @@ class _ActionItem extends StatelessWidget {
   final VoidCallback onTap;
   final ColorScheme cs;
 
-  const _ActionItem({
-    required this.iconBg,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    required this.onTap,
-    required this.cs,
-  });
+  const _ActionItem(
+      {required this.iconBg,
+      required this.icon,
+      required this.iconColor,
+      required this.title,
+      required this.subtitle,
+      required this.trailing,
+      required this.onTap,
+      required this.cs});
 
   @override
   Widget build(BuildContext context) {
@@ -1965,16 +1759,16 @@ class _ActionItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             Container(
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(10),
-              ),
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10)),
               child: Icon(icon, size: 18, color: iconColor),
             ),
             const SizedBox(width: 12),
@@ -1982,23 +1776,17 @@ class _ActionItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.sora(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface,
-                    ),
-                  ),
+                  Text(title,
+                      style: GoogleFonts.sora(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface)),
                   const SizedBox(height: 1),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.sora(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
+                  Text(subtitle,
+                      style: GoogleFonts.sora(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          color: cs.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -2023,15 +1811,12 @@ Widget _buildEmptySection(ColorScheme cs, String message) {
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: cs.outlineVariant),
     ),
-    child: Text(
-      message,
-      style: GoogleFonts.sora(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: cs.onSurfaceVariant,
-      ),
-      textAlign: TextAlign.center,
-    ),
+    child: Text(message,
+        style: GoogleFonts.sora(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: cs.onSurfaceVariant),
+        textAlign: TextAlign.center),
   );
 }
 
@@ -2046,51 +1831,30 @@ Color _parseHexColor(String hex) {
 
 Color _langColor(String lang, ColorScheme cs) {
   switch (lang.toLowerCase()) {
-    case 'typescript':
-      return const Color(0xFF3178C6);
-    case 'dart':
-      return const Color(0xFF00B4AB);
-    case 'javascript':
-      return const Color(0xFFD4A017);
-    case 'python':
-      return const Color(0xFF3572A5);
-    case 'c++':
-    case 'cpp':
-      return const Color(0xFFF34B7D);
-    case 'java':
-      return const Color(0xFFB07219);
-    case 'kotlin':
-      return const Color(0xFF7F52FF);
-    case 'swift':
-      return const Color(0xFFF05138);
-    case 'go':
-      return const Color(0xFF00ADD8);
-    case 'rust':
-      return const Color(0xFFDEA584);
-    default:
-      return cs.primary;
+    case 'typescript': return const Color(0xFF3178C6);
+    case 'dart': return const Color(0xFF00B4AB);
+    case 'javascript': return const Color(0xFFD4A017);
+    case 'python': return const Color(0xFF3572A5);
+    case 'c++': case 'cpp': return const Color(0xFFF34B7D);
+    case 'java': return const Color(0xFFB07219);
+    case 'kotlin': return const Color(0xFF7F52FF);
+    case 'swift': return const Color(0xFFF05138);
+    case 'go': return const Color(0xFF00ADD8);
+    case 'rust': return const Color(0xFFDEA584);
+    default: return cs.primary;
   }
 }
 
 Color _techColor(String tech, ColorScheme cs) {
   switch (tech.toLowerCase()) {
-    case 'flutter':
-      return const Color(0xFF00B4AB);
-    case 'react':
-      return const Color(0xFF61DAFB);
-    case 'node.js':
-    case 'nodejs':
-      return const Color(0xFF68A063);
-    case 'supabase':
-      return const Color(0xFF3ECF8E);
-    case 'firebase':
-      return const Color(0xFFFFCA28);
-    case 'typescript':
-      return const Color(0xFF3178C6);
-    case 'git':
-      return const Color(0xFFF05032);
-    default:
-      return cs.primary;
+    case 'flutter': return const Color(0xFF00B4AB);
+    case 'react': return const Color(0xFF61DAFB);
+    case 'node.js': case 'nodejs': return const Color(0xFF68A063);
+    case 'supabase': return const Color(0xFF3ECF8E);
+    case 'firebase': return const Color(0xFFFFCA28);
+    case 'typescript': return const Color(0xFF3178C6);
+    case 'git': return const Color(0xFFF05032);
+    default: return cs.primary;
   }
 }
 
@@ -2106,14 +1870,9 @@ String _formatJoinDate(DateTime? dt) {
 String _projectEmoji(String repoName) {
   final name = repoName.toLowerCase();
   if (name.contains('app') || name.contains('flutter')) return '📱';
-  if (name.contains('web') ||
-      name.contains('site') ||
-      name.contains('portfolio')) return '🌐';
-  if (name.contains('api') ||
-      name.contains('server') ||
-      name.contains('backend')) return '⚙️';
-  if (name.contains('ml') || name.contains('ai') || name.contains('bot'))
-    return '🤖';
+  if (name.contains('web') || name.contains('site') || name.contains('portfolio')) return '🌐';
+  if (name.contains('api') || name.contains('server') || name.contains('backend')) return '⚙️';
+  if (name.contains('ml') || name.contains('ai') || name.contains('bot')) return '🤖';
   if (name.contains('game')) return '🎮';
   return '📦';
 }

@@ -30,29 +30,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _darkMode = false;
   bool _isLoading = true;
-  String _appVersion = '';
+  String _appVersion = 'Loading...';
   UserProfile? _profile;
 
   @override
   void initState() {
     super.initState();
+    _loadAppVersion();
     _loadSettings();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final version = info.version.trim();
+      final build = info.buildNumber.trim();
+      final formatted = build.isNotEmpty ? '$version ($build)' : version;
+      if (!mounted) return;
+      setState(() => _appVersion = formatted);
+    } catch (e) {
+      debugPrint('❌ [Settings] App version load error: $e');
+      if (!mounted) return;
+      setState(() => _appVersion = 'Unavailable');
+    }
   }
 
   Future<void> _loadSettings() async {
     try {
       final userId = _auth.user?.id;
-      if (userId == null) return;
+      if (userId == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
       final results = await Future.wait([
         _profileService.fetchProfile(userId),
         SharedPreferences.getInstance(),
-        PackageInfo.fromPlatform(),
       ]);
 
       final profile = results[0] as UserProfile?;
       final prefs = results[1] as SharedPreferences;
-      final info = results[2] as PackageInfo;
 
       if (mounted) {
         setState(() {
@@ -60,7 +77,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _isPrivate = profile?.isPrivate ?? false;
           _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
           _darkMode = prefs.getBool('dark_mode') ?? false;
-          _appVersion = '${info.version} (${info.buildNumber})';
           _isLoading = false;
         });
       }
