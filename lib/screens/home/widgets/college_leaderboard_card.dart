@@ -150,27 +150,10 @@ class _CollegeLeaderboardCardState extends State<CollegeLeaderboardCard>
               AnimatedBuilder(
                 animation: _glowPulseCtrl,
                 builder: (_, child) {
-                  final glowOpacity =
-                      0.15 + 0.12 * _glowPulseCtrl.value;
                   return Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _rankAccent(
-                                  (student['collegeRank'] as int?) ?? 1)
-                              .withOpacity(glowOpacity),
-                          blurRadius: 28,
-                          offset: const Offset(0, 8),
-                          spreadRadius: -2,
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFF6750A4)
-                              .withValues(alpha: glowOpacity * 0.5),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      color: HomeTheme.surface(context),
                     ),
                     child: child,
                   );
@@ -182,64 +165,10 @@ class _CollegeLeaderboardCardState extends State<CollegeLeaderboardCard>
                     width: double.infinity,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFF8F0FF), // very light lavender
-                          Color(0xFFEDE7FB), // soft purple tint
-                          Color(0xFFF0E8FF), // warm violet cloud
-                        ],
-                        stops: [0.0, 0.5, 1.0],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFFD0BCFF).withOpacity(0.5),
-                        width: 1.5,
-                      ),
+                      color: HomeTheme.surfaceContainerLow(context), // Flat minimal background
                     ),
                     child: Stack(
                       children: [
-                        // Ambient radial glow top-left (warm gold / rank color)
-                        Positioned(
-                          top: -40,
-                          left: -30,
-                          child: AnimatedBuilder(
-                            animation: _glowPulseCtrl,
-                            builder: (_, __) => Opacity(
-                              opacity: 0.3 + 0.15 * _glowPulseCtrl.value,
-                              child: Container(
-                                width: 180,
-                                height: 180,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(colors: [
-                                    _rankAccent(
-                                        (student['collegeRank'] as int?) ??
-                                            1)
-                                        .withValues(alpha: 0.35),
-                                    Colors.transparent,
-                                  ]),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Ambient radial glow bottom-right (purple)
-                        Positioned(
-                          bottom: -50,
-                          right: -30,
-                          child: Container(
-                            width: 160,
-                            height: 160,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(colors: [
-                                const Color(0xFF6750A4).withOpacity(0.12),
-                                Colors.transparent,
-                              ]),
-                            ),
-                          ),
-                        ),
                         // Foreground content
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 18, 16, 14),

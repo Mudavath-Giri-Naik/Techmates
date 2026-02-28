@@ -367,25 +367,25 @@ class DevScoreBreakdown {
   /// Compute rank info from a raw score (used by leaderboard / college screens).
   static Map<String, String> rankInfoFromScore(int score) {
     if (score >= 90) {
-      return {'rank': 'Legend', 'emoji': '🌌', 'color': '#FF00FF'}; // Magenta
+      return {'rank': 'Legend', 'emoji': '🌌', 'color': '#8E24AA'}; // Deep Purple
     } else if (score >= 80) {
-      return {'rank': 'Grandmaster', 'emoji': '🔱', 'color': '#E040FB'}; // Purple
+      return {'rank': 'Grandmaster', 'emoji': '🔱', 'color': '#D81B60'}; // Deep Pink
     } else if (score >= 70) {
-      return {'rank': 'Master', 'emoji': '👑', 'color': '#FFD700'}; // Gold
+      return {'rank': 'Master', 'emoji': '👑', 'color': '#F57C00'}; // Deep Orange
     } else if (score >= 60) {
-      return {'rank': 'Elite', 'emoji': '⚔️', 'color': '#FF3D00'}; // Red
+      return {'rank': 'Elite', 'emoji': '⚔️', 'color': '#D32F2F'}; // Deep Red
     } else if (score >= 50) {
-      return {'rank': 'Expert', 'emoji': '⭐', 'color': '#FF9100'}; // Orange
+      return {'rank': 'Expert', 'emoji': '⭐', 'color': '#00897B'}; // Deep Teal
     } else if (score >= 40) {
-      return {'rank': 'Experienced', 'emoji': '🛡️', 'color': '#00B0FF'}; // Light Blue
+      return {'rank': 'Experienced', 'emoji': '🛡️', 'color': '#1976D2'}; // Deep Blue
     } else if (score >= 30) {
-      return {'rank': 'Skilled', 'emoji': '�', 'color': '#00E676'}; // Green
+      return {'rank': 'Skilled', 'emoji': '', 'color': '#388E3C'}; // Deep Green
     } else if (score >= 20) {
-      return {'rank': 'Intermediate', 'emoji': '⚙️', 'color': '#76FF03'}; // Light Green
+      return {'rank': 'Intermediate', 'emoji': '⚙️', 'color': '#689F38'}; // Light Olive
     } else if (score >= 10) {
-      return {'rank': 'Learner', 'emoji': '📖', 'color': '#FFEA00'}; // Yellow
+      return {'rank': 'Learner', 'emoji': '📖', 'color': '#FBC02D'}; // Deep Yellow/Gold
     } else {
-      return {'rank': 'Beginner', 'emoji': '🌱', 'color': '#9E9E9E'}; // Grey
+      return {'rank': 'Beginner', 'emoji': '🌱', 'color': '#616161'}; // Dark Grey
     }
   }
 }
