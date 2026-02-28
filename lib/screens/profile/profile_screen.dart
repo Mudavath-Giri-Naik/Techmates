@@ -32,6 +32,26 @@ const _brandRedLight = Color(0xFFE53935);
 const _brandBlue = Color(0xFF1565C0);
 const _brandRedContainer = Color(0xFFFFEBEE);
 const _brandBlueContainer = Color(0xFFE3F2FD);
+const _faGithub = IconData(
+  0xf09b,
+  fontFamily: 'FontAwesomeBrands',
+  fontPackage: 'font_awesome_flutter',
+);
+const _faLinkedIn = IconData(
+  0xf08c,
+  fontFamily: 'FontAwesomeBrands',
+  fontPackage: 'font_awesome_flutter',
+);
+const _faInstagram = IconData(
+  0xf16d,
+  fontFamily: 'FontAwesomeBrands',
+  fontPackage: 'font_awesome_flutter',
+);
+const _faEnvelope = IconData(
+  0xf0e0,
+  fontFamily: 'FontAwesomeSolid',
+  fontPackage: 'font_awesome_flutter',
+);
 
 class ProfileScreen extends StatefulWidget {
   final String? userId;
@@ -686,7 +706,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: [
                   // GitHub
                   _buildBrandIconBtn(
-                    icon: Icons.code_rounded,
+                    icon: _faGithub,
                     url: profile.githubUrl,
                     color: cs.onSurface,
                     size: 22,
@@ -694,7 +714,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(width: 20),
                   // LinkedIn
                   _buildBrandIconBtn(
-                    icon: Icons.business_center_rounded,
+                    icon: _faLinkedIn,
                     url: profile.linkedinUrl,
                     color: const Color(0xFF0A66C2),
                     size: 22,
@@ -702,7 +722,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(width: 20),
                   // Email
                   _buildBrandIconBtn(
-                    icon: Icons.mail_rounded,
+                    icon: _faEnvelope,
                     url: profile.email != null && profile.email!.isNotEmpty
                         ? 'mailto:${profile.email}'
                         : null,
@@ -712,7 +732,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(width: 20),
                   // Instagram
                   _buildBrandIconBtn(
-                    icon: Icons.camera_alt_rounded,
+                    icon: _faInstagram,
                     url: profile.instagramUrl,
                     color: const Color(0xFFE1306C),
                     size: 22,
