@@ -65,12 +65,13 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       floatingActionButton: widget.floatingActionButton,
       appBar: widget.showAppBar
           ? AppBar(
-              backgroundColor: Colors.white,
+              backgroundColor: colorScheme.surface,
               elevation: 0,
               scrolledUnderElevation: 0,
               toolbarHeight: 56,
@@ -82,9 +83,9 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
                       decoration: InputDecoration(
                         hintText: widget.searchHint,
                         border: InputBorder.none,
-                        hintStyle: const TextStyle(color: Colors.grey),
+                        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                       ),
-                      style: const TextStyle(color: Colors.black, fontSize: 18),
+                      style: TextStyle(color: colorScheme.onSurface, fontSize: 18),
                       onChanged: (value) {
                         if (widget.onSearch != null) {
                           widget.onSearch!(value);
@@ -105,10 +106,10 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
                             )
                           : Text(
                               widget.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
-                                color: Colors.black87,
+                                color: colorScheme.onSurface,
                               ),
                             )),
               leadingWidth: (_isSearching || widget.showLeadingAvatar) ? 60 : 0,
@@ -117,7 +118,7 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
                       padding: const EdgeInsets.only(left: 16.0),
                       child: Center(
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
                           onPressed: () {
                             setState(() {
                               _isSearching = false;
@@ -183,7 +184,7 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
                               _isSearching ? Icons.close : Icons.search,
                               key: ValueKey(_isSearching ? 'close' : 'search'),
                               size: 32,
-                              color: Colors.black87,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ),

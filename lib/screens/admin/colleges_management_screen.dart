@@ -12,14 +12,14 @@ class CollegesManagementScreen extends StatefulWidget {
 
 class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
   // ── Palette (matches admin dashboard) ─────────────────────────────────
-  static const Color _ink     = Color(0xFF1A1A2E);
-  static const Color _muted   = Color(0xFF78909C);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
   static const Color _blue    = Color(0xFF2563EB);
   static const Color _green   = Color(0xFF059669);
   static const Color _orange  = Color(0xFFF59E0B);
   static const Color _red     = Color(0xFFEF4444);
-  static const Color _border  = Color(0xFFE8EAED);
-  static const Color _fieldBg = Color(0xFFF9FAFB);
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _fieldBg(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
 
   final _college = CollegeService();
   final _client  = SupabaseClientManager.instance;
@@ -97,9 +97,9 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
   // ── Stats row ─────────────────────────────────────────────────────────
 
   Widget _statsRow() => Row(children: [
-    _chip('Total: $_totalCount', _ink.withOpacity(0.06), _ink),
+    _chip('Total: $_totalCount', _ink(context).withValues(alpha: 0.06), _ink(context)),
     const SizedBox(width: 8),
-    _chip('Verified: $_verifiedCount', _green.withOpacity(0.08), _green),
+    _chip('Verified: $_verifiedCount', _green.withValues(alpha: 0.08), _green),
     const SizedBox(width: 8),
     GestureDetector(
       onTap: () {
@@ -108,18 +108,18 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: _showPendingOnly ? _orange.withOpacity(0.15) : _orange.withOpacity(0.08),
+          color: _showPendingOnly ? _orange.withValues(alpha: 0.15) : _orange.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
           border: _showPendingOnly
-            ? Border.all(color: _orange.withOpacity(0.5), width: 1.2)
+            ? Border.all(color: _orange.withValues(alpha: 0.5), width: 1.2)
             : null,
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           if (_showPendingOnly)
             Padding(padding: const EdgeInsets.only(right: 4),
-              child: Icon(Icons.filter_alt_rounded, size: 11, color: _orange.withOpacity(0.8))),
+              child: Icon(Icons.filter_alt_rounded, size: 11, color: _orange.withValues(alpha: 0.8))),
           Text('Pending: $_pendingCount',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _orange)),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _orange)),
         ]),
       ),
     ),
@@ -145,19 +145,19 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
 
   Widget _searchBar() => Container(
     decoration: BoxDecoration(
-      color: _fieldBg,
+      color: _fieldBg(context),
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: _border, width: 0.8),
+      border: Border.all(color: _border(context), width: 0.8),
     ),
     child: TextField(
       onChanged: (v) { setState(() { _searchQuery = v; _applyFilters(); }); },
-      style: const TextStyle(fontSize: 13, color: _ink, fontWeight: FontWeight.w500),
-      decoration: const InputDecoration(
+      style: TextStyle(fontSize: 13, color: _ink(context), fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
         hintText: 'Search by name or domain…',
-        hintStyle: TextStyle(color: Color(0xFFB0B7C3), fontSize: 12),
-        prefixIcon: Icon(Icons.search_rounded, size: 18, color: _muted),
+        hintStyle: const TextStyle(color: Color(0xFFB0B7C3), fontSize: 12),
+        prefixIcon: Icon(Icons.search_rounded, size: 18, color: _muted(context)),
         border: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     ),
   );
@@ -166,18 +166,18 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(
+      return Center(
         child: SizedBox(width: 24, height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: _ink)));
+          child: CircularProgressIndicator(strokeWidth: 2, color: _ink(context))));
     }
     if (_filteredColleges.isEmpty) {
       return Center(child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.school_outlined, size: 36, color: _muted.withOpacity(0.4)),
+          Icon(Icons.school_outlined, size: 36, color: _muted(context).withValues(alpha: 0.4)),
           const SizedBox(height: 12),
-          const Text('No colleges found',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _muted)),
+          Text('No colleges found',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _muted(context))),
         ],
       ));
     }
@@ -211,36 +211,36 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _border, width: 0.8),
+          border: Border.all(color: _border(context), width: 0.8),
           boxShadow: [BoxShadow(
-            color: _ink.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+            color: _ink(context).withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(width: 40, height: 40,
             decoration: BoxDecoration(
-              color: verified ? _green.withOpacity(0.08) : _orange.withOpacity(0.08),
+              color: verified ? _green.withValues(alpha: 0.08) : _orange.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10)),
             child: Icon(Icons.school_rounded, size: 20,
               color: verified ? _green : _orange)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _ink)),
+            Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _ink(context))),
             if (domain.isNotEmpty)
               Padding(padding: const EdgeInsets.only(top: 2),
                 child: Text(domain,
-                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: _muted))),
+                  style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: _muted(context)))),
             if (locStr.isNotEmpty)
               Padding(padding: const EdgeInsets.only(top: 2),
-                child: Text(locStr, style: const TextStyle(fontSize: 11, color: _muted))),
+                child: Text(locStr, style: TextStyle(fontSize: 11, color: _muted(context)))),
             const SizedBox(height: 6),
             Row(children: [
               _smallChip('$students student${students != 1 ? 's' : ''}',
-                _blue.withOpacity(0.08), _blue),
+                _blue.withValues(alpha: 0.08), _blue),
               const SizedBox(width: 6),
               _smallChip(verified ? 'Verified' : 'Pending',
-                verified ? _green.withOpacity(0.08) : _orange.withOpacity(0.1),
+                verified ? _green.withValues(alpha: 0.08) : _orange.withValues(alpha: 0.1),
                 verified ? _green : _orange),
               if (_showPendingOnly && !verified) ...[
                 const Spacer(),
@@ -287,52 +287,52 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 16,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
           child: SingleChildScrollView(child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _handle(),
+              _handle(ctx),
               const SizedBox(height: 14),
               // Title row
               Row(children: [
                 Expanded(child: Text(c['name'] as String? ?? 'Edit College',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink))),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink(ctx)))),
                 GestureDetector(onTap: () => Navigator.pop(ctx),
-                  child: const Icon(Icons.close_rounded, size: 20, color: _muted)),
+                  child: Icon(Icons.close_rounded, size: 20, color: _muted(ctx))),
               ]),
               const SizedBox(height: 18),
 
-              _label('COLLEGE NAME'), const SizedBox(height: 6),
-              _field(nameCtrl, 'College name'),
+              _label(ctx, 'COLLEGE NAME'), const SizedBox(height: 6),
+              _field(ctx, nameCtrl, 'College name'),
               const SizedBox(height: 14),
 
-              _label('CODE'), const SizedBox(height: 6),
-              _field(codeCtrl, 'e.g. VIT_TN', capitalization: TextCapitalization.characters),
+              _label(ctx, 'CODE'), const SizedBox(height: 6),
+              _field(ctx, codeCtrl, 'e.g. VIT_TN', capitalization: TextCapitalization.characters),
               const SizedBox(height: 14),
 
-              _label('DOMAIN'), const SizedBox(height: 6),
-              _field(domainCtrl, 'college.ac.in'),
+              _label(ctx, 'DOMAIN'), const SizedBox(height: 6),
+              _field(ctx, domainCtrl, 'college.ac.in'),
               const SizedBox(height: 14),
 
-              _label('STATE'), const SizedBox(height: 6),
-              _field(stateCtrl, 'e.g. Tamil Nadu'),
+              _label(ctx, 'STATE'), const SizedBox(height: 6),
+              _field(ctx, stateCtrl, 'e.g. Tamil Nadu'),
               const SizedBox(height: 14),
 
-              _label('LOCATION'), const SizedBox(height: 6),
-              _field(locationCtrl, 'City, State'),
+              _label(ctx, 'LOCATION'), const SizedBox(height: 6),
+              _field(ctx, locationCtrl, 'City, State'),
               const SizedBox(height: 14),
 
-              _label('COLLEGE URL'), const SizedBox(height: 6),
-              _field(urlCtrl, 'https://college.ac.in'),
+              _label(ctx, 'COLLEGE URL'), const SizedBox(height: 6),
+              _field(ctx, urlCtrl, 'https://college.ac.in'),
               const SizedBox(height: 14),
 
               // Verified toggle
               Row(children: [
                 const Expanded(child: Text('Mark as Verified',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _ink))),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
                 Switch.adaptive(
                   value: isVerified,
                   activeColor: _green,
@@ -344,12 +344,12 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _fieldBg, borderRadius: BorderRadius.circular(8)),
+                  color: _fieldBg(ctx), borderRadius: BorderRadius.circular(8)),
                 child: Row(children: [
-                  const Icon(Icons.people_outline_rounded, size: 15, color: _muted),
+                  Icon(Icons.people_outline_rounded, size: 15, color: _muted(ctx)),
                   const SizedBox(width: 8),
                   Text('$students student${students != 1 ? 's' : ''} linked',
-                    style: const TextStyle(fontSize: 12, color: _muted, fontWeight: FontWeight.w500)),
+                    style: TextStyle(fontSize: 12, color: _muted(ctx), fontWeight: FontWeight.w500)),
                 ]),
               ),
               const SizedBox(height: 20),
@@ -362,9 +362,9 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _border)),
-                    child: const Center(child: Text('Cancel',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _muted))),
+                      border: Border.all(color: _border(ctx))),
+                    child: Center(child: Text('Cancel',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _muted(ctx)))),
                   ),
                 )),
                 const SizedBox(width: 12),
@@ -395,7 +395,7 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
-                      color: saving ? _blue.withOpacity(0.5) : _blue,
+                      color: saving ? _blue.withValues(alpha: 0.5) : _blue,
                       borderRadius: BorderRadius.circular(10)),
                     child: Center(child: saving
                       ? const SizedBox(width: 16, height: 16,
@@ -432,45 +432,45 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 16,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
           child: SingleChildScrollView(child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _handle(),
+              _handle(ctx),
               const SizedBox(height: 14),
               Row(children: [
                 const Expanded(child: Text('Add College',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink))),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
                 GestureDetector(onTap: () => Navigator.pop(ctx),
-                  child: const Icon(Icons.close_rounded, size: 20, color: _muted)),
+                  child: Icon(Icons.close_rounded, size: 20, color: _muted(ctx))),
               ]),
               const SizedBox(height: 18),
 
-              _label('COLLEGE NAME *'), const SizedBox(height: 6),
-              _field(nameCtrl, 'College name'),
+              _label(ctx, 'COLLEGE NAME *'), const SizedBox(height: 6),
+              _field(ctx, nameCtrl, 'College name'),
               const SizedBox(height: 14),
 
-              _label('CODE *'), const SizedBox(height: 6),
-              _field(codeCtrl, 'e.g. VIT_TN', capitalization: TextCapitalization.characters),
+              _label(ctx, 'CODE *'), const SizedBox(height: 6),
+              _field(ctx, codeCtrl, 'e.g. VIT_TN', capitalization: TextCapitalization.characters),
               const SizedBox(height: 14),
 
-              _label('DOMAIN *'), const SizedBox(height: 6),
-              _field(domainCtrl, 'college.ac.in'),
+              _label(ctx, 'DOMAIN *'), const SizedBox(height: 6),
+              _field(ctx, domainCtrl, 'college.ac.in'),
               const SizedBox(height: 14),
 
-              _label('STATE'), const SizedBox(height: 6),
-              _field(stateCtrl, 'e.g. Tamil Nadu'),
+              _label(ctx, 'STATE'), const SizedBox(height: 6),
+              _field(ctx, stateCtrl, 'e.g. Tamil Nadu'),
               const SizedBox(height: 14),
 
-              _label('LOCATION'), const SizedBox(height: 6),
-              _field(locationCtrl, 'City, State'),
+              _label(ctx, 'LOCATION'), const SizedBox(height: 6),
+              _field(ctx, locationCtrl, 'City, State'),
               const SizedBox(height: 14),
 
-              _label('COLLEGE URL'), const SizedBox(height: 6),
-              _field(urlCtrl, 'https://college.ac.in'),
+              _label(ctx, 'COLLEGE URL'), const SizedBox(height: 6),
+              _field(ctx, urlCtrl, 'https://college.ac.in'),
               const SizedBox(height: 22),
 
               Row(children: [
@@ -480,9 +480,9 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _border)),
-                    child: const Center(child: Text('Cancel',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _muted))),
+                      border: Border.all(color: _border(ctx))),
+                    child: Center(child: Text('Cancel',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _muted(ctx)))),
                   ),
                 )),
                 const SizedBox(width: 12),
@@ -525,7 +525,7 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
-                      color: saving ? _green.withOpacity(0.5) : _green,
+                      color: saving ? _green.withValues(alpha: 0.5) : _green,
                       borderRadius: BorderRadius.circular(10)),
                     child: Center(child: saving
                       ? const SizedBox(width: 16, height: 16,
@@ -563,20 +563,20 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 16,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
           child: SingleChildScrollView(child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _handle(),
+              _handle(ctx),
               const SizedBox(height: 14),
               Row(children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _orange.withOpacity(0.08),
+                    color: _orange.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8)),
                   child: const Icon(Icons.school_rounded, size: 18, color: _orange),
                 ),
@@ -584,38 +584,38 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
                 Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Approve College',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
+                    Text('Approve College',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink(ctx))),
                     Text(domain,
-                      style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: _muted)),
+                      style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: _muted(ctx))),
                   ],
                 )),
                 GestureDetector(onTap: () => Navigator.pop(ctx),
-                  child: const Icon(Icons.close_rounded, size: 20, color: _muted)),
+                  child: Icon(Icons.close_rounded, size: 20, color: _muted(ctx))),
               ]),
               const SizedBox(height: 4),
               Text('$students student${students != 1 ? 's' : ''} waiting',
                 style: TextStyle(fontSize: 11, color: _blue, fontWeight: FontWeight.w600)),
               const SizedBox(height: 18),
 
-              _label('OFFICIAL NAME'), const SizedBox(height: 6),
-              _field(nameCtrl, 'e.g. VIT University'),
+              _label(ctx, 'OFFICIAL NAME'), const SizedBox(height: 6),
+              _field(ctx, nameCtrl, 'e.g. VIT University'),
               const SizedBox(height: 14),
 
-              _label('CODE'), const SizedBox(height: 6),
-              _field(codeCtrl, 'e.g. VIT_TN', capitalization: TextCapitalization.characters),
+              _label(ctx, 'CODE'), const SizedBox(height: 6),
+              _field(ctx, codeCtrl, 'e.g. VIT_TN', capitalization: TextCapitalization.characters),
               const SizedBox(height: 14),
 
-              _label('STATE'), const SizedBox(height: 6),
-              _field(stateCtrl, 'e.g. Tamil Nadu'),
+              _label(ctx, 'STATE'), const SizedBox(height: 6),
+              _field(ctx, stateCtrl, 'e.g. Tamil Nadu'),
               const SizedBox(height: 14),
 
-              _label('LOCATION'), const SizedBox(height: 6),
-              _field(locationCtrl, 'City, State'),
+              _label(ctx, 'LOCATION'), const SizedBox(height: 6),
+              _field(ctx, locationCtrl, 'City, State'),
               const SizedBox(height: 14),
 
-              _label('COLLEGE URL'), const SizedBox(height: 6),
-              _field(urlCtrl, 'https://college.ac.in'),
+              _label(ctx, 'COLLEGE URL'), const SizedBox(height: 6),
+              _field(ctx, urlCtrl, 'https://college.ac.in'),
               const SizedBox(height: 22),
 
               GestureDetector(
@@ -647,7 +647,7 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: saving ? _green.withOpacity(0.5) : _green,
+                    color: saving ? _green.withValues(alpha: 0.5) : _green,
                     borderRadius: BorderRadius.circular(10)),
                   child: Center(child: saving
                     ? const SizedBox(width: 16, height: 16,
@@ -667,24 +667,24 @@ class _CollegesManagementScreenState extends State<CollegesManagementScreen> {
   //  Shared helpers
   // ═════════════════════════════════════════════════════════════════════════
 
-  Widget _handle() => Center(child: Container(
+  Widget _handle(BuildContext context) => Center(child: Container(
     width: 40, height: 4,
-    decoration: BoxDecoration(color: _border, borderRadius: BorderRadius.circular(2))));
+    decoration: BoxDecoration(color: _border(context), borderRadius: BorderRadius.circular(2))));
 
-  Widget _label(String t) => Text(t,
-    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _muted, letterSpacing: 1));
+  Widget _label(BuildContext context, String t) => Text(t,
+    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _muted(context), letterSpacing: 1));
 
-  Widget _field(TextEditingController ctrl, String hint,
+  Widget _field(BuildContext context, TextEditingController ctrl, String hint,
       {TextCapitalization capitalization = TextCapitalization.none}) {
     return Container(
       decoration: BoxDecoration(
-        color: _fieldBg,
+        color: _fieldBg(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border, width: 0.8)),
+        border: Border.all(color: _border(context), width: 0.8)),
       child: TextField(
         controller: ctrl,
         textCapitalization: capitalization,
-        style: const TextStyle(fontSize: 14, color: _ink, fontWeight: FontWeight.w500),
+        style: TextStyle(fontSize: 14, color: _ink(context), fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Color(0xFFB0B7C3), fontSize: 13),

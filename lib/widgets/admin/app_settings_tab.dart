@@ -11,10 +11,10 @@ class AppSettingsTab extends StatefulWidget {
 }
 
 class _AppSettingsTabState extends State<AppSettingsTab> {
-  static const Color _ink = Color(0xFF1A1A2E);
-  static const Color _muted = Color(0xFF78909C);
-  static const Color _border = Color(0xFFE8EAED);
-  static const Color _surface = Color(0xFFF8F9FA);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _surface(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
 
   final TextEditingController _versionController = TextEditingController();
   bool _isLoading = false;
@@ -92,16 +92,16 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Section header ──
-          const Row(
-            children: [
-              Icon(Icons.settings_rounded, size: 16, color: _muted),
+            Row(
+              children: [
+                Icon(Icons.settings_rounded, size: 16, color: _muted(context)),
               SizedBox(width: 6),
               Text(
                 "APP CONFIGURATION",
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
-                  color: _muted,
+                  color: _muted(context),
                   letterSpacing: 1.0,
                 ),
               ),
@@ -113,9 +113,9 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _border, width: 0.8),
+              border: Border.all(color: _border(context), width: 0.8),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,13 +125,13 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0052CC).withOpacity(0.08),
+                        color: const Color(0xFF0052CC).withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.system_update_rounded, size: 16, color: Color(0xFF0052CC)),
                     ),
                     const SizedBox(width: 12),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -139,13 +139,13 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: _ink,
+                            color: _ink(context),
                           ),
                         ),
                         SizedBox(height: 2),
                         Text(
                           "Enforce update for older versions",
-                          style: TextStyle(fontSize: 11, color: _muted),
+                          style: TextStyle(fontSize: 11, color: _muted(context)),
                         ),
                       ],
                     ),
@@ -154,23 +154,23 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
                 const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(
-                    color: _surface,
+                    color: _surface(context),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _border, width: 0.8),
+                    border: Border.all(color: _border(context), width: 0.8),
                   ),
                   child: TextField(
                     controller: _versionController,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _ink,
+                      color: _ink(context),
                       letterSpacing: 1,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: "e.g. 1.0.0",
-                      hintStyle: TextStyle(color: _muted, fontSize: 13),
+                      hintStyle: TextStyle(color: _muted(context), fontSize: 13),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
                 ),
@@ -181,7 +181,7 @@ class _AppSettingsTabState extends State<AppSettingsTab> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: _saved ? const Color(0xFF2E7D32) : _ink,
+                      color: _saved ? const Color(0xFF2E7D32) : _ink(context),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(

@@ -16,9 +16,9 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> with SingleTickerProviderStateMixin {
-  static const Color _ink = Color(0xFF1A1A2E);
-  static const Color _muted = Color(0xFF78909C);
-  static const Color _border = Color(0xFFE8EAED);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   late TabController _tabController;
   final DashboardService _service = DashboardService();
@@ -80,9 +80,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink)),
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink(context))),
       );
     }
 
@@ -105,10 +105,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       titleWidget: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
+          Text(
             "Command Center",
             style: TextStyle(
-              color: _ink,
+              color: _ink(context),
               fontWeight: FontWeight.w800,
               fontSize: 18,
               letterSpacing: -0.3,
@@ -129,8 +129,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               const SizedBox(width: 5),
               Text(
                 displayName,
-                style: const TextStyle(
-                  color: _muted,
+                style: TextStyle(
+                  color: _muted(context),
                   fontWeight: FontWeight.w500,
                   fontSize: 12,
                 ),
@@ -139,7 +139,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE53935).withOpacity(0.08),
+                  color: const Color(0xFFE53935).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
@@ -160,7 +160,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         children: [
           // ── Tab navigation ──
           Container(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Row(
               children: List.generate(tabs.length, (index) {
@@ -174,7 +174,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                            color: isActive ? _ink : Colors.transparent,
+                            color: isActive ? _ink(context) : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -185,7 +185,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                           Icon(
                             tab.icon,
                             size: 18,
-                            color: isActive ? _ink : _muted,
+                            color: isActive ? _ink(context) : _muted(context),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -193,7 +193,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                              color: isActive ? _ink : _muted,
+                              color: isActive ? _ink(context) : _muted(context),
                             ),
                           ),
                         ],
@@ -205,7 +205,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             ),
           ),
           // Thin separator
-          Container(height: 0.6, color: _border),
+          Container(height: 0.6, color: _border(context)),
           // ── Tab content ──
           Expanded(
             child: TabBarView(
@@ -216,18 +216,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(20, 20, 20, 4),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
                         child: Row(
                           children: [
-                            Icon(Icons.show_chart_rounded, size: 14, color: _muted),
+                            Icon(Icons.show_chart_rounded, size: 14, color: _muted(context)),
                             SizedBox(width: 6),
                             Text(
                               "SYSTEM STATUS",
                               style: TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
-                                color: _muted,
+                                color: _muted(context),
                                 letterSpacing: 1.0,
                               ),
                             ),
@@ -257,7 +257,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   Widget _buildAccessDenied() {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -265,24 +265,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFE53935).withOpacity(0.08),
+                color: const Color(0xFFE53935).withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.lock_outline_rounded, size: 40, color: Color(0xFFE53935)),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Access Denied",
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: _ink,
+                color: _ink(context),
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               "Super Admin privileges required",
-              style: TextStyle(fontSize: 13, color: _muted),
+              style: TextStyle(fontSize: 13, color: _muted(context)),
             ),
             const SizedBox(height: 24),
             GestureDetector(
@@ -290,7 +290,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                 decoration: BoxDecoration(
-                  color: _ink,
+                  color: _ink(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(

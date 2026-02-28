@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,11 +11,13 @@ import 'core/supabase_client.dart';
 import 'services/auth_service.dart';
 import 'services/profile_service.dart';
 import 'services/user_role_service.dart';
+import 'services/app_update_service.dart';
+import 'services/opportunity_store.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/onboarding/onboarding_form_screen.dart';
-import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
+import 'screens/edit_profile_screen.dart';
 import 'screens/opportunity_detail_screen.dart';
 
 
@@ -23,8 +27,18 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("Background message: ${message.messageId}");
 }
 
+// CHANGED: main() now only does local/essential init. All network calls are deferred.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Make status bar icons dark on light backgrounds globally
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.white,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
   
   String? error;
 
@@ -33,7 +47,7 @@ void main() async {
     debugPrint("🚀 Techmates App Version: ${packageInfo.version}");
     debugPrint("📦 Build Number: ${packageInfo.buildNumber}");
 
-    // Load env file
+    // Load env file (local asset)
     await dotenv.load(fileName: ".env");
     
     await Firebase.initializeApp(
@@ -43,22 +57,16 @@ void main() async {
     // Set the background messaging handler early on, as a named top-level function
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+    // CHANGED: Supabase init now uses autoRefreshToken: false (see supabase_client.dart)
+    // so this will NOT make any network calls and completes instantly.
     await SupabaseClientManager.initialize();
 
-    // Initialize Role Service (Load from cache)
+    // Initialize Role Service (Load from SharedPreferences cache — local only)
     await UserRoleService().init();
 
-    // Check strict session rules on startup
-    final auth = AuthService();
-    if (auth.isLoggedIn) {
-      try {
-        await auth.ensureSessionValid();
-      } catch (e) {
-        // If invalid (e.g. unverified email), force logout
-        debugPrint("Session invalid on startup: $e");
-        await auth.signOut();
-      }
-    }
+    // REMOVED: ensureSessionValid() was here — it made a network DB query
+    // before runApp(), blocking the entire UI from appearing.
+    // Now deferred to _runDeferredStartupTasks() below.
 
   } catch (e) {
     error = e.toString();
@@ -91,6 +99,75 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _listenAuthState();
+
+    // CHANGED: Schedule deferred startup tasks AFTER first frame renders.
+    // This ensures splash is visible before any network work begins.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _runDeferredStartupTasks();
+    });
+  }
+
+  // CHANGED: All network-dependent startup work moved here.
+  // Runs fire-and-forget after the first frame so UI is never blocked.
+  void _runDeferredStartupTasks() {
+    final auth = AuthService();
+
+    // 1. Try to refresh the session in background (since autoRefreshToken is off)
+    unawaited(Future(() async {
+      try {
+        if (auth.session != null) {
+          debugPrint("🔄 [Deferred] Refreshing session token...");
+          await SupabaseClientManager.instance.auth
+              .refreshSession()
+              .timeout(const Duration(seconds: 5));
+          debugPrint("✅ [Deferred] Session refreshed.");
+        }
+      } on TimeoutException {
+        debugPrint("⚠️ [Deferred] Session refresh timed out (offline?).");
+      } catch (e) {
+        debugPrint("⚠️ [Deferred] Session refresh failed: $e");
+      }
+    }));
+
+    // 2. Validate session in background
+    if (auth.isLoggedIn) {
+      unawaited(Future(() async {
+        try {
+          await auth.ensureSessionValid();
+        } catch (e) {
+          debugPrint("❌ [Deferred] Session invalid: $e");
+          await auth.signOut();
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (r) => false,
+          );
+        }
+      }));
+
+      // 3. Fetch fresh role in background
+      unawaited(Future(() async {
+        try {
+          final userId = auth.user!.id;
+          await UserRoleService().fetchAndCacheRole(userId)
+              .timeout(const Duration(seconds: 5));
+        } on TimeoutException {
+          debugPrint("⚠️ [Deferred] Role fetch timed out.");
+        } catch (e) {
+          debugPrint("⚠️ [Deferred] Role fetch failed: $e");
+        }
+      }));
+    }
+
+    // 4. Eager fetch opportunities in background
+    unawaited(OpportunityStore.instance.fetchAll());
+
+    // 5. Check for app update in background (needs context, delayed slightly)
+    unawaited(Future.delayed(const Duration(seconds: 2), () {
+      final ctx = navigatorKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        AppUpdateService().checkForUpdate(ctx);
+      }
+    }));
   }
 
   void _listenAuthState() {
@@ -107,8 +184,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final ctx = navigatorKey.currentContext;
       if (ctx == null || !ctx.mounted) return;
 
-      // 1. Fetch fresh role
-      await UserRoleService().fetchAndCacheRole(user.id);
+      // 1. Fetch fresh role (with timeout)
+      try {
+        await UserRoleService().fetchAndCacheRole(user.id)
+            .timeout(const Duration(seconds: 5));
+      } on TimeoutException {
+        debugPrint('⚠️ [App] Role fetch timed out, using cached.');
+      } catch (e) {
+        debugPrint('⚠️ [App] Role fetch failed: $e');
+      }
       final role = UserRoleService().role;
       debugPrint('🧭 [App] Role = $role');
 
@@ -122,7 +206,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return;
       }
 
-      // 3. Student → check onboarding_completed
+      // 3. Student → check onboarding_completed (with timeout — already in ProfileService)
       final profile = await ProfileService().fetchProfile(user.id);
       final onboardingDone = profile?.onboardingCompleted ?? false;
       debugPrint('🧭 [App] profile=${profile == null ? "null" : "exists"}, onboarding_completed=$onboardingDone');
@@ -159,12 +243,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed) {
+      // CHANGED: AuthService is now a singleton, so no duplicate listener created.
       final auth = AuthService();
 
       if (auth.isLoggedIn) {
         try {
           debugPrint("🔄 [LIFECYCLE] App resumed. Revalidating session...");
-          await auth.ensureSessionValid();
+          // CHANGED: Added timeout to prevent hanging on resume with no internet
+          await auth.ensureSessionValid()
+              .timeout(const Duration(seconds: 5));
+        } on TimeoutException {
+          debugPrint("⚠️ [LIFECYCLE] Session validation timed out on resume.");
         } catch (e) {
           debugPrint("❌ [LIFECYCLE] Session invalid on resume: $e");
         }
@@ -184,6 +273,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+            systemNavigationBarColor: Colors.white,
+            systemNavigationBarIconBrightness: Brightness.dark,
+          ),
+        ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: _NoAnimationPageTransitionsBuilder(),
+            TargetPlatform.iOS: _NoAnimationPageTransitionsBuilder(),
+            TargetPlatform.linux: _NoAnimationPageTransitionsBuilder(),
+            TargetPlatform.macOS: _NoAnimationPageTransitionsBuilder(),
+            TargetPlatform.windows: _NoAnimationPageTransitionsBuilder(),
+          },
+        ),
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: Colors.deepPurple,
           selectionColor: Colors.deepPurple.withOpacity(0.4),
@@ -200,6 +307,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
              type: args['type'],
            );
         },
+        '/edit_profile': (context) => const EditProfileScreen(),
       },
     );
   }
@@ -239,5 +347,23 @@ class SmoothScrollBehavior extends ScrollBehavior {
     return const BouncingScrollPhysics(
       decelerationRate: ScrollDecelerationRate.fast,
     );
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// No-animation page transitions — instant screen switches
+// ─────────────────────────────────────────────────────
+class _NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoAnimationPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
   }
 }

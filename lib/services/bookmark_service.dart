@@ -199,6 +199,19 @@ class BookmarkService {
     }
   }
 
+  /// Toggle bookmark by ID only (used by sections that only have the ID).
+  void toggleBookmarkById(String id) {
+    if (_savedIds.contains(id)) {
+      _savedIds.remove(id);
+      _savedItemsCache.remove(id);
+    } else {
+      _savedIds.add(id);
+    }
+    notifyListeners();
+    _saveLocal();
+    _updateUserMetadata();
+  }
+
   List<dynamic> getBookmarks() {
     return _savedItemsCache.values.toList();
   }

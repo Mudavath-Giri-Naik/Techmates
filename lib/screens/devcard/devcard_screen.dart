@@ -270,14 +270,11 @@ class _DevCardScreenState extends State<DevCardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final surfaceBg =
-        _isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6);
-    final appBarBg =
-        _isDark ? const Color(0xFF0D1120) : Colors.white;
-    final text1 =
-        _isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-    final text2 =
-        _isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
+    final theme = Theme.of(context);
+    final surfaceBg = theme.colorScheme.surface;
+    final appBarBg = theme.colorScheme.surface;
+    final text1 = theme.colorScheme.onSurface;
+    final text2 = theme.colorScheme.onSurfaceVariant;
 
     return Scaffold(
       backgroundColor: surfaceBg,
@@ -300,7 +297,7 @@ class _DevCardScreenState extends State<DevCardScreen> {
                 _isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                 size: 20),
             color: text2,
-            tooltip: _isDark ? 'Light mode' : 'Dark mode',
+            tooltip: _isDark ? 'Preview Light DevCard' : 'Preview Dark DevCard',
           ),
           if (_isOwnCard && _devCard != null) ...[
             // Refresh
@@ -337,7 +334,7 @@ class _DevCardScreenState extends State<DevCardScreen> {
   Widget _buildBody() {
     // State 1: No GitHub URL
     if (_githubUrl == null || _githubUrl!.isEmpty) {
-      if (!_isLoading) return _connectPrompt();
+      if (!_isLoading) return _connectPrompt(context);
     }
 
     // State 2: Loading
@@ -360,9 +357,7 @@ class _DevCardScreenState extends State<DevCardScreen> {
                 const SizedBox(width: 10),
                 Text(_loadingMessages[_loadingStep],
                     style: TextStyle(
-                        color: _isDark
-                            ? const Color(0xFF6B7FA0)
-                            : const Color(0xFF6B7280),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 12,
                         fontFamily: 'monospace')),
               ],
@@ -374,7 +369,7 @@ class _DevCardScreenState extends State<DevCardScreen> {
 
     // State 3: Error
     if (_error != null && _devCard == null) {
-      return _errorState();
+      return _errorState(context);
     }
 
     // State 4: Loaded
@@ -405,11 +400,10 @@ class _DevCardScreenState extends State<DevCardScreen> {
     return DevCardShimmer(isDark: _isDark);
   }
 
-  Widget _connectPrompt() {
-    final text1 =
-        _isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-    final text2 =
-        _isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
+  Widget _connectPrompt(BuildContext context) {
+    final theme = Theme.of(context);
+    final text1 = theme.colorScheme.onSurface;
+    final text2 = theme.colorScheme.onSurfaceVariant;
 
     return Center(
       child: Padding(
@@ -419,9 +413,7 @@ class _DevCardScreenState extends State<DevCardScreen> {
           children: [
             Icon(Icons.code_rounded,
                 size: 64,
-                color: _isDark
-                    ? const Color(0xFF1E2D42)
-                    : const Color(0xFFE5E7EB)),
+                color: theme.colorScheme.outlineVariant),
             const SizedBox(height: 16),
             Text('Connect your GitHub',
                 style: TextStyle(
@@ -454,11 +446,10 @@ class _DevCardScreenState extends State<DevCardScreen> {
     );
   }
 
-  Widget _errorState() {
-    final text1 =
-        _isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-    final text2 =
-        _isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
+  Widget _errorState(BuildContext context) {
+    final theme = Theme.of(context);
+    final text1 = theme.colorScheme.onSurface;
+    final text2 = theme.colorScheme.onSurfaceVariant;
 
     return Center(
       child: Padding(

@@ -22,16 +22,17 @@ class UnifiedBookmarkCard extends StatefulWidget {
 }
 
 class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
-  // ── Palette ──
-  static const Color _cardBg = Colors.white;
-  static const Color _borderColor = Color(0xFFE5E7EB); // Gray-200
-  static const Color _titleColor = Color(0xFF1F2937); // Gray-800
-  static const Color _subtitleColor = Color(0xFF6B7280); // Gray-500
-  // Type Colors
-  static const Color _internshipColor = Color(0xFF2563EB); // Blue-600
-  static const Color _hackathonColor = Color(0xFF059669); // Emerald-600
-  static const Color _eventColor = Color(0xFFD97706); // Amber-600
-  static const Color _defaultColor = Color(0xFF4B5563); // Gray-600
+  // ── Theme Getters ──
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _borderColor(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _titleColor(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _subtitleColor(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  
+  // Type Colors (Semantic)
+  Color get _internshipColor => const Color(0xFF2563EB);
+  Color get _hackathonColor => const Color(0xFF059669);
+  Color get _eventColor => const Color(0xFFD97706);
+  Color _defaultColor(BuildContext context) => Theme.of(context).colorScheme.outline;
 
   // ── Helper Getters ──
 
@@ -83,11 +84,11 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
     return "OPPORTUNITY";
   }
   
-  Color get _typeColor {
+  Color _typeColor(BuildContext context) {
     if (widget.item is InternshipDetailsModel) return _internshipColor;
     if (widget.item is HackathonDetailsModel) return _hackathonColor;
     if (widget.item is EventDetailsModel) return _eventColor;
-    return _defaultColor;
+    return _defaultColor(context);
   }
 
   int? get _serialNumber {
@@ -120,18 +121,19 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
   @override
   Widget build(BuildContext context) {
     final dateStr = _deadline != null ? DateFormat('MMM d, y').format(_deadline!) : 'N/A';
-    final typeColor = _typeColor;
+    final typeCol = _typeColor(context);
     final sn = _serialNumber;
+    final colorScheme = Theme.of(context).colorScheme;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: _cardBg(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor, width: 1),
+        border: Border.all(color: _borderColor(context), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: colorScheme.shadow.withValues(alpha: 0.03),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -153,7 +155,7 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                   width: 4,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: typeColor,
+                    color: typeCol,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -170,7 +172,7 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: typeColor.withValues(alpha: 0.1),
+                              color: typeCol.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -178,7 +180,7 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: typeColor,
+                                color: typeCol,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -190,7 +192,7 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                                style: TextStyle(
                                  fontSize: 11,
                                  fontWeight: FontWeight.w500,
-                                 color: Colors.grey.shade400,
+                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                ),
                              ),
                           ],
@@ -201,10 +203,10 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                       // Title
                       Text(
                         _title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: _titleColor,
+                          color: _titleColor(context),
                           height: 1.3,
                         ),
                         maxLines: 2,
@@ -216,10 +218,10 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                         const SizedBox(height: 2),
                         Text(
                           _organization,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
-                            color: _subtitleColor,
+                            color: _subtitleColor(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -232,27 +234,27 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                       Row(
                         children: [
                            // Date
-                           Icon(Icons.calendar_today_rounded, size: 12, color: Colors.grey.shade400),
+                           Icon(Icons.calendar_today_rounded, size: 12, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                            const SizedBox(width: 4),
                            Text(
                              dateStr,
                              style: TextStyle(
                                fontSize: 11.5,
-                               color: Colors.grey.shade600,
+                               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                fontWeight: FontWeight.w500,
                              ),
                            ),
                            const SizedBox(width: 12),
                            // Location
                            if (_location.isNotEmpty && _location != 'N/A') ...[
-                             Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade400),
+                             Icon(Icons.location_on_outlined, size: 12, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                              const SizedBox(width: 4),
                              Flexible(
                                child: Text(
                                  _location,
                                  style: TextStyle(
                                    fontSize: 11.5,
-                                   color: Colors.grey.shade600,
+                                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                    fontWeight: FontWeight.w500,
                                  ),
                                  maxLines: 1,
@@ -278,7 +280,7 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                         child: Icon(
                           Icons.bookmark_remove_rounded,
                           size: 20,
-                          color: Colors.red.shade300,
+                          color: colorScheme.error.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -287,7 +289,7 @@ class _UnifiedBookmarkCardState extends State<UnifiedBookmarkCard> {
                     Icon(
                        Icons.arrow_outward_rounded,
                        size: 18,
-                       color: Colors.grey.shade300,
+                       color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                     ),
                   ],
                 ),

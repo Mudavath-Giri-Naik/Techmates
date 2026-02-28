@@ -112,15 +112,17 @@ class _OpportunityCardState extends State<OpportunityCard> {
       mode = widget.opportunity.extraDetails['mode']?.toString();
     }
 
+    final theme = Theme.of(context);
+
     return Container(
       margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEBF6FF), // Light blue background
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.blue.shade100, width: 1),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 1),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.05),
+            color: accentColor.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -148,7 +150,7 @@ class _OpportunityCardState extends State<OpportunityCard> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blueGrey.shade800,
+                              color: theme.colorScheme.onSurface,
                               height: 1.2,
                             ),
                             children: [
@@ -167,7 +169,7 @@ class _OpportunityCardState extends State<OpportunityCard> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.blueGrey.shade600,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -185,10 +187,10 @@ class _OpportunityCardState extends State<OpportunityCard> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: accentColor.withOpacity(0.04), 
+                            color: accentColor.withValues(alpha: 0.04), 
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: accentColor.withOpacity(0.3),
+                              color: accentColor.withValues(alpha: 0.3),
                               width: 0.8,
                             ),
                           ),
@@ -215,16 +217,16 @@ class _OpportunityCardState extends State<OpportunityCard> {
                 children: [
                   Padding(
                      padding: const EdgeInsets.only(bottom: 8.0),
-                     child: _buildMetaItem(Icons.category_outlined, widget.opportunity.type),
+                     child: _buildMetaItem(Icons.category_outlined, widget.opportunity.type, context),
                   ),
                   Padding(
                      padding: const EdgeInsets.only(bottom: 8.0),
-                     child: _buildMetaItem(Icons.location_on_outlined, widget.opportunity.location),
+                     child: _buildMetaItem(Icons.location_on_outlined, widget.opportunity.location, context),
                   ),
                   if (mode != null && mode.isNotEmpty)
                      Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
-                        child: _buildMetaItem(Icons.work_outline, mode),
+                        child: _buildMetaItem(Icons.work_outline, mode, context),
                      ),
                 ],
               ),
@@ -239,9 +241,9 @@ class _OpportunityCardState extends State<OpportunityCard> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                           // Add generic tags if available or based on type
-                           _buildChip(widget.opportunity.type),
-                           if (widget.opportunity.location.toLowerCase().contains("remote")) _buildChip("Remote"),
+                            // Add generic tags if available or based on type
+                           _buildChip(widget.opportunity.type, context),
+                           if (widget.opportunity.location.toLowerCase().contains("remote")) _buildChip("Remote", context),
                         ],
                       ),
                    ),
@@ -249,9 +251,9 @@ class _OpportunityCardState extends State<OpportunityCard> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.1),
+                        color: accentColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: accentColor.withOpacity(0.3)),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -281,7 +283,7 @@ class _OpportunityCardState extends State<OpportunityCard> {
                     DateFormat('MMM d, yyyy').format(widget.opportunity.deadline),
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.blueGrey.shade400,
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -289,7 +291,7 @@ class _OpportunityCardState extends State<OpportunityCard> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: timeLeftColor.withOpacity(0.1),
+                      color: timeLeftColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -319,7 +321,7 @@ class _OpportunityCardState extends State<OpportunityCard> {
                       child: Icon(
                         _isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
                         key: ValueKey(_isSaved),
-                        color: _isSaved ? accentColor : Colors.blueGrey.shade300,
+                        color: _isSaved ? accentColor : theme.colorScheme.outline,
                         size: 26,
                       ),
                     ),
@@ -333,18 +335,18 @@ class _OpportunityCardState extends State<OpportunityCard> {
     );
   }
 
-  Widget _buildMetaItem(IconData icon, String text) {
+  Widget _buildMetaItem(IconData icon, String text, BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: Colors.blueGrey.shade400),
+        Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
             text,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.blueGrey.shade600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w400,
             ),
             maxLines: 1,
@@ -355,17 +357,17 @@ class _OpportunityCardState extends State<OpportunityCard> {
     );
   }
 
-  Widget _buildChip(String label) {
+  Widget _buildChip(String label, BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: Colors.blueGrey.shade700,
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),

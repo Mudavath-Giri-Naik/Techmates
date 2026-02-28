@@ -7,10 +7,10 @@ class StatsSection extends StatelessWidget {
 
   const StatsSection({super.key, required this.devCard, required this.isDark});
 
-  Color get _cardBg => isDark ? const Color(0xFF0D1120) : Colors.white;
-  Color get _boxBg => isDark ? const Color(0xFF141E2F) : const Color(0xFFF9FAFB);
-  Color get _text1 => isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-  Color get _text2 => isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _boxBg(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
+  Color _text1(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _text2(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,7 @@ class StatsSection extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: _cardBg,
+      color: _cardBg(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -33,7 +33,7 @@ class StatsSection extends StatelessWidget {
                 .map((s) => Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: _statBox(s),
+                        child: _statBox(s, context),
                       ),
                     ))
                 .toList(),
@@ -43,24 +43,24 @@ class StatsSection extends StatelessWidget {
     );
   }
 
-  Widget _statBox(_S s) {
+  Widget _statBox(_S s, BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: _boxBg,
+        color: _boxBg(context),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
         children: [
           Text(s.value,
               style: TextStyle(
-                  color: _text1,
+                  color: _text1(context),
                   fontSize: 14,
                   fontWeight: FontWeight.w800)),
           const SizedBox(height: 1),
           Text(s.label,
               style: TextStyle(
-                  color: _text2,
+                  color: _text2(context),
                   fontSize: 8,
                   fontFamily: 'monospace')),
         ],

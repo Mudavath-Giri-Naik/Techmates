@@ -13,9 +13,9 @@ class DashboardSummaryGrid extends StatefulWidget {
 }
 
 class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
-  static const Color _ink = Color(0xFF0D0D1A);
-  static const Color _muted = Color(0xFF6B7280);
-  static const Color _border = Color(0xFFE5E7EB);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   Map<String, int> _stats = {};
   bool _isLoading = true;
@@ -71,9 +71,9 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const SizedBox(
+      return SizedBox(
         height: 200,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink)),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
       );
     }
     if (_error != null) {
@@ -97,9 +97,9 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _ink, width: 1.2),
+                border: Border.all(color: _ink(context), width: 1.2),
               ),
               child: Row(
                 children: [
@@ -109,14 +109,14 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.people_alt_rounded, size: 14, color: _ink),
+                            Icon(Icons.people_alt_rounded, size: 14, color: _ink(context)),
                             const SizedBox(width: 6),
-                            const Text(
+                            Text(
                               "TOTAL USERS",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
-                                color: _muted,
+                                color: _muted(context),
                                 letterSpacing: 1.2,
                               ),
                             ),
@@ -142,10 +142,10 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
                         const SizedBox(height: 6),
                         Text(
                           "$totalUsers",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 38,
                             fontWeight: FontWeight.w900,
-                            color: _ink,
+                            color: _ink(context),
                             letterSpacing: -1.5,
                             height: 1,
                           ),
@@ -252,7 +252,7 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
           decoration: BoxDecoration(
-            border: Border.all(color: color.withOpacity(0.4), width: 0.8),
+            border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
             borderRadius: BorderRadius.circular(3),
           ),
           child: Text(
@@ -285,9 +285,9 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _border, width: 0.8),
+          border: Border.all(color: _border(context), width: 0.8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,10 +298,10 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
                 Icon(icon, size: 16, color: accent),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: _ink,
+                    color: _ink(context),
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -310,10 +310,10 @@ class _DashboardSummaryGridState extends State<DashboardSummaryGrid> {
             const SizedBox(height: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: _muted,
+                color: _muted(context),
                 letterSpacing: 0.3,
               ),
             ),

@@ -24,12 +24,13 @@ class FilterBottomSheet extends StatefulWidget {
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late FilterModel _tempFilters;
 
-  // ── Colors ──
-  static const Color _ink = Color(0xFF1A1A2E);
-  static const Color _muted = Color(0xFF78909C);
-  static const Color _accent = Color(0xFF0052CC);
-  static const Color _surface = Color(0xFFF8F9FA);
-  static const Color _border = Color(0xFFE8EAED);
+  // ── Palette Getters ──
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _accent(BuildContext context) => Theme.of(context).colorScheme.primary;
+  Color _surface(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
 
   @override
   void initState() {
@@ -40,12 +41,13 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final activeCount = _tempFilters.activeCount;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.only(top: 12, left: 20, right: 20, bottom: 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -57,7 +59,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFDDDDDD),
+                color: colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -69,14 +71,14 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Filter icon + title
-              const Icon(Icons.tune_rounded, size: 18, color: _ink),
+              Icon(Icons.tune_rounded, size: 18, color: _ink(context)),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Filters',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: _ink,
+                  color: _ink(context),
                   letterSpacing: -0.3,
                 ),
               ),
@@ -85,15 +87,15 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.08),
+                    color: _accent(context).withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '$activeCount',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: _accent,
+                      color: _accent(context),
                     ),
                   ),
                 ),
@@ -110,19 +112,19 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _border, width: 0.8),
+                    border: Border.all(color: _border(context), width: 0.8),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.refresh_rounded, size: 13, color: _muted),
-                      SizedBox(width: 4),
+                      Icon(Icons.refresh_rounded, size: 13, color: _muted(context)),
+                      const SizedBox(width: 4),
                       Text(
                         'Reset',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: _muted,
+                          color: _muted(context),
                         ),
                       ),
                     ],
@@ -143,7 +145,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   // ═══════════════════════════
                   // SORT section
                   // ═══════════════════════════
-                  _sectionHeader(Icons.swap_vert_rounded, 'Sort'),
+                  _sectionHeader(context, Icons.swap_vert_rounded, 'Sort'),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -186,15 +188,15 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _border, width: 0.8),
+                      border: Border.all(color: _border(context), width: 0.8),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: _muted,
+                          color: _muted(context),
                         ),
                       ),
                     ),
@@ -214,17 +216,17 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: _ink,
+                      color: colorScheme.primary,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
+                         Text(
                           'Apply',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -233,15 +235,15 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: colorScheme.onPrimary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '$activeCount',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: colorScheme.onPrimary,
                               ),
                             ),
                           ),
@@ -281,7 +283,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 18),
-        _sectionHeader(Icons.category_outlined, 'Type of Opportunity'),
+        _sectionHeader(context, Icons.category_outlined, 'Type of Opportunity'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -304,7 +306,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 18),
-        _sectionHeader(Icons.location_on_outlined, 'Work Mode'),
+        _sectionHeader(context, Icons.location_on_outlined, 'Work Mode'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -316,7 +318,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ],
         ),
         const SizedBox(height: 18),
-        _sectionHeader(Icons.payments_outlined, 'Stipend'),
+        _sectionHeader(context, Icons.payments_outlined, 'Stipend'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -336,7 +338,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 18),
-        _sectionHeader(Icons.wifi_rounded, 'Mode'),
+        _sectionHeader(context, Icons.wifi_rounded, 'Mode'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -348,7 +350,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ],
         ),
         const SizedBox(height: 18),
-        _sectionHeader(Icons.people_outline_rounded, 'Participation'),
+        _sectionHeader(context, Icons.people_outline_rounded, 'Participation'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -359,7 +361,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ],
         ),
         const SizedBox(height: 18),
-        _sectionHeader(Icons.emoji_events_outlined, 'Prizes'),
+        _sectionHeader(context, Icons.emoji_events_outlined, 'Prizes'),
         const SizedBox(height: 8),
         _filterTag('Prize Available', Icons.star_outline_rounded, _tempFilters.isPrizeAvailable, (v) => _tempFilters.isPrizeAvailable = v),
       ],
@@ -372,7 +374,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 18),
-        _sectionHeader(Icons.wifi_rounded, 'Mode'),
+        _sectionHeader(context, Icons.wifi_rounded, 'Mode'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -383,7 +385,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ],
         ),
         const SizedBox(height: 18),
-        _sectionHeader(Icons.confirmation_num_outlined, 'Cost'),
+        _sectionHeader(context, Icons.confirmation_num_outlined, 'Cost'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -402,17 +404,17 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   /// Section header with icon + label
-  Widget _sectionHeader(IconData icon, String title) {
+  Widget _sectionHeader(BuildContext context, IconData icon, String title) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: _muted),
+        Icon(icon, size: 14, color: _muted(context)),
         const SizedBox(width: 6),
         Text(
           title.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
-            color: _muted,
+            color: _muted(context),
             letterSpacing: 1.0,
           ),
         ),
@@ -430,10 +432,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? _ink : _surface,
+          color: isSelected ? _ink(context) : _surface(context),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? _ink : _border,
+            color: isSelected ? _ink(context) : _border(context),
             width: 0.8,
           ),
         ),
@@ -442,7 +444,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           style: TextStyle(
             fontSize: 11.5,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : _muted,
+            color: isSelected ? _cardBg(context) : _muted(context),
           ),
         ),
       ),
@@ -461,10 +463,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: value ? _accent.withOpacity(0.06) : _surface,
+          color: value ? _accent(context).withValues(alpha: 0.06) : _surface(context),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: value ? _accent.withOpacity(0.3) : _border,
+            color: value ? _accent(context).withValues(alpha: 0.3) : _border(context),
             width: 0.8,
           ),
         ),
@@ -474,7 +476,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             Icon(
               icon,
               size: 14,
-              color: value ? _accent : _muted,
+              color: value ? _accent(context) : _muted(context),
             ),
             const SizedBox(width: 6),
             Text(
@@ -482,7 +484,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: value ? FontWeight.w700 : FontWeight.w500,
-                color: value ? _accent : const Color(0xFF546E7A),
+                color: value ? _accent(context) : _muted(context),
               ),
             ),
             if (value) ...[
@@ -490,7 +492,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               Icon(
                 Icons.check_rounded,
                 size: 13,
-                color: _accent,
+                color: _accent(context),
               ),
             ],
           ],

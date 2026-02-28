@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../models/user_profile.dart';
-import '../../models/devcard/devcard_model.dart';
+
 import '../../models/opportunity_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
-import '../../services/devcard/devcard_service.dart';
 import '../../services/bookmark_service.dart';
-import '../../widgets/main_layout.dart';
+import '../../services/home_data_service.dart';
+
+import 'widgets/greeting_header.dart';
+import 'widgets/college_leaderboard_card.dart';
+import 'widgets/closing_soon_section.dart';
+import 'widgets/elite_picks_section.dart';
+import 'widgets/new_this_week_section.dart';
+import 'widgets/college_pulse_section.dart';
 
 class HomeScreenTab extends StatefulWidget {
   const HomeScreenTab({super.key});
@@ -17,503 +26,385 @@ class HomeScreenTab extends StatefulWidget {
 }
 
 class _HomeScreenTabState extends State<HomeScreenTab> {
+  // ── State ──────────────────────────────────────────────────
   bool _isLoading = true;
-  String _errorMessage = '';
+  bool _hasError = false;
 
   UserProfile? _profile;
-  DevCardModel? _devCard;
-  int _totalOps = 0;
-  List<dynamic> _bookmarks = [];
-  List<Opportunity> _recentOps = [];
+
+  // Section data
+  List<Map<String, dynamic>> _closingSoon = [];
+  List<Map<String, dynamic>> _elitePicks = [];
+  List<Opportunity> _newThisWeek = [];
+  List<Map<String, dynamic>> _leaderboardStudents = [];
+
+  // College pulse
+  int _collegeStudentCount = 0;
+  String _collegeName = '';
+  List<Map<String, dynamic>> _collegePulseStudents = [];
+
+  // Stats
+  int _newSinceLastVisit = 0;
+
+  // Services
+  final _homeDataService = HomeDataService();
+  final _bookmarkService = BookmarkService();
+
+  static const String _lastVisitKey = 'home_last_visit';
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _loadData();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
-      _errorMessage = '';
+      _hasError = false;
     });
 
     try {
       final authService = AuthService();
       final user = authService.user;
       if (user == null) throw Exception("User not logged in");
+      final userId = user.id;
 
-      // 1. Fetch Profile
-      _profile = await ProfileService().fetchProfile(user.id);
-      
-      // 2. Fetch DevCard if github_url exists
-      final githubUrl = _profile?.githubUrl;
-      if (githubUrl != null && githubUrl.isNotEmpty) {
-        _devCard = await DevCardService.getDevCard(user.id, githubUrl);
+      // Read last visit timestamp
+      final prefs = await SharedPreferences.getInstance();
+      final lastVisitStr = prefs.getString(_lastVisitKey);
+      final lastVisitTime = lastVisitStr != null
+          ? DateTime.tryParse(lastVisitStr) ??
+              DateTime.now().subtract(const Duration(days: 7))
+          : DateTime.now().subtract(const Duration(days: 7));
+
+      // Parallel fetch: profile + all home sections
+      final results = await Future.wait([
+        ProfileService().fetchProfile(userId),                      // 0
+        _homeDataService.fetchClosingSoon(),                        // 1
+        _homeDataService.fetchElitePicks(),                         // 2
+        _homeDataService.fetchNewThisWeek(),                        // 3
+        _homeDataService.fetchNewOpsSince(lastVisitTime),           // 4
+      ]);
+
+      final profile = results[0] as UserProfile?;
+      final closingSoon = results[1] as List<Map<String, dynamic>>;
+      final elitePicks = results[2] as List<Map<String, dynamic>>;
+      final newThisWeek = results[3] as List<Opportunity>;
+      final newSinceLastVisit = results[4] as int;
+
+      // College data (needs profile.collegeId)
+      List<Map<String, dynamic>> leaderboard = [];
+      int collegeCount = 0;
+      String collegeName = profile?.college ?? '';
+      List<Map<String, dynamic>> pulseStudents = [];
+
+      if (profile?.collegeId != null && profile!.collegeId!.isNotEmpty) {
+        final collegeResults = await Future.wait([
+          _homeDataService.fetchCollegeLeaderboard(profile.collegeId),
+          _homeDataService.fetchCollegePulse(profile.collegeId),
+        ]);
+
+        leaderboard = collegeResults[0] as List<Map<String, dynamic>>;
+        final pulseData = collegeResults[1] as Map<String, dynamic>;
+        collegeCount = (pulseData['count'] as int?) ?? 0;
+        collegeName = (pulseData['collegeName'] as String?) ?? collegeName;
+        pulseStudents =
+            ((pulseData['students'] as List?) ?? []).cast<Map<String, dynamic>>();
       }
 
-      // 3. Fetch Total Ops Count
-      try {
-        final countResponse = await Supabase.instance.client
-            .from('opportunities')
-            .count(CountOption.exact);
-        _totalOps = countResponse;
-      } catch (e) {
-        debugPrint("Error fetching total ops: $e");
-      }
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _closingSoon = closingSoon;
+        _elitePicks = elitePicks;
+        _newThisWeek = newThisWeek;
+        _newSinceLastVisit = newSinceLastVisit;
+        _leaderboardStudents = leaderboard;
+        _collegeStudentCount = collegeCount;
+        _collegeName = collegeName;
+        _collegePulseStudents = pulseStudents;
+        _isLoading = false;
+      });
 
-      // 4. Fetch Recent Ops
-      try {
-        final recentData = await Supabase.instance.client
-            .from('opportunities')
-            .select('*, internship_details(*), hackathon_details(*), event_details(*)')
-            .order('created_at', ascending: false)
-            .limit(5);
-        _recentOps = (recentData as List)
-            .map((json) => Opportunity.fromJson(json))
-            .toList();
-      } catch (e) {
-        debugPrint("Error fetching recent ops: $e");
-      }
-
-      // 5. Fetch Bookmarks
-      _bookmarks = BookmarkService().getBookmarks();
-
+      // Update last visit timestamp
+      await prefs.setString(_lastVisitKey, DateTime.now().toIso8601String());
     } catch (e) {
-      _errorMessage = "Failed to load dashboard data: $e";
-      debugPrint(_errorMessage);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      debugPrint('❌ [HomeScreenTab] _loadData error: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
     }
   }
 
-  // Completeness logic
-  double _calculateCompleteness() {
-    if (_profile == null) return 0.0;
-    int totalFields = 8;
-    int filledFields = 0;
-    
-    if (_profile!.name?.isNotEmpty == true) filledFields++;
-    if (_profile!.college?.isNotEmpty == true) filledFields++;
-    if (_profile!.branch?.isNotEmpty == true) filledFields++;
-    if (_profile!.year?.isNotEmpty == true) filledFields++;
-    if (_profile!.githubUrl?.isNotEmpty == true) filledFields++;
-    if (_profile!.linkedinUrl?.isNotEmpty == true) filledFields++;
-    if (_profile!.avatarUrl?.isNotEmpty == true) filledFields++;
-    if (_profile!.collegeVerified) filledFields++;
 
-    return filledFields / totalFields;
-  }
-
-  dynamic _getNearestDeadlineBookmark() {
-    if (_bookmarks.isEmpty) return null;
-    
-    final now = DateTime.now();
-    dynamic nearest;
-    Duration minDiff = const Duration(days: 9999);
-
-    for (var item in _bookmarks) {
-      DateTime? ddl;
-      if (item is Opportunity) {
-        ddl = item.deadline;
-      }
-      // Handle details objects if they don't inherit Opportunity
-      else {
-        // Find property deadline via reflection or cast
-        try {
-          // hack since we know the shape:
-          final map = item.toJson();
-          if (map['deadline'] != null) {
-            ddl = DateTime.parse(map['deadline']);
-          }
-        } catch (_) {}
-      }
-
-      if (ddl != null && ddl.isAfter(now)) {
-        final diff = ddl.difference(now);
-        if (diff < minDiff) {
-          minDiff = diff;
-          nearest = item;
-        }
-      }
-    }
-    return nearest;
-  }
 
   @override
   Widget build(BuildContext context) {
-    return MainLayout(
-      title: "Techmates",
-      showLeadingAvatar: false,
-      titleWidget: const Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: 'Tech',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.1,
-                height: 1.0,
-              ),
-            ),
-            TextSpan(
-              text: 'mates',
-              style: TextStyle(
-                color: Color(0xFF0046FF),
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.1,
-                height: 1.0,
-              ),
-            ),
-          ],
-        ),
-      ),
-      child: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _errorMessage.isNotEmpty 
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(_errorMessage, style: const TextStyle(color: Colors.red)),
-                  TextButton(onPressed: _fetchData, child: const Text('Retry'))
-                ],
-              )
-            )
-          : RefreshIndicator(
-              onRefresh: _fetchData,
-              child: ListView(
-                padding: const EdgeInsets.all(16.0),
-                children: [
-                  _buildGreeting(),
-                  const SizedBox(height: 20),
-                  _buildQuickStats(),
-                  const SizedBox(height: 20),
-                  _buildProfileCompleteness(),
-                  const SizedBox(height: 24),
-                  _buildSmartNudge(),
-                  const SizedBox(height: 24),
-                  if (_devCard != null) _buildGithubSnapshot(),
-                  if (_devCard != null) const SizedBox(height: 24),
-                  _buildNewThisWeek(),
-                ],
-              ),
-            ),
-    );
-  }
+    final colorScheme = Theme.of(context).colorScheme;
 
-  Widget _buildGreeting() {
-    final firstName = _profile?.name?.split(' ').first ?? 'Developer';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Hello, $firstName 👋',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (_profile?.college?.isNotEmpty == true)
-              _buildChip(Icons.school, _profile!.college!),
-            if (_profile?.branch?.isNotEmpty == true || _profile?.year?.isNotEmpty == true)
-              _buildChip(Icons.book, '${_profile?.branch ?? ''} • ${_profile?.year ?? ''} Year'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withAlpha(25),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).primaryColor.withAlpha(76)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Theme.of(context).primaryColor),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).primaryColor,
-                  fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickStats() {
-    return Row(
-      children: [
-        Expanded(child: _buildStatCard(Icons.bookmark, '${_bookmarks.length}', 'Saved Ops', Colors.orange)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(Icons.work, '$_totalOps', 'Total Ops', Colors.blue)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(Icons.local_fire_department, '${_devCard?.currentStreak ?? 0}', 'Day Streak', Colors.red)),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(IconData icon, String value, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(76)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-          Text(label, style: TextStyle(fontSize: 11, color: color.withAlpha(204))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileCompleteness() {
-    final completeness = _calculateCompleteness();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Profile Completeness', style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('${(completeness * 100).toInt()}%', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: completeness,
-          backgroundColor: Theme.of(context).dividerColor,
-          color: Theme.of(context).primaryColor,
-          minHeight: 8,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        if (completeness < 1.0) ...[
-          const SizedBox(height: 8),
-          Text('Complete your profile to unlock more personalized opportunities.', style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
-        ]
-      ],
-    );
-  }
-
-  Widget _buildSmartNudge() {
-    final nearest = _getNearestDeadlineBookmark();
-    if (nearest == null) return const SizedBox.shrink();
-
-    String title = 'Opportunity';
-    DateTime? ddl;
-    
-    if (nearest is Opportunity) {
-      title = nearest.title;
-      ddl = nearest.deadline;
-    } else {
-      try {
-        final map = nearest.toJson();
-        title = map['title'] ?? title;
-        if (map['deadline'] != null) ddl = DateTime.parse(map['deadline']);
-      } catch (_) {}
-    }
-
-    if (ddl == null) return const SizedBox.shrink();
-
-    final days = ddl.difference(DateTime.now()).inDays;
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.orange.shade800, Colors.deepOrange.shade900],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.timer, color: Colors.white, size: 36),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Approaching Deadline!', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('Closes in $days days', style: const TextStyle(color: Colors.white, fontSize: 14)),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: Colors.white),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGithubSnapshot() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D1117), // GitHub Dark
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF30363D)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.code, color: Colors.white),
-              const SizedBox(width: 8),
-              const Text('GitHub Snapshot', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF238636), // GitHub Green
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text('Rank: ${_devCard!.scoreBreakdown.rank}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildGithubStat('Score', '${_devCard!.scoreBreakdown.total}'),
-              _buildGithubStat('Commits', '${_devCard!.totalCommitsLastYear}'),
-              _buildGithubStat('Repos', '${_devCard!.totalPublicRepos}'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (_devCard!.topLanguages.isNotEmpty) ...[
-            const Text('Top Languages', style: TextStyle(color: Colors.white70, fontSize: 12)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _devCard!.topLanguages.take(3).map((l) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF21262D),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF30363D)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8, height: 8,
-                      decoration: BoxDecoration(color: Color(int.parse(l.color.replaceFirst('#', '0xFF'))), shape: BoxShape.circle),
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      body: _isLoading
+          ? _buildShimmerSkeleton(context)
+          : _hasError
+              ? _buildErrorState(context)
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  color: colorScheme.primary,
+                  child: CustomScrollView(
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
                     ),
-                    const SizedBox(width: 6),
-                    Text(l.name, style: const TextStyle(color: Colors.white, fontSize: 12)),
-                  ],
-                ),
-              )).toList(),
-            )
-          ]
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGithubStat(String label, String value) {
-    return Column(
-      children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _buildNewThisWeek() {
-    if (_recentOps.isEmpty) return const SizedBox.shrink();
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('New This Week', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 160,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _recentOps.length,
-            itemBuilder: (context, index) {
-              final op = _recentOps[index];
-              return Container(
-                width: 250,
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(13),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withAlpha(25),
-                        borderRadius: BorderRadius.circular(8),
+                    slivers: [
+                      // Section 1 — Greeting Header
+                      SliverToBoxAdapter(
+                        child: GreetingHeader(profile: _profile),
                       ),
-                      child: Text(op.type.toUpperCase(), style: TextStyle(fontSize: 10, color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(op.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        const Icon(Icons.business, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Expanded(child: Text(op.organization, style: const TextStyle(fontSize: 12, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      ],
-                    ),
-                  ],
+
+                      // Section 2 — College Leaderboard Spotlight
+                      SliverToBoxAdapter(
+                        child: CollegeLeaderboardCard(
+                          students: _leaderboardStudents,
+                          collegeName: _collegeName.isNotEmpty
+                              ? _collegeName
+                              : (_profile?.college ?? 'Your College'),
+                          isLoading: false,
+                          onFullBoard: () {
+                            // Navigate to Network tab (index 1)
+                            _navigateToTab(1);
+                          },
+                        ),
+                      ),
+
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                      // Section 3 — Closing Soon
+                      if (_closingSoon.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: ClosingSoonSection(
+                            items: _closingSoon,
+                            onSeeAll: () => _navigateToTab(2),
+                          ),
+                        ),
+
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                      // Section 4 — Elite Picks
+                      if (_elitePicks.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: ElitePicksSection(items: _elitePicks),
+                          ),
+                        ),
+
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                      // Section 5 — New This Week
+                      if (_newThisWeek.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: NewThisWeekSection(
+                              items: _newThisWeek,
+                              newSinceLastVisit: _newSinceLastVisit,
+                              onViewAll: () => _navigateToTab(2),
+                            ),
+                          ),
+                        ),
+
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                      // Section 6 — College Pulse
+                      if (_collegeStudentCount > 0)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: CollegePulseSection(
+                              studentCount: _collegeStudentCount,
+                              collegeName: _collegeName,
+                              topStudents: _collegePulseStudents,
+                              onTap: () => _navigateToTab(1),
+                            ),
+                          ),
+                        ),
+
+                      // Bottom spacing
+                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                    ],
+                  ),
                 ),
-              );
-            },
+    );
+  }
+
+  void _navigateToTab(int index) {
+    // Find the MainScreen ancestor and switch tab
+    // The MainScreen uses IndexedStack, so we need to use a callback
+    // For now, we can use the bottom nav bar's onDestinationSelected
+    // by finding the nearest ancestor State
+    try {
+      final mainScreenState =
+          context.findAncestorStateOfType<State>();
+      if (mainScreenState != null && mainScreenState.mounted) {
+        // Try to call setState on MainScreen to change tab
+        // This is a simple approach — we look for the _MainScreenState
+        final scaffold = Scaffold.maybeOf(context);
+        if (scaffold != null) {
+          // Navigate using Navigator if we can't reach the tab controller
+        }
+      }
+    } catch (_) {
+      // Fallback: do nothing
+    }
+  }
+
+  // ── Shimmer Skeleton ──────────────────────────────────────
+  Widget _buildShimmerSkeleton(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? const Color(0xFF2B2930) : Colors.grey.shade300;
+    final highlightColor =
+        isDark ? const Color(0xFF36343B) : Colors.grey.shade100;
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Shimmer.fromColors(
+          baseColor: baseColor,
+          highlightColor: highlightColor,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Greeting placeholder
+              Container(
+                height: 80,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Leaderboard card placeholder
+              Container(
+                height: 210,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Section header placeholder
+              Container(
+                height: 20,
+                width: 140,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Horizontal cards placeholder
+              SizedBox(
+                height: 140,
+                child: Row(
+                  children: List.generate(
+                    2,
+                    (i) => Expanded(
+                      child: Container(
+                        margin: EdgeInsets.only(right: i < 1 ? 10 : 0),
+                        decoration: BoxDecoration(
+                          color: baseColor,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Elite card placeholder
+              Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Feed cards placeholder
+              ...List.generate(
+                3,
+                (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    height: 70,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: baseColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+
+  // ── Error State ──────────────────────────────────────
+  Widget _buildErrorState(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.cloud_off_rounded,
+            size: 56,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Something went wrong',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Couldn\'t load your dashboard.',
+            style: TextStyle(
+              fontSize: 13,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.tonal(
+            onPressed: _loadData,
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
     );
   }
 }

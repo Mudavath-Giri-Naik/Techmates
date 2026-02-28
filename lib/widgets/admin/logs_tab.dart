@@ -12,10 +12,10 @@ class LogsTab extends StatefulWidget {
 }
 
 class _LogsTabState extends State<LogsTab> {
-  static const Color _ink = Color(0xFF1A1A2E);
-  static const Color _muted = Color(0xFF78909C);
-  static const Color _border = Color(0xFFE8EAED);
-  static const Color _surface = Color(0xFFF8F9FA);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _surface(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
 
   int _selectedSegment = 0;
 
@@ -26,13 +26,13 @@ class _LogsTabState extends State<LogsTab> {
         // ── Segment control ──
         Container(
           padding: const EdgeInsets.all(12),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: _surface,
+              color: _surface(context),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _border, width: 0.6),
+              border: Border.all(color: _border(context), width: 0.6),
             ),
             child: Row(
               children: [
@@ -54,6 +54,7 @@ class _LogsTabState extends State<LogsTab> {
   }
 
   Widget _segment(int index, IconData icon, String label) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isSelected = _selectedSegment == index;
     return Expanded(
       child: GestureDetector(
@@ -62,23 +63,23 @@ class _LogsTabState extends State<LogsTab> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? colorScheme.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             boxShadow: isSelected
-                ? [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))]
+                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))]
                 : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 14, color: isSelected ? _ink : _muted),
+              Icon(icon, size: 14, color: isSelected ? _ink(context) : _muted(context)),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? _ink : _muted,
+                  color: isSelected ? _ink(context) : _muted(context),
                 ),
               ),
             ],
@@ -94,9 +95,9 @@ class _LogsTabState extends State<LogsTab> {
 // ────────────────────────────────────
 
 class _RoleLogsList extends StatelessWidget {
-  static const Color _ink = Color(0xFF1A1A2E);
-  static const Color _muted = Color(0xFF78909C);
-  static const Color _border = Color(0xFFE8EAED);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   final DashboardService service;
   const _RoleLogsList({required this.service});
@@ -107,7 +108,7 @@ class _RoleLogsList extends StatelessWidget {
       future: service.fetchRoleLogs(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink));
+          return Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink(context)));
         }
         if (snapshot.hasError) {
           return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
@@ -119,9 +120,9 @@ class _RoleLogsList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.swap_horiz_rounded, size: 40, color: _border),
+                Icon(Icons.swap_horiz_rounded, size: 40, color: _border(context)),
                 const SizedBox(height: 10),
-                const Text("No role changes recorded", style: TextStyle(fontSize: 13, color: _muted, fontWeight: FontWeight.w600)),
+                Text("No role changes recorded", style: TextStyle(fontSize: 13, color: _muted(context), fontWeight: FontWeight.w600)),
               ],
             ),
           );
@@ -142,9 +143,9 @@ class _RoleLogsList extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _border, width: 0.6),
+                border: Border.all(color: _border(context), width: 0.6),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +154,7 @@ class _RoleLogsList extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF6D00).withOpacity(0.08),
+                      color: const Color(0xFFFF6D00).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.swap_horiz_rounded, color: Color(0xFFFF6D00), size: 16),
@@ -165,15 +166,15 @@ class _RoleLogsList extends StatelessWidget {
                       children: [
                         Text(
                           targetName,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _ink),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _ink(context)),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             _rolePill(oldRole, isOld: true),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 6),
-                              child: Icon(Icons.arrow_forward_rounded, size: 12, color: _muted),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: Icon(Icons.arrow_forward_rounded, size: 12, color: Theme.of(context).colorScheme.outline),
                             ),
                             _rolePill(newRole, isOld: false),
                           ],
@@ -181,7 +182,7 @@ class _RoleLogsList extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           "by $actorName · ${_formatDate(timestamp)}",
-                          style: const TextStyle(fontSize: 10.5, color: _muted),
+                          style: TextStyle(fontSize: 10.5, color: _muted(context)),
                         ),
                       ],
                     ),
@@ -199,10 +200,10 @@ class _RoleLogsList extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isOld ? const Color(0xFFE53935).withOpacity(0.06) : const Color(0xFF2E7D32).withOpacity(0.06),
+        color: isOld ? const Color(0xFFE53935).withValues(alpha: 0.06) : const Color(0xFF2E7D32).withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: isOld ? const Color(0xFFE53935).withOpacity(0.15) : const Color(0xFF2E7D32).withOpacity(0.15),
+          color: isOld ? const Color(0xFFE53935).withValues(alpha: 0.15) : const Color(0xFF2E7D32).withValues(alpha: 0.15),
           width: 0.6,
         ),
       ),
@@ -236,9 +237,9 @@ class _RoleLogsList extends StatelessWidget {
 // ────────────────────────────────────
 
 class _OpportunityLogsList extends StatelessWidget {
-  static const Color _ink = Color(0xFF1A1A2E);
-  static const Color _muted = Color(0xFF78909C);
-  static const Color _border = Color(0xFFE8EAED);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   final DashboardService service;
   const _OpportunityLogsList({required this.service});
@@ -249,7 +250,7 @@ class _OpportunityLogsList extends StatelessWidget {
       future: service.fetchOpportunityLogs(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink));
+          return Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink(context)));
         }
         if (snapshot.hasError) {
           return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
@@ -261,9 +262,9 @@ class _OpportunityLogsList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.work_outline_rounded, size: 40, color: _border),
+                Icon(Icons.work_outline_rounded, size: 40, color: _border(context)),
                 const SizedBox(height: 10),
-                const Text("No opportunity logs", style: TextStyle(fontSize: 13, color: _muted, fontWeight: FontWeight.w600)),
+                Text("No opportunity logs", style: TextStyle(fontSize: 13, color: _muted(context), fontWeight: FontWeight.w600)),
               ],
             ),
           );
@@ -297,9 +298,9 @@ class _OpportunityLogsList extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _border, width: 0.6),
+                border: Border.all(color: _border(context), width: 0.6),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,7 +308,7 @@ class _OpportunityLogsList extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: actionColor.withOpacity(0.08),
+                      color: actionColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(actionIcon, color: actionColor, size: 16),
@@ -322,7 +323,7 @@ class _OpportunityLogsList extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: actionColor.withOpacity(0.08),
+                                color: actionColor.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -340,14 +341,14 @@ class _OpportunityLogsList extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           title,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _ink),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _ink(context)),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           "by $actorName ($role) · ${_formatDate(timestamp)}",
-                          style: const TextStyle(fontSize: 10.5, color: _muted),
+                          style: TextStyle(fontSize: 10.5, color: _muted(context)),
                         ),
                       ],
                     ),

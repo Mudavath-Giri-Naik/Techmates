@@ -13,10 +13,10 @@ class UserManagementTab extends StatefulWidget {
 }
 
 class _UserManagementTabState extends State<UserManagementTab> {
-  static const Color _ink = Color(0xFF1A1A2E);
-  static const Color _muted = Color(0xFF78909C);
-  static const Color _border = Color(0xFFE8EAED);
-  static const Color _surface = Color(0xFFF8F9FA);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _surface(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
 
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _users = [];
@@ -62,33 +62,33 @@ class _UserManagementTabState extends State<UserManagementTab> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        surfaceTintColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.shield_outlined, size: 20, color: _ink),
-            SizedBox(width: 8),
-            Text("Role Change", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink)),
+            Icon(Icons.shield_outlined, size: 20, color: _ink(context)),
+            const SizedBox(width: 8),
+            Text("Role Change", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink(context))),
           ],
         ),
         content: Text(
           "Change $email\nfrom $oldRole → $newRole?",
-          style: const TextStyle(fontSize: 13, color: _muted, height: 1.5),
+          style: TextStyle(fontSize: 13, color: _muted(context), height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel", style: TextStyle(color: _muted)),
+            child: Text("Cancel", style: TextStyle(color: _muted(context))),
           ),
           Container(
             decoration: BoxDecoration(
-              color: _ink,
+              color: _ink(context),
               borderRadius: BorderRadius.circular(8),
             ),
             child: TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("Confirm", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              child: Text("Confirm", style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -139,23 +139,23 @@ class _UserManagementTabState extends State<UserManagementTab> {
         // ── Search + Filters ──
         Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: Column(
             children: [
               // Search bar
               Container(
                 decoration: BoxDecoration(
-                  color: _surface,
+                  color: _surface(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _border, width: 0.8),
+                  border: Border.all(color: _border(context), width: 0.8),
                 ),
                 child: TextField(
                   controller: _searchController,
-                  style: const TextStyle(fontSize: 13, color: _ink),
+                  style: TextStyle(fontSize: 13, color: _ink(context)),
                   decoration: InputDecoration(
                     hintText: "Search users…",
-                    hintStyle: const TextStyle(color: _muted, fontSize: 13),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: _muted),
+                    hintStyle: TextStyle(color: _muted(context), fontSize: 13),
+                    prefixIcon: Icon(Icons.search_rounded, size: 18, color: _muted(context)),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     suffixIcon: _searchController.text.isNotEmpty
@@ -164,7 +164,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                               _searchController.clear();
                               _fetchUsers();
                             },
-                            child: const Icon(Icons.close_rounded, size: 16, color: _muted),
+                            child: Icon(Icons.close_rounded, size: 16, color: _muted(context)),
                           )
                         : null,
                   ),
@@ -179,21 +179,21 @@ class _UserManagementTabState extends State<UserManagementTab> {
                 child: Row(
                   children: [
                     _chipGroup([
-                      _chip("All", _roleFilter == 'all', () => setState(() { _roleFilter = 'all'; _fetchUsers(); })),
-                      _chip("Students", _roleFilter == 'student', () => setState(() { _roleFilter = 'student'; _fetchUsers(); })),
-                      _chip("Admins", _roleFilter == 'admin', () => setState(() { _roleFilter = 'admin'; _fetchUsers(); })),
-                      _chip("Super", _roleFilter == 'super_admin', () => setState(() { _roleFilter = 'super_admin'; _fetchUsers(); })),
+                      _chip(context, "All", _roleFilter == 'all', () => setState(() { _roleFilter = 'all'; _fetchUsers(); })),
+                      _chip(context, "Students", _roleFilter == 'student', () => setState(() { _roleFilter = 'student'; _fetchUsers(); })),
+                      _chip(context, "Admins", _roleFilter == 'admin', () => setState(() { _roleFilter = 'admin'; _fetchUsers(); })),
+                      _chip(context, "Super", _roleFilter == 'super_admin', () => setState(() { _roleFilter = 'super_admin'; _fetchUsers(); })),
                     ]),
                     Container(
                       width: 1,
                       height: 20,
                       margin: const EdgeInsets.symmetric(horizontal: 10),
-                      color: _border,
+                      color: _border(context),
                     ),
                     _chipGroup([
-                      _chip("All Status", _statusFilter == null, () => setState(() { _statusFilter = null; _fetchUsers(); })),
-                      _chip("Active", _statusFilter == true, () => setState(() { _statusFilter = true; _fetchUsers(); }), activeColor: const Color(0xFF2E7D32)),
-                      _chip("Inactive", _statusFilter == false, () => setState(() { _statusFilter = false; _fetchUsers(); }), activeColor: const Color(0xFFE53935)),
+                      _chip(context, "All Status", _statusFilter == null, () => setState(() { _statusFilter = null; _fetchUsers(); })),
+                      _chip(context, "Active", _statusFilter == true, () => setState(() { _statusFilter = true; _fetchUsers(); }), activeColor: const Color(0xFF2E7D32)),
+                      _chip(context, "Inactive", _statusFilter == false, () => setState(() { _statusFilter = false; _fetchUsers(); }), activeColor: const Color(0xFFE53935)),
                     ]),
                   ],
                 ),
@@ -205,21 +205,21 @@ class _UserManagementTabState extends State<UserManagementTab> {
         // ── Count bar ──
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: _surface,
+          color: _surface(context),
           child: Row(
             children: [
               Text(
                 "${_users.length} user${_users.length != 1 ? 's' : ''}",
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _muted, letterSpacing: 0.3),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _muted(context), letterSpacing: 0.3),
               ),
               const Spacer(),
               GestureDetector(
                 onTap: _fetchUsers,
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.refresh_rounded, size: 13, color: _muted),
-                    SizedBox(width: 4),
-                    Text("Refresh", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: _muted)),
+                    Icon(Icons.refresh_rounded, size: 13, color: _muted(context)),
+                    const SizedBox(width: 4),
+                    Text("Refresh", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: _muted(context))),
                   ],
                 ),
               ),
@@ -230,17 +230,17 @@ class _UserManagementTabState extends State<UserManagementTab> {
         // ── User list ──
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink))
+              ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: _ink(context)))
               : _users.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.people_outline_rounded, size: 48, color: _border),
+                          Icon(Icons.people_outline_rounded, size: 48, color: _border(context)),
                           const SizedBox(height: 12),
-                          const Text("No users found", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _muted)),
+                          Text("No users found", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _muted(context))),
                           const SizedBox(height: 4),
-                          const Text("Try adjusting your filters", style: TextStyle(fontSize: 12, color: _muted)),
+                          Text("Try adjusting your filters", style: TextStyle(fontSize: 12, color: _muted(context))),
                         ],
                       ),
                     )
@@ -256,9 +256,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
                         ),
                         if (_isActionLoading)
                           Container(
-                            color: Colors.white.withOpacity(0.6),
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2, color: _ink),
+                            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
+                            child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2, color: _ink(context)),
                             ),
                           ),
                       ],
@@ -274,7 +274,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
     final name = user['name'] ?? 'Unknown';
     final email = user['email'] ?? '';
 
-    Color roleColor = _muted;
+    final colorScheme = Theme.of(context).colorScheme;
+    Color roleColor = _muted(context);
     IconData roleIcon = Icons.person_rounded;
     if (role == 'admin') {
       roleColor = const Color(0xFF1E88E5);
@@ -290,9 +291,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border, width: 0.6),
+        border: Border.all(color: _border(context), width: 0.6),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -303,7 +304,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(0.08),
+                color: roleColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
@@ -328,10 +329,10 @@ class _UserManagementTabState extends State<UserManagementTab> {
                       Expanded(
                         child: Text(
                           name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
-                            color: _ink,
+                            color: _ink(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -341,7 +342,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE53935).withOpacity(0.08),
+                            color: const Color(0xFFE53935).withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -359,7 +360,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                   const SizedBox(height: 3),
                   Text(
                     email,
-                    style: const TextStyle(fontSize: 11.5, color: _muted),
+                    style: TextStyle(fontSize: 11.5, color: _muted(context)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -387,10 +388,10 @@ class _UserManagementTabState extends State<UserManagementTab> {
             if (!widget.readOnly)
               PopupMenuButton<String>(
                 elevation: 2,
-                color: Colors.white,
-                surfaceTintColor: Colors.white,
+                color: colorScheme.surface,
+                surfaceTintColor: colorScheme.surface,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                icon: const Icon(Icons.more_horiz_rounded, color: _muted, size: 18),
+                icon: Icon(Icons.more_horiz_rounded, color: _muted(context), size: 18),
                 onSelected: (value) {
                   if (value == 'toggle_status') {
                     _toggleStatus(user['id'], isActive);
@@ -403,7 +404,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                     const PopupMenuItem(
                       enabled: false,
                       height: 28,
-                      child: Text("CHANGE ROLE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _muted, letterSpacing: 0.8)),
+                      child: Text("CHANGE ROLE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey, letterSpacing: 0.8)),
                     ),
                     if (role != 'student')
                       const PopupMenuItem(
@@ -438,7 +439,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                       child: Row(
                         children: [
                           Icon(isActive ? Icons.block_rounded : Icons.check_circle_rounded,
-                              color: isActive ? const Color(0xFFE53935) : const Color(0xFF2E7D32), size: 16),
+                              color: isActive ? colorScheme.error : const Color(0xFF2E7D32), size: 16),
                           const SizedBox(width: 8),
                           Text(isActive ? "Deactivate" : "Activate", style: const TextStyle(fontSize: 13)),
                         ],
@@ -459,17 +460,17 @@ class _UserManagementTabState extends State<UserManagementTab> {
     );
   }
 
-  Widget _chip(String label, bool isSelected, VoidCallback onTap, {Color? activeColor}) {
-    final color = activeColor ?? _ink;
+  Widget _chip(BuildContext context, String label, bool isSelected, VoidCallback onTap, {Color? activeColor}) {
+    final color = activeColor ?? _ink(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color : _surface,
+          color: isSelected ? color : _surface(context),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? color : _border,
+            color: isSelected ? color : _border(context),
             width: 0.8,
           ),
         ),
@@ -478,7 +479,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
           style: TextStyle(
             fontSize: 11.5,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : _muted,
+            color: isSelected ? Theme.of(context).colorScheme.onPrimary : _muted(context),
           ),
         ),
       ),

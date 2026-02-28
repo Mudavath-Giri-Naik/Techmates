@@ -8,11 +8,11 @@ class StreakSection extends StatelessWidget {
   const StreakSection(
       {super.key, required this.devCard, required this.isDark});
 
-  Color get _cardBg => isDark ? const Color(0xFF0D1120) : Colors.white;
-  Color get _boxBg => isDark ? const Color(0xFF141E2F) : const Color(0xFFF9FAFB);
-  Color get _text1 => isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-  Color get _text2 => isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
-  Color get _borderCol => isDark ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _boxBg(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
+  Color _text1(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _text2(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _borderCol(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   static const _calColors = [
     Color(0xFF161B22), // 0
@@ -40,7 +40,7 @@ class StreakSection extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: _cardBg,
+      color: _cardBg(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -50,7 +50,7 @@ class StreakSection extends StatelessWidget {
             reverse: true, // Start scrolled to the right (most recent)
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: _buildWeeks(allDays),
+              children: _buildWeeks(allDays, context),
             ),
           ),
         ],
@@ -58,8 +58,10 @@ class StreakSection extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildWeeks(List<ContributionDay> days) {
-    final colors = isDark ? _calColors : _calColorsLight;
+  List<Widget> _buildWeeks(List<ContributionDay> days, BuildContext context) {
+    final Brightness brightness = Theme.of(context).brightness;
+    final isDarkMode = brightness == Brightness.dark;
+    final colors = isDarkMode ? _calColors : _calColorsLight;
     final weeks = <List<ContributionDay>>[];
     for (int i = 0; i < days.length; i += 7) {
       final end = (i + 7 > days.length) ? days.length : i + 7;

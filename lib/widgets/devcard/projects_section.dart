@@ -17,11 +17,11 @@ class _ProjectsSectionState extends State<ProjectsSection> {
   final Set<int> _expanded = {};
 
   bool get d => widget.isDark;
-  Color get _cardBg => d ? const Color(0xFF0D1120) : Colors.white;
-  Color get _boxBg => d ? const Color(0xFF141E2F) : const Color(0xFFF9FAFB);
-  Color get _text1 => d ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-  Color get _text2 => d ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
-  Color get _borderCol => d ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _boxBg(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
+  Color _text1(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _text2(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _borderCol(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   Color _scoreBadgeColor(double score) {
     if (score >= 80) return const Color(0xFF22C55E);
@@ -47,7 +47,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: _cardBg,
+      color: _cardBg(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -55,7 +55,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
             final i = e.key;
             final p = e.value;
             final score = _findScore(p.name);
-            return _compactCard(i, p, score);
+            return _projectCard(i, p, score, _expanded.contains(i), context);
           }),
           if (remaining > 0)
             GestureDetector(
@@ -74,7 +74,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
     );
   }
 
-  Widget _compactCard(int index, ProjectAnalysis p, ProjectScore? score) {
+  Widget _compactCard(int index, ProjectAnalysis p, ProjectScore? score, BuildContext context) {
     final sVal = score?.finalScore ?? 0;
     final badgeColor = _scoreBadgeColor(sVal);
 
@@ -82,15 +82,15 @@ class _ProjectsSectionState extends State<ProjectsSection> {
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: _boxBg,
+        color: _boxBg(context),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _borderCol),
+        border: Border.all(color: _borderCol(context)),
       ),
       child: Row(
         children: [
           Text('#${index + 1}',
               style: TextStyle(
-                  color: _text2,
+                  color: _text2(context),
                   fontSize: 10,
                   fontFamily: 'monospace',
                   fontWeight: FontWeight.w600)),
@@ -98,7 +98,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
           Expanded(
             child: Text(p.name,
                 style: TextStyle(
-                    color: _text1,
+                    color: _text1(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w600),
                 maxLines: 1,
@@ -109,12 +109,12 @@ class _ProjectsSectionState extends State<ProjectsSection> {
                   margin: const EdgeInsets.only(left: 3),
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
-                    color: _borderCol,
+                    color: _borderCol(context),
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: Text(f,
                       style: TextStyle(
-                          color: _text2,
+                          color: _text2(context),
                           fontSize: 8,
                           fontFamily: 'monospace')),
                 )),
@@ -123,7 +123,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
                 padding: const EdgeInsets.only(left: 3),
                 child: Text('+${p.frameworks.length - 2}',
                     style: TextStyle(
-                        color: _text2,
+                        color: _text2(context),
                         fontSize: 8,
                         fontFamily: 'monospace')),
               ),
@@ -148,7 +148,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
   }
 
   Widget _projectCard(
-      int index, ProjectAnalysis p, ProjectScore? score, bool expanded) {
+      int index, ProjectAnalysis p, ProjectScore? score, bool expanded, BuildContext context) {
     final sVal = score?.finalScore ?? 0;
     final badgeColor = _scoreBadgeColor(sVal);
 
@@ -160,9 +160,9 @@ class _ProjectsSectionState extends State<ProjectsSection> {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: _boxBg,
+          color: _boxBg(context),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _borderCol),
+          border: Border.all(color: _borderCol(context)),
         ),
         child: Column(
           children: [
@@ -171,7 +171,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
               children: [
                 Text('#${index + 1}',
                     style: TextStyle(
-                        color: _text2,
+                        color: _text2(context),
                         fontSize: 11,
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.w600)),
@@ -179,7 +179,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
                 Expanded(
                   child: Text(p.name,
                       style: TextStyle(
-                          color: _text1,
+                          color: _text1(context),
                           fontSize: 13,
                           fontWeight: FontWeight.w600),
                       maxLines: 1,
@@ -212,34 +212,34 @@ class _ProjectsSectionState extends State<ProjectsSection> {
                 ),
                 const SizedBox(width: 4),
                 Icon(expanded ? Icons.expand_less : Icons.chevron_right,
-                    color: _text2, size: 16),
+                    color: _text2(context), size: 16),
               ],
             ),
 
             // Expanded details
             if (expanded) ...[
               const SizedBox(height: 8),
-              Divider(color: _borderCol, height: 1),
+              Divider(color: _borderCol(context), height: 1),
               const SizedBox(height: 8),
-              _detailRow('Class', p.codeStyleLabel),
-              _detailRow('Language', p.primaryLanguage ?? 'Unknown'),
-              _detailRow('Commits', '${p.commitCount}'),
-              _detailRow('Contributors', '${p.contributorCount}'),
-              _detailRow('Built in', '${p.builtInDays} days'),
+              _detailRow('Class', p.codeStyleLabel, context),
+              _detailRow('Language', p.primaryLanguage ?? 'Unknown', context),
+              _detailRow('Commits', '${p.commitCount}', context),
+              _detailRow('Contributors', '${p.contributorCount}', context),
+              _detailRow('Built in', '${p.builtInDays} days', context),
               if (p.description?.isNotEmpty == true)
-                _detailRow('Description', p.description!),
+                _detailRow('Description', p.description!, context),
               const SizedBox(height: 6),
               // Score breakdown
               if (score != null) ...[
-                _scoreRow('Commit', score.commitScore),
-                _scoreRow('README', score.readmeScore),
-                _scoreRow('Tech', score.techScore),
+                _scoreRow('Commit', score.commitScore, context),
+                _scoreRow('README', score.readmeScore, context),
+                _scoreRow('Tech', score.techScore, context),
                 const SizedBox(height: 4),
                 // Gradient progress bar
                 Container(
                   height: 6,
                   decoration: BoxDecoration(
-                      color: _borderCol,
+                      color: _borderCol(context),
                       borderRadius: BorderRadius.circular(3)),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
@@ -263,7 +263,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
     );
   }
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow(String label, String value, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 3),
       child: Row(
@@ -272,10 +272,10 @@ class _ProjectsSectionState extends State<ProjectsSection> {
               width: 90,
               child: Text(label,
                   style: TextStyle(
-                      color: _text2, fontSize: 10, fontFamily: 'monospace'))),
+                      color: _text2(context), fontSize: 10, fontFamily: 'monospace'))),
           Expanded(
               child: Text(value,
-                  style: TextStyle(color: _text1, fontSize: 10),
+                  style: TextStyle(color: _text1(context), fontSize: 10),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis)),
         ],
@@ -283,7 +283,7 @@ class _ProjectsSectionState extends State<ProjectsSection> {
     );
   }
 
-  Widget _scoreRow(String label, int score) {
+  Widget _scoreRow(String label, int score, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Row(
@@ -291,10 +291,10 @@ class _ProjectsSectionState extends State<ProjectsSection> {
           Expanded(
               child: Text(label,
                   style: TextStyle(
-                      color: _text2, fontSize: 9, fontFamily: 'monospace'))),
+                      color: _text2(context), fontSize: 9, fontFamily: 'monospace'))),
           Text('$score',
               style: TextStyle(
-                  color: _text1,
+                  color: _text1(context),
                   fontSize: 9,
                   fontWeight: FontWeight.w600,
                   fontFamily: 'monospace')),

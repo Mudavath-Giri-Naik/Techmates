@@ -18,6 +18,7 @@ class UserProfile {
   final bool collegeVerified;
   final String? collegeId;
   final bool onboardingCompleted;
+  final bool isPrivate;
 
   UserProfile({
     required this.id,
@@ -39,6 +40,7 @@ class UserProfile {
     this.collegeVerified = false,
     this.collegeId,
     this.onboardingCompleted = false,
+    this.isPrivate = false,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -66,6 +68,7 @@ class UserProfile {
       collegeVerified: json['college_verified'] as bool? ?? false,
       collegeId: json['college_id'] as String?,
       onboardingCompleted: json['onboarding_completed'] as bool? ?? false,
+      isPrivate: json['is_private'] as bool? ?? false,
     );
   }
 
@@ -90,6 +93,7 @@ class UserProfile {
       'college_verified': collegeVerified,
       'college_id': collegeId,
       'onboarding_completed': onboardingCompleted,
+      'is_private': isPrivate,
     };
   }
 
@@ -109,6 +113,7 @@ class UserProfile {
     bool? collegeVerified,
     String? collegeId,
     bool? onboardingCompleted,
+    bool? isPrivate,
   }) {
     return UserProfile(
       id: id,
@@ -130,6 +135,7 @@ class UserProfile {
       collegeVerified: collegeVerified ?? this.collegeVerified,
       collegeId: collegeId ?? this.collegeId,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      isPrivate: isPrivate ?? this.isPrivate,
     );
   }
 }

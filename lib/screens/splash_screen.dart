@@ -273,7 +273,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: _muted.withOpacity(0.9),
+                                  color: _muted.withValues(alpha: 0.9),
                                   letterSpacing: 0.2,
                                   height: 1.5,
                                 ),
@@ -284,7 +284,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: _muted.withOpacity(0.9),
+                                    color: _muted.withValues(alpha: 0.9),
                                     letterSpacing: 0.2,
                                     height: 1.5,
                                   ),
@@ -343,7 +343,7 @@ class _DotGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const double spacing = 28;
     final paint = Paint()
-      ..color = const Color(0xFFE5E7EB).withOpacity(0.5)
+      ..color = const Color(0xFFE5E7EB).withValues(alpha: 0.5)
       ..style = PaintingStyle.fill;
 
     for (double x = spacing; x < size.width; x += spacing) {
@@ -354,7 +354,7 @@ class _DotGridPainter extends CustomPainter {
 
     // Slightly larger dots at intersections of a wider grid
     final accentPaint = Paint()
-      ..color = const Color(0xFFD1D5DB).withOpacity(0.4)
+      ..color = const Color(0xFFD1D5DB).withValues(alpha: 0.4)
       ..style = PaintingStyle.fill;
 
     const double wideSpacing = spacing * 4;
@@ -430,7 +430,7 @@ class _LoadingDotsState extends State<_LoadingDots> with TickerProviderStateMixi
               width: 5,
               height: 5,
               decoration: BoxDecoration(
-                color: widget.color.withOpacity(_opacities[i].value),
+                color: widget.color.withValues(alpha: _opacities[i].value),
                 shape: BoxShape.circle,
               ),
             );

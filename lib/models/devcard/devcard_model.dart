@@ -360,6 +360,21 @@ class DevScoreBreakdown {
         'topProjectName': topProjectName,
         'topProjectScore': topProjectScore,
       };
+
+  /// Compute rank info from a raw score (used by leaderboard / college screens).
+  static Map<String, String> rankInfoFromScore(int score) {
+    if (score >= 80) {
+      return {'rank': 'Master', 'emoji': '👑', 'color': '#FFD700'};
+    } else if (score >= 60) {
+      return {'rank': 'Architect', 'emoji': '🏗️', 'color': '#6750A4'};
+    } else if (score >= 40) {
+      return {'rank': 'Builder', 'emoji': '🔨', 'color': '#0061A4'};
+    } else if (score >= 20) {
+      return {'rank': 'Explorer', 'emoji': '🧭', 'color': '#1A7A4A'};
+    } else {
+      return {'rank': 'Beginner', 'emoji': '🌱', 'color': '#9E9E9E'};
+    }
+  }
 }
 
 // ─── DevCardModel ───────────────────────────────────────────────

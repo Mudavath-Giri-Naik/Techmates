@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/user_profile.dart';
 
 /// A beautifully designed profile header card for the top of the drawer.
@@ -29,13 +30,6 @@ class ProfileHeaderCard extends StatefulWidget {
 class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
   // ── Brand colors ──
   static const _primaryBlue = Color(0xFF1A73E8);
-  static const _primaryRed = Color(0xFFE53935);
-  static const _textBlack = Color(0xFF111111);
-  static const _muted = Color(0xFF757575);
-  static const _lightBg = Color(0xFFF5F5F5);
-  static const _border = Color(0xFFE0E0E0);
-  static const _linkedInBlue = Color(0xFF0A66C2);
-  static const _disabled = Color(0xFFBDBDBD);
   static const _green = Color(0xFF2E7D32);
 
   late UserProfile _profile;
@@ -98,7 +92,7 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
       height: 76,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: _border, width: 1.5),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1.5),
       ),
       child: ClipOval(
         child: url != null && url.isNotEmpty
@@ -119,12 +113,12 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
     return Container(
       width: 76,
       height: 76,
-      color: _primaryBlue,
+      color: Theme.of(context).colorScheme.primaryContainer,
       alignment: Alignment.center,
       child: Text(
         initial,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimaryContainer,
           fontSize: 28,
           fontWeight: FontWeight.w700,
         ),
@@ -156,22 +150,23 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
   // ── Stat Column ──────────────────────────────────────────────────────────
 
   Widget _statColumn(String count, String label) {
+    final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           count,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: _textBlack,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: _textBlack,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -181,6 +176,7 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
   // ── Buttons ──────────────────────────────────────────────────────────────
 
   Widget _actionButton({required String label, required VoidCallback onTap}) {
+    final theme = Theme.of(context);
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -189,15 +185,15 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9), // Slight gray background
+            color: theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: _textBlack,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ),
@@ -237,10 +233,12 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
         ? _profile.githubUrl!.split('/').last
         : (_profile.name?.replaceAll(' ', '').toLowerCase() ?? 'user');
 
+    final theme = Theme.of(context);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -256,10 +254,10 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
                   children: [
                     Text(
                       handle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: _textBlack,
+                        color: theme.colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -285,10 +283,10 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
           // ── Bio Section ──
           Text(
             _profile.name ?? 'User',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: _textBlack,
+              color: theme.colorScheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -298,7 +296,7 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 '${_profile.year ?? ''}${_profile.year != null && branchAbbr != null ? ' · ' : ''}${branchAbbr ?? ''}',
-                style: const TextStyle(fontSize: 14, color: _textBlack),
+                style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
               ),
             ),
           if (_profile.college != null)
@@ -309,7 +307,7 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
                   Flexible(
                     child: Text(
                       _profile.college!,
-                      style: const TextStyle(fontSize: 14, color: _textBlack),
+                      style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -323,34 +321,32 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
             ),
 
           // Links
-          if (_profile.githubUrl != null || _profile.linkedinUrl != null)
+          if (_profile.githubUrl != null || _profile.linkedinUrl != null || _profile.instagramUrl != null)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Icon(Icons.link_rounded, size: 16, color: _primaryBlue),
-                  const SizedBox(width: 4),
                   if (_profile.githubUrl != null && _profile.githubUrl!.isNotEmpty)
-                    GestureDetector(
-                      onTap: () => _launch(_profile.githubUrl),
-                      child: Text(
-                         'github.com/${_profile.githubUrl!.split('/').last}',
-                        style: const TextStyle(
-                            fontSize: 14, color: _primaryBlue, fontWeight: FontWeight.w500),
-                      ),
+                    _socialLink(
+                      icon: FontAwesomeIcons.github,
+                      baseUrl: 'github.com',
+                      url: _profile.githubUrl!,
                     ),
-                  if (_profile.linkedinUrl != null && _profile.linkedinUrl!.isNotEmpty) ...[
-                    if (_profile.githubUrl != null && _profile.githubUrl!.isNotEmpty)
-                      const Text(' · ', style: TextStyle(color: _textBlack)),
-                    GestureDetector(
-                      onTap: () => _launch(_profile.linkedinUrl),
-                      child: Text(
-                        'linkedin.com/in/${_profile.linkedinUrl!.split('in/').last.split('/').first}',
-                        style: const TextStyle(
-                            fontSize: 14, color: _primaryBlue, fontWeight: FontWeight.w500),
-                      ),
+                  if (_profile.linkedinUrl != null && _profile.linkedinUrl!.isNotEmpty)
+                    _socialLink(
+                      icon: FontAwesomeIcons.linkedin,
+                      baseUrl: 'linkedin.com',
+                      url: _profile.linkedinUrl!,
                     ),
-                  ]
+                  if (_profile.instagramUrl != null && _profile.instagramUrl!.isNotEmpty)
+                    _socialLink(
+                      icon: FontAwesomeIcons.instagram,
+                      baseUrl: 'instagram.com',
+                      url: _profile.instagramUrl!,
+                    ),
                 ],
               ),
             ),
@@ -390,6 +386,27 @@ class _ProfileHeaderCardState extends State<ProfileHeaderCard> {
                       },
                     ),
                   ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _socialLink({required IconData icon, required String baseUrl, required String url}) {
+    return GestureDetector(
+      onTap: () => _launch(url),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FaIcon(icon, size: 14, color: _primaryBlue),
+          const SizedBox(width: 5),
+          Text(
+            baseUrl,
+            style: const TextStyle(
+              fontSize: 13,
+              color: _primaryBlue,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

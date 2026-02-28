@@ -13,10 +13,10 @@ class LanguagesSection extends StatelessWidget {
     this.projects = const [],
   });
 
-  Color get _cardBg => isDark ? const Color(0xFF0D1120) : Colors.white;
-  Color get _text1 => isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-  Color get _text2 => isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
-  Color get _borderCol => isDark ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _text1(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _text2(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _borderCol(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   Color _parseHex(String hex) {
     final cleaned = hex.replaceAll('#', '');
@@ -38,17 +38,17 @@ class LanguagesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: _cardBg,
+      color: _cardBg(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...languages.map((l) => _row(l)),
+          ...languages.map((l) => _row(l, context)),
         ],
       ),
     );
   }
 
-  Widget _row(LanguageStat l) {
+  Widget _row(LanguageStat l, BuildContext context) {
     final color = _parseHex(l.color);
     final pct = (l.percentage * 100).toStringAsFixed(0);
     final count = _projectCount(l.name);
@@ -66,7 +66,7 @@ class LanguagesSection extends StatelessWidget {
             width: 80,
             child: Text(l.name,
                 style: TextStyle(
-                    color: _text1,
+                    color: _text1(context),
                     fontSize: 11,
                     fontWeight: FontWeight.w500),
                 maxLines: 1,
@@ -77,7 +77,7 @@ class LanguagesSection extends StatelessWidget {
             height: 4,
             child: Container(
               decoration: BoxDecoration(
-                  color: _borderCol, borderRadius: BorderRadius.circular(2)),
+                  color: _borderCol(context), borderRadius: BorderRadius.circular(2)),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
                 widthFactor: l.percentage.clamp(0.0, 1.0),
@@ -91,11 +91,11 @@ class LanguagesSection extends StatelessWidget {
           const SizedBox(width: 8),
           Text('$pct%',
               style: TextStyle(
-                  color: _text2, fontSize: 9, fontFamily: 'monospace')),
+                  color: _text2(context), fontSize: 9, fontFamily: 'monospace')),
           const Spacer(),
           Text('$count projects',
               style: TextStyle(
-                  color: _text2, fontSize: 9, fontFamily: 'monospace')),
+                  color: _text2(context), fontSize: 9, fontFamily: 'monospace')),
         ],
       ),
     );

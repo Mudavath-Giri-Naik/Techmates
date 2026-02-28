@@ -133,9 +133,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                         Navigator.pop(context);
                       }
                     },
-                    selectedColor: Colors.blue.withValues(alpha: 0.2),
+                    selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.blue.shade800 : Colors.black,
+                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   );
@@ -154,21 +154,21 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     final filtered = _getFilteredBookmarks();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Bookmarks",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.tune, color: _selectedFilter != 'All' ? Colors.blue : Colors.black87),
+            icon: Icon(Icons.tune, color: _selectedFilter != 'All' ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface),
             onPressed: _showFilterSheet,
           ),
           const SizedBox(width: 8),
@@ -184,13 +184,13 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.bookmark_border, size: 64, color: Colors.grey.shade300),
+                        Icon(Icons.bookmark_border, size: 64, color: Theme.of(context).colorScheme.outlineVariant),
                         const SizedBox(height: 16),
                         Text(
                           "No bookmarks yet",
                           style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey.shade500,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -199,7 +199,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                           "Save opportunities to view them here later",
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey.shade400,
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                       ],
@@ -218,10 +218,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                           },
                           decoration: InputDecoration(
                             hintText: "Search bookmarks...",
-                            prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                            prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
                             filled: true,
-                            fillColor: Colors.grey.shade100,
+                            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
@@ -232,7 +232,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.blue, width: 1),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1),
                             ),
                           ),
                         ),
@@ -245,11 +245,11 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.search_off, size: 48, color: Colors.grey.shade300),
+                                    Icon(Icons.search_off, size: 48, color: Theme.of(context).colorScheme.outlineVariant),
                                     const SizedBox(height: 16),
                                     Text(
                                       "No matches found",
-                                      style: TextStyle(color: Colors.grey.shade500),
+                                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                                     ),
                                   ],
                                 ),

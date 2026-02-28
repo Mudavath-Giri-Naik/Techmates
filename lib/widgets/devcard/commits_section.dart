@@ -15,10 +15,10 @@ class CommitsSection extends StatelessWidget {
     this.projects = const [],
   });
 
-  Color get _cardBg => isDark ? const Color(0xFF0D1120) : Colors.white;
-  Color get _text1 => isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-  Color get _text2 => isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
-  Color get _borderCol => isDark ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _text1(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _text2(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _borderCol(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   static const _dots = [
     Color(0xFF00D4FF),
@@ -49,7 +49,7 @@ class CommitsSection extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: _cardBg,
+      color: _cardBg(context),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +64,7 @@ class CommitsSection extends StatelessWidget {
                   final c = e.value;
                   final dotColor = _dots[i % _dots.length];
                   final isLast = i == shown.length - 1;
-                  return _commitRow(c, dotColor, isLast);
+                  return _commitRow(c, dotColor, isLast, context);
                 }).toList(),
               ),
             ),
@@ -74,7 +74,7 @@ class CommitsSection extends StatelessWidget {
               Container(
                 width: 1,
                 margin: const EdgeInsets.symmetric(horizontal: 10),
-                color: _borderCol,
+                color: _borderCol(context),
               ),
 
               // ─── Right: Tech Stack ────────────────────
@@ -94,14 +94,14 @@ class CommitsSection extends StatelessWidget {
                               height: 4,
                               margin: const EdgeInsets.only(right: 6),
                               decoration: BoxDecoration(
-                                color: _text2,
+                                color: _text2(context),
                                 shape: BoxShape.circle,
                               ),
                             ),
                             Expanded(
                               child: Text(fw,
                                   style: TextStyle(
-                                      color: _text1,
+                                      color: _text1(context),
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500),
                                   maxLines: 1,
@@ -109,7 +109,7 @@ class CommitsSection extends StatelessWidget {
                             ),
                             Text('$count',
                                 style: TextStyle(
-                                    color: _text2,
+                                    color: _text2(context),
                                     fontSize: 10,
                                     fontFamily: 'monospace',
                                     fontWeight: FontWeight.w600)),
@@ -133,7 +133,7 @@ class CommitsSection extends StatelessWidget {
     );
   }
 
-  Widget _commitRow(CommitActivity c, Color dotColor, bool isLast) {
+  Widget _commitRow(CommitActivity c, Color dotColor, bool isLast, BuildContext context) {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +155,7 @@ class CommitsSection extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: 1,
-                      color: _borderCol,
+                      color: _borderCol(context),
                     ),
                   ),
               ],
@@ -170,7 +170,7 @@ class CommitsSection extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: _text1,
+                        color: _text1(context),
                         fontSize: 11,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 1),
@@ -185,7 +185,7 @@ class CommitsSection extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(_timeAgo(c.committedDate),
-                        style: TextStyle(color: _text2, fontSize: 9)),
+                        style: TextStyle(color: _text2(context), fontSize: 9)),
                     if (c.additions > 0 || c.deletions > 0) ...[
                       const SizedBox(width: 4),
                       Text('+${c.additions}',

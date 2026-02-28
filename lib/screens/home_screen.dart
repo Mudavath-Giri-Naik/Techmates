@@ -782,7 +782,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Container(
       width: 42,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       child: SingleChildScrollView(
         controller: _monthChipScrollController,
         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -800,10 +800,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   height: 32,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: _selectedMonth == 0 ? const Color(0xFF1C4D8D) : const Color(0xFFF3F4F6),
+                    color: _selectedMonth == 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: _selectedMonth == 0 ? const Color(0xFF1C4D8D) : const Color(0xFFE5E7EB),
+                      color: _selectedMonth == 0 ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E7EB),
                       width: 1,
                     ),
                   ),
@@ -812,7 +812,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 9.5,
                       fontWeight: _selectedMonth == 0 ? FontWeight.w700 : FontWeight.w500,
-                      color: _selectedMonth == 0 ? Colors.white : const Color(0xFF6B7280),
+                      color: _selectedMonth == 0 ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -834,10 +834,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     height: 32,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFFF3F4F6),
+                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFFE5E7EB),
+                        color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E7EB),
                         width: 1,
                       ),
                     ),
@@ -846,7 +846,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       style: TextStyle(
                         fontSize: 9.5,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                        color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -879,12 +879,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               "Internship Calendar 2026",
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF6B7280),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 letterSpacing: 0.8,
               ),
             ),
@@ -898,14 +898,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildEliteHeader() {
     if (_selectedMonth == 0) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.fromLTRB(18, 6, 18, 4),
         child: Text(
           'All Verified Internships',
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF6B7280),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             letterSpacing: 0.2,
           ),
         ),
@@ -916,10 +916,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.fromLTRB(18, 6, 18, 4),
       child: Text(
         'Verified Internships · $monthName $_selectedYear',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12.5,
           fontWeight: FontWeight.w500,
-          color: Color(0xFF6B7280),
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           letterSpacing: 0.2,
         ),
       ),
@@ -1233,15 +1233,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
              _onRefresh();
           }
         },
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1C4D8D),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 8,
         highlightElevation: 10,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
         ),
-        child: const Icon(Icons.add_rounded, size: 30, color: Color(0xFF1C4D8D)),
+        child: Icon(Icons.add_rounded, size: 30, color: Theme.of(context).colorScheme.primary),
       ) : null,
       child: SafeArea(
         bottom: false,
@@ -1251,8 +1251,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
             ),
             child: _isExploreSearching
                 ? Row(
@@ -1267,20 +1267,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
+                            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFF4B5563), width: 1.2),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.2),
                             ),
-                            prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF616161)),
+                            prefixIcon: Icon(Icons.search_rounded, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ),
                       ),
@@ -1290,17 +1290,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: const Color(0xFFE0E0E0),
+                              color: Theme.of(context).colorScheme.outlineVariant,
                               width: 1,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.close_rounded,
                             size: 16,
-                            color: Color(0xFF616161),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -1315,17 +1315,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: filterCount > 0 ? const Color(0xFF4B5563) : const Color(0xFFF5F5F5),
+                            color: filterCount > 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: filterCount > 0 ? const Color(0xFF4B5563) : const Color(0xFFE0E0E0),
+                              color: filterCount > 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
                               width: 1,
                             ),
                           ),
                           child: Icon(
                             Icons.tune_rounded,
                             size: 16,
-                            color: filterCount > 0 ? Colors.white : const Color(0xFF616161),
+                            color: filterCount > 0 ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -1355,7 +1355,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         color: Colors.transparent,
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
-                                          color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFFE5E5E5),
+                                          color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E5E5),
                                           width: 2,
                                         ),
                                       ),
@@ -1365,7 +1365,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                             TextSpan(
                                               text: category,
                                               style: TextStyle(
-                                                color: isSelected ? const Color(0xFF1C4D8D) : const Color(0xFF6B7280),
+                                                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
                                                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                                                 fontSize: 12.5,
                                                 letterSpacing: 0.1,
@@ -1375,7 +1375,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                               TextSpan(
                                                 text: " ($count)",
                                                 style: TextStyle(
-                                                  color: isSelected ? const Color(0xFF1C4D8D) : Colors.black,
+                                                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.black,
                                                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                                                   fontSize: 12.5,
                                                   letterSpacing: 0.1,
@@ -1399,17 +1399,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: _searchQuery.trim().isNotEmpty ? const Color(0xFF4B5563) : const Color(0xFFF5F5F5),
+                            color: _searchQuery.trim().isNotEmpty ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: _searchQuery.trim().isNotEmpty ? const Color(0xFF4B5563) : const Color(0xFFE0E0E0),
+                              color: _searchQuery.trim().isNotEmpty ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
                               width: 1,
                             ),
                           ),
                           child: Icon(
                             Icons.search_rounded,
                             size: 16,
-                            color: _searchQuery.trim().isNotEmpty ? Colors.white : const Color(0xFF616161),
+                            color: _searchQuery.trim().isNotEmpty ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -1427,7 +1427,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     // Left Sidebar (Months + Static Label)
                     Container(
                       width: 42,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       child: Column(
                         children: [
                           Expanded(
@@ -1468,11 +1468,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return _buildEmptyState();
     }
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       child: RefreshIndicator(
         onRefresh: _onRefresh,
         color: Colors.blue,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         displacement: 20,
         strokeWidth: 2.5,
         child: ListView.builder(
@@ -1524,7 +1524,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   children: [
                     Icon(isStatusTab ? Icons.restore : Icons.check_circle, color: Colors.white),
                     const SizedBox(width: 8),
-                    Text(isStatusTab ? "Restore" : "Applied", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text(isStatusTab ? "Restore" : "Applied", style: TextStyle(color: Theme.of(context).colorScheme.surface, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -1535,7 +1535,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(isStatusTab ? "Restore" : "Apply Later", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text(isStatusTab ? "Restore" : "Apply Later", style: TextStyle(color: Theme.of(context).colorScheme.surface, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
                     Icon(isStatusTab ? Icons.restore : Icons.bookmark, color: Colors.white),
                   ],
@@ -1710,7 +1710,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                margin: const EdgeInsets.all(32),
                padding: const EdgeInsets.all(24),
                decoration: BoxDecoration(
-                 color: Colors.white,
+                 color: Theme.of(context).colorScheme.surface,
                  borderRadius: BorderRadius.circular(16),
                  boxShadow: [
                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)

@@ -80,21 +80,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildDevCardTile() {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: ListTile(
         leading: const Icon(Icons.code_rounded, color: Color(0xFF8B5CF6)),
-        title: const Text(
+        title: Text(
           'Dev Card',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
         ),
-        subtitle: const Text('Your GitHub analytics'),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        subtitle: Text('Your GitHub analytics', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+        trailing: Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const DevCardScreen()),
         ),
@@ -108,24 +109,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const SizedBox.shrink();
     }
 
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: ListTile(
         leading: Icon(
           Icons.dashboard_outlined,
           color: roleService.isSuperAdmin ? const Color(0xFFDC2626) : const Color(0xFF1565C0),
         ),
-        title: const Text(
+        title: Text(
           'Dashboard',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
         ),
-        subtitle: Text(roleService.isSuperAdmin ? 'Super admin controls' : 'Admin controls'),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        subtitle: Text(
+          roleService.isSuperAdmin ? 'Super admin controls' : 'Admin controls',
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
         onTap: _openDashboard,
       ),
     );
@@ -156,21 +161,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text(
+        title: Text(
           'Profile',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         centerTitle: false,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

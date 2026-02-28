@@ -35,7 +35,9 @@ class _MainScreenState extends State<MainScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: isSelected ? Colors.black : const Color(0xFFBDBDBD),
+          color: isSelected 
+              ? Theme.of(context).colorScheme.onSurface 
+              : Theme.of(context).colorScheme.outline,
           width: isSelected ? 2 : 1.5,
         ),
       ),
@@ -44,16 +46,16 @@ class _MainScreenState extends State<MainScreen> {
             ? Image.network(
                 avatarUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
+                errorBuilder: (_, __, ___) => Icon(
                   Icons.person,
                   size: 16,
-                  color: Color(0xFFBDBDBD),
+                  color: Theme.of(context).colorScheme.outline,
                 ),
               )
-            : const Icon(
+            : Icon(
                 Icons.person,
                 size: 16,
-                color: Color(0xFFBDBDBD),
+                color: Theme.of(context).colorScheme.outline,
               ),
       ),
     );
@@ -67,55 +69,56 @@ class _MainScreenState extends State<MainScreen> {
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
           border: Border(
             top: BorderSide(
-              color: Color(0xFFF0F0F0),
-              width: 1,
+              color: Theme.of(context).colorScheme.outlineVariant,
+              width: 0.5,
             ),
           ),
         ),
-        child: SizedBox(
-          height: 60,
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            selectedItemColor: Colors.black,
-            unselectedItemColor: const Color(0xFFBDBDBD),
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
-            elevation: 0,
-            iconSize: 26,
-            items: [
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: '',
+        child: NavigationBar(
+          height: 72,
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) =>
+              setState(() => _currentIndex = index),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: [
+            const NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.group_outlined),
+              selectedIcon: Icon(Icons.group_rounded),
+              label: 'Network',
+            ),
+            NavigationDestination(
+              icon: Badge(
+                smallSize: 8,
+                backgroundColor: Theme.of(context).colorScheme.error,
+                child: const Icon(Icons.work_outline_rounded),
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                activeIcon: Icon(Icons.people),
-                label: '',
+              selectedIcon: Badge(
+                smallSize: 8,
+                backgroundColor: Theme.of(context).colorScheme.error,
+                child: const Icon(Icons.work_rounded),
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.work_outline),
-                activeIcon: Icon(Icons.work),
-                label: '',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.bolt_outlined),
-                activeIcon: Icon(Icons.bolt),
-                label: '',
-              ),
-              BottomNavigationBarItem(
-                icon: _buildAvatarIcon(isSelected: _currentIndex == 4),
-                label: '',
-              ),
-            ],
-          ),
+              label: 'Explore',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.bolt_outlined),
+              selectedIcon: Icon(Icons.bolt_rounded),
+              label: 'Compete',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'Profile',
+            ),
+          ],
         ),
       ),
     );

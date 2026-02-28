@@ -99,7 +99,7 @@ class _SmartAvatarState extends State<SmartAvatar> {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
@@ -127,7 +127,7 @@ class _SmartAvatarState extends State<SmartAvatar> {
                       border: Border.all(color: Colors.grey.shade300),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         )

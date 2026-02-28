@@ -31,17 +31,17 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
     with SingleTickerProviderStateMixin {
 
   // ── Palette ───────────────────────────────────────────────────────────────
-  static const _ink     = Color(0xFF0A0A0A);
-  static const _ink2    = Color(0xFF3D3D3D);
-  static const _blue    = Color(0xFF1D4ED8);
-  static const _blueL   = Color(0xFFEFF6FF);
-  static const _red     = Color(0xFFDC2626);
-  static const _green   = Color(0xFF15803D);
-  static const _greenL  = Color(0xFFF0FDF4);
-  static const _muted   = Color(0xFF9CA3AF);
-  static const _border  = Color(0xFFE5E7EB);
-  static const _borderD = Color(0xFFD1D5DB);
-  static const _bg      = Color(0xFFF3F4F6);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _ink2(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _blue(BuildContext context) => Theme.of(context).colorScheme.primary;
+  Color _blueL(BuildContext context) => Theme.of(context).colorScheme.primaryContainer;
+  Color _red(BuildContext context) => Theme.of(context).colorScheme.error;
+  Color _green(BuildContext context) => const Color(0xFF15803D); // Success green usually constant but could use secondary
+  Color _greenL(BuildContext context) => const Color(0xFFF0FDF4);
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _borderD(BuildContext context) => Theme.of(context).colorScheme.outline;
+  Color _bg(BuildContext context) => Theme.of(context).colorScheme.surface;
 
   // ── Services ──────────────────────────────────────────────────────────────
   final _college = CollegeService();
@@ -372,7 +372,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(m, style: GoogleFonts.dmSans(fontSize: 13)),
-      backgroundColor: ok ? _green : _red,
+      backgroundColor: ok ? _green(context) : _red(context),
       behavior: SnackBarBehavior.floating,
       margin: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -387,7 +387,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: _border),
+          side: BorderSide(color: _border(context)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -395,22 +395,22 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             Container(
               width: 48, height: 48,
               decoration: BoxDecoration(
-                border: Border.all(color: _border, width: 1.5),
+                border: Border.all(color: _border(context), width: 1.5),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.info_outline_rounded, size: 22, color: _blue),
+              child: Icon(Icons.info_outline_rounded, size: 22, color: _blue(context)),
             ),
             const SizedBox(height: 14),
             Text('College not found',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 15, fontWeight: FontWeight.w800, color: _ink)),
+                fontSize: 15, fontWeight: FontWeight.w800, color: _ink(context))),
             const SizedBox(height: 8),
             Text(
               'Your email was verified successfully!\n\n'
               "Your college isn't in our database yet, but our team will add it soon. "
               'You can continue right now.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.dmSans(fontSize: 13, color: _ink2, height: 1.55),
+              style: GoogleFonts.dmSans(fontSize: 13, color: _ink2(context), height: 1.55),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -418,7 +418,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue, foregroundColor: Colors.white,
+                  backgroundColor: _blue(context), foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(
@@ -443,7 +443,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: _border),
+          side: BorderSide(color: _border(context)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -451,26 +451,26 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             Container(
               width: 48, height: 48,
               decoration: BoxDecoration(
-                border: Border.all(color: _border, width: 1.5),
+                border: Border.all(color: _border(context), width: 1.5),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.nights_stay_outlined, size: 22, color: _ink2),
+              child: Icon(Icons.nights_stay_outlined, size: 22, color: _ink2(context)),
             ),
             const SizedBox(height: 14),
             Text('Daily limit reached',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 15, fontWeight: FontWeight.w800, color: _ink)),
+                fontSize: 15, fontWeight: FontWeight.w800, color: _ink(context))),
             const SizedBox(height: 6),
             Text("You've hit the daily OTP limit. Try again tomorrow.",
               textAlign: TextAlign.center,
-              style: GoogleFonts.dmSans(fontSize: 13, color: _muted, height: 1.5)),
+              style: GoogleFonts.dmSans(fontSize: 13, color: _muted(context), height: 1.5)),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _ink, foregroundColor: Colors.white,
+                  backgroundColor: _ink(context), foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(
@@ -494,7 +494,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: _bg(context),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -543,14 +543,14 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: _border, width: 1.2),
+            border: Border.all(color: _border(context), width: 1.2),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.arrow_back_rounded, size: 14, color: _ink2),
+            Icon(Icons.arrow_back_rounded, size: 14, color: _ink2(context)),
             const SizedBox(width: 6),
             Text('Back',
               style: GoogleFonts.dmSans(
-                fontSize: 12, fontWeight: FontWeight.w600, color: _ink2)),
+                fontSize: 12, fontWeight: FontWeight.w600, color: _ink2(context))),
           ]),
         ),
       ),
@@ -563,17 +563,17 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   Widget _stepDots() {
     return Row(mainAxisSize: MainAxisSize.min, children: [
       // Step 1 — completed
-      _dot(filled: true, color: _green),
+      _dot(filled: true, color: _green(context)),
       const SizedBox(width: 4),
-      Text('·', style: GoogleFonts.dmSans(color: _muted, fontSize: 14)),
+      Text('·', style: GoogleFonts.dmSans(color: _muted(context), fontSize: 14)),
       const SizedBox(width: 4),
       // Step 2 — active
-      _dot(filled: true, color: _blue),
+      _dot(filled: true, color: _blue(context)),
       const SizedBox(width: 4),
-      Text('·', style: GoogleFonts.dmSans(color: _muted, fontSize: 14)),
+      Text('·', style: GoogleFonts.dmSans(color: _muted(context), fontSize: 14)),
       const SizedBox(width: 4),
       // Step 3 — pending
-      _dot(filled: false, color: _borderD),
+      _dot(filled: false, color: _borderD(context)),
     ]);
   }
 
@@ -599,20 +599,20 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             RichText(
               text: TextSpan(
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5, color: _ink, fontWeight: FontWeight.w700),
+                  fontSize: 13.5, color: _ink(context), fontWeight: FontWeight.w700),
                 children: [
                   const TextSpan(text: 'Hey '),
                   TextSpan(
                     text: _dispName.isEmpty
                         ? 'there'
                         : _dispName.split(' ').first,
-                    style: const TextStyle(color: _blue)),
+                    style: TextStyle(color: _blue(context))),
                   const TextSpan(text: ' 👋'),
                 ],
               ),
             ),
             Text('Just a few details and you\'re in.',
-              style: GoogleFonts.dmSans(fontSize: 11.5, color: _muted)),
+              style: GoogleFonts.dmSans(fontSize: 11.5, color: _muted(context))),
           ],
         ),
       ),
@@ -630,7 +630,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
       width: 36, height: 36,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: _border, width: 1.5),
+        border: Border.all(color: _border(context), width: 1.5),
       ),
       child: ClipOval(child: url != null
         ? CachedNetworkImage(imageUrl: url, fit: BoxFit.cover,
@@ -643,18 +643,18 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   Widget _outsideFooter() => Center(
     child: Column(children: [
       Row(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.lock_outline_rounded, size: 11, color: _muted),
+        Icon(Icons.lock_outline_rounded, size: 11, color: _muted(context)),
         const SizedBox(width: 4),
         Text('Your data is private and never shared',
-          style: GoogleFonts.dmSans(fontSize: 11, color: _muted)),
+          style: GoogleFonts.dmSans(fontSize: 11, color: _muted(context))),
       ]),
       const SizedBox(height: 5),
       Row(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 5, height: 5,
-          decoration: const BoxDecoration(color: _green, shape: BoxShape.circle)),
+          decoration: BoxDecoration(color: _green(context), shape: BoxShape.circle)),
         const SizedBox(width: 5),
         Text('College verification keeps the community authentic',
-          style: GoogleFonts.dmSans(fontSize: 11, color: _muted)),
+          style: GoogleFonts.dmSans(fontSize: 11, color: _muted(context))),
       ]),
     ]),
   );
@@ -702,7 +702,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                 Center(
                   child: Text(
                     'By joining you agree to our Terms & Privacy Policy',
-                    style: GoogleFonts.dmSans(fontSize: 10.5, color: _muted),
+                    style: GoogleFonts.dmSans(fontSize: 10.5, color: _muted(context)),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -720,24 +720,24 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
 
   Widget _cardTopStrip() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-    decoration: const BoxDecoration(
-      border: Border(bottom: BorderSide(color: _border, width: 1)),
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    decoration: BoxDecoration(
+      border: Border(bottom: BorderSide(color: _border(context), width: 1)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
     ),
     child: Row(children: [
       Row(children: [
         Container(width: 7, height: 7,
-          decoration: const BoxDecoration(color: _red, shape: BoxShape.circle)),
+          decoration: BoxDecoration(color: _red(context), shape: BoxShape.circle)),
         const SizedBox(width: 4),
         Container(width: 7, height: 7,
-          decoration: const BoxDecoration(color: _blue, shape: BoxShape.circle)),
+          decoration: BoxDecoration(color: _blue(context), shape: BoxShape.circle)),
         const SizedBox(width: 9),
         RichText(text: TextSpan(
           style: GoogleFonts.plusJakartaSans(
             fontSize: 15.5, fontWeight: FontWeight.w800, letterSpacing: -0.4),
-          children: const [
-            TextSpan(text: 'Tech', style: TextStyle(color: _ink)),
-            TextSpan(text: 'mates', style: TextStyle(color: _blue)),
+          children: [
+            TextSpan(text: 'Tech', style: TextStyle(color: _ink(context))),
+            TextSpan(text: 'mates', style: TextStyle(color: _blue(context))),
           ],
         )),
       ]),
@@ -747,12 +747,12 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            border: Border.all(color: _border, width: 1.2),
+            border: Border.all(color: _border(context), width: 1.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text('Switch',
             style: GoogleFonts.dmSans(
-              fontSize: 12, fontWeight: FontWeight.w600, color: _ink2)),
+              fontSize: 12, fontWeight: FontWeight.w600, color: _ink2(context))),
         ),
       ),
     ]),
@@ -770,7 +770,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         width: 28, height: 28,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: _border, width: 1.2),
+          border: Border.all(color: _border(context), width: 1.2),
         ),
         child: ClipOval(child: url != null
           ? CachedNetworkImage(imageUrl: url, fit: BoxFit.cover,
@@ -780,15 +780,15 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
       const SizedBox(width: 8),
       Text(name.isEmpty ? 'You' : name.split(' ').first,
         style: GoogleFonts.dmSans(
-          fontSize: 12.5, fontWeight: FontWeight.w600, color: _ink)),
+          fontSize: 12.5, fontWeight: FontWeight.w600, color: _ink(context))),
     ]);
   }
 
   Widget _iniBox(String ini, double s) => Container(
-    color: _blueL,
+    color: _blueL(context),
     child: Center(child: Text(ini,
       style: GoogleFonts.plusJakartaSans(
-        fontSize: s * 0.38, fontWeight: FontWeight.w800, color: _blue))));
+        fontSize: s * 0.38, fontWeight: FontWeight.w800, color: _blue(context)))));
 
   // ─────────────────────────────────────────────────────────────────────────
   //  Page header (unchanged)
@@ -804,10 +804,10 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             Text("You're invited 🎉",
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 19, fontWeight: FontWeight.w800,
-                color: _ink, letterSpacing: -0.5)),
+                color: _ink(context), letterSpacing: -0.5)),
             const SizedBox(height: 3),
             Text('Complete your profile to join the community',
-              style: GoogleFonts.dmSans(fontSize: 12.5, color: _muted)),
+              style: GoogleFonts.dmSans(fontSize: 12.5, color: _muted(context))),
           ],
         ),
       ),
@@ -815,21 +815,21 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _border),
+          border: Border.all(color: _border(context)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 5, height: 5,
-            decoration: const BoxDecoration(color: _blue, shape: BoxShape.circle)),
+            decoration: BoxDecoration(color: _blue(context), shape: BoxShape.circle)),
           const SizedBox(width: 5),
           Text('Onboarding',
             style: GoogleFonts.dmSans(
-              fontSize: 10.5, color: _muted, fontWeight: FontWeight.w500)),
+              fontSize: 10.5, color: _muted(context), fontWeight: FontWeight.w500)),
         ]),
       ),
     ],
   );
 
-  Widget _divider() => Container(height: 1, color: _border);
+  Widget _divider() => Container(height: 1, color: _border(context));
 
   // ─────────────────────────────────────────────────────────────────────────
   //  Shared widget helpers (unchanged)
@@ -839,7 +839,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
     width: 40, height: 40,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: _border, width: 1.2),
+      border: Border.all(color: _border(context), width: 1.2),
     ),
     child: Icon(icon, size: 18, color: color),
   );
@@ -850,7 +850,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border, width: 1.1),
+        border: Border.all(color: _border(context), width: 1.1),
       ),
       alignment: Alignment.centerLeft,
       child: child,
@@ -858,11 +858,11 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   );
 
   TextStyle _ts() =>
-      GoogleFonts.dmSans(fontSize: 13.5, fontWeight: FontWeight.w500, color: _ink);
+      GoogleFonts.dmSans(fontSize: 13.5, fontWeight: FontWeight.w500, color: _ink(context));
 
   InputDecoration _dec(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+    hintStyle: GoogleFonts.dmSans(color: _muted(context), fontSize: 13),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(vertical: 3),
     border: InputBorder.none,
@@ -877,7 +877,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   Widget _nameRow() => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      _iconBox(Icons.person_outline_rounded, _blue),
+      _iconBox(Icons.person_outline_rounded, _blue(context)),
       const SizedBox(width: 10),
       _fieldBox(TextField(
         controller: _nameCtrl,
@@ -891,7 +891,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   Widget _githubRow() => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      _iconBox(Icons.code_rounded, _ink2),
+      _iconBox(Icons.code_rounded, _ink2(context)),
       const SizedBox(width: 10),
       _fieldBox(TextField(
         controller: _githubCtrl,
@@ -904,7 +904,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   Widget _linkedinRow() => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      _iconBox(Icons.link_rounded, _ink2),
+      _iconBox(Icons.link_rounded, _ink2(context)),
       const SizedBox(width: 10),
       _fieldBox(TextField(
         controller: _linkedinCtrl,
@@ -917,7 +917,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   Widget _batchRow() => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      _iconBox(Icons.calendar_month_outlined, _blue),
+      _iconBox(Icons.calendar_month_outlined, _blue(context)),
       const SizedBox(width: 10),
       Expanded(
         child: Row(
@@ -930,7 +930,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _border, width: 1.1),
+                  border: Border.all(color: _border(context), width: 1.1),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(
@@ -938,36 +938,36 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
                       fontWeight: _from != null ? FontWeight.w600 : FontWeight.w400,
-                      color: _from != null ? _ink : _muted),
+                      color: _from != null ? _ink(context) : _muted(context)),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(Icons.unfold_more_rounded, size: 14, color: _muted),
+                  Icon(Icons.unfold_more_rounded, size: 14, color: _muted(context)),
                 ]),
               ),
             ),
             if (_from != null) ...[
               const SizedBox(width: 8),
               Text('→',
-                style: GoogleFonts.dmSans(fontSize: 13, color: _muted)),
+                style: GoogleFonts.dmSans(fontSize: 13, color: _muted(context))),
               const SizedBox(width: 8),
               Text('$_to',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14, fontWeight: FontWeight.w800,
-                  color: _blue, letterSpacing: -0.4)),
+                  color: _blue(context), letterSpacing: -0.4)),
               const SizedBox(width: 8),
               Flexible(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _blue.withOpacity(0.2)),
-                    color: _blueL,
+                    border: Border.all(color: _blue(context).withOpacity(0.2)),
+                    color: _blueL(context),
                   ),
                   child: Text(
                     _yearLabel,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.dmSans(
-                      fontSize: 10.5, fontWeight: FontWeight.w600, color: _blue),
+                      fontSize: 10.5, fontWeight: FontWeight.w600, color: _blue(context)),
                   ),
                 ),
               ),
@@ -994,22 +994,22 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
           Center(child: Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: _border, borderRadius: BorderRadius.circular(2)))),
+              color: _border(context), borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 14),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
               Text('Select Start Year',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
+                  fontSize: 16, fontWeight: FontWeight.w800, color: _ink(context))),
               const Spacer(),
               GestureDetector(
                 onTap: () => Navigator.pop(ctx),
-                child: const Icon(Icons.close_rounded, size: 20, color: _muted)),
+                child: Icon(Icons.close_rounded, size: 20, color: _muted(context))),
             ]),
           ),
           const SizedBox(height: 10),
-          Container(height: 0.6, color: _border),
+          Container(height: 0.6, color: _border(context)),
           Flexible(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1025,7 +1025,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 13),
-                    color: selected ? _blueL : Colors.transparent,
+                    color: selected ? _blueL(context) : Colors.transparent,
                     child: Row(children: [
                       Expanded(
                         child: Text('$y  →  ${y + 4}',
@@ -1033,10 +1033,10 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                             fontSize: 14,
                             fontWeight: selected
                               ? FontWeight.w700 : FontWeight.w500,
-                            color: selected ? _blue : _ink)),
+                            color: selected ? _blue(context) : _ink(context))),
                       ),
                       if (selected)
-                        const Icon(Icons.check_rounded, size: 18, color: _blue),
+                        Icon(Icons.check_rounded, size: 18, color: _blue(context)),
                     ]),
                   ),
                 );
@@ -1051,7 +1051,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   Widget _branchRow() => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      _iconBox(Icons.science_outlined, _blue),
+      _iconBox(Icons.science_outlined, _blue(context)),
       const SizedBox(width: 10),
       Expanded(
         child: GestureDetector(
@@ -1061,7 +1061,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _border, width: 1.1),
+              border: Border.all(color: _border(context), width: 1.1),
             ),
             child: Row(children: [
               Expanded(
@@ -1071,10 +1071,10 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                   style: GoogleFonts.dmSans(
                     fontSize: 13,
                     fontWeight: _branch != null ? FontWeight.w600 : FontWeight.w400,
-                    color: _branch != null ? _ink : _muted),
+                    color: _branch != null ? _ink(context) : _muted(context)),
                 ),
               ),
-              const Icon(Icons.unfold_more_rounded, size: 14, color: _muted),
+              Icon(Icons.unfold_more_rounded, size: 14, color: _muted(context)),
             ]),
           ),
         ),
@@ -1099,7 +1099,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
           Center(child: Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: _border, borderRadius: BorderRadius.circular(2)))),
+              color: _border(context), borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 14),
           // Title
           Padding(
@@ -1107,15 +1107,15 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             child: Row(children: [
               Text('Select Branch',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
+                  fontSize: 16, fontWeight: FontWeight.w800, color: _ink(context))),
               const Spacer(),
               GestureDetector(
                 onTap: () => Navigator.pop(ctx),
-                child: const Icon(Icons.close_rounded, size: 20, color: _muted)),
+                child: Icon(Icons.close_rounded, size: 20, color: _muted(context))),
             ]),
           ),
           const SizedBox(height: 10),
-          Container(height: 0.6, color: _border),
+          Container(height: 0.6, color: _border(context)),
           // List
           Flexible(
             child: ListView.builder(
@@ -1132,7 +1132,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 13),
-                    color: selected ? _blueL : Colors.transparent,
+                    color: selected ? _blueL(context) : Colors.transparent,
                     child: Row(children: [
                       Expanded(
                         child: Text(b,
@@ -1140,10 +1140,10 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                             fontSize: 14,
                             fontWeight: selected
                               ? FontWeight.w700 : FontWeight.w500,
-                            color: selected ? _blue : _ink)),
+                            color: selected ? _blue(context) : _ink(context))),
                       ),
                       if (selected)
-                        const Icon(Icons.check_rounded, size: 18, color: _blue),
+                        Icon(Icons.check_rounded, size: 18, color: _blue(context)),
                     ]),
                   ),
                 );
@@ -1172,7 +1172,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
     mainAxisSize: MainAxisSize.min,
     children: [
       Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        _iconBox(Icons.school_outlined, _red),
+        _iconBox(Icons.school_outlined, _red(context)),
         const SizedBox(width: 10),
         Expanded(
           child: Container(
@@ -1181,10 +1181,10 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: _emailErr != null ? _red : _border, width: 1.1),
+                color: _emailErr != null ? _red(context) : _border(context), width: 1.1),
             ),
             child: Row(children: [
-              const Icon(Icons.alternate_email_rounded, size: 15, color: _muted),
+              Icon(Icons.alternate_email_rounded, size: 15, color: _muted(context)),
               const SizedBox(width: 7),
               Expanded(
                 child: TextField(
@@ -1209,15 +1209,15 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: _sending ? _border : _blue, width: 1.2),
+                color: _sending ? _border(context) : _blue(context), width: 1.2),
             ),
             child: Center(
               child: _sending
-                ? const SizedBox(width: 15, height: 15,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+                ? SizedBox(width: 15, height: 15,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: _blue(context)))
                 : Text('Verify',
                     style: GoogleFonts.dmSans(
-                      fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+                      fontSize: 13, fontWeight: FontWeight.w700, color: _blue(context))),
             ),
           ),
         ),
@@ -1226,12 +1226,12 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         Padding(
           padding: const EdgeInsets.only(top: 5, left: 50),
           child: Row(children: [
-            const Icon(Icons.error_outline_rounded, size: 12, color: _red),
+            Icon(Icons.error_outline_rounded, size: 12, color: _red(context)),
             const SizedBox(width: 4),
             Flexible(
               child: Text(_emailErr!,
                 style: GoogleFonts.dmSans(
-                  fontSize: 11, color: _red, fontWeight: FontWeight.w500)),
+                  fontSize: 11, color: _red(context), fontWeight: FontWeight.w500)),
             ),
           ]),
         )
@@ -1239,11 +1239,11 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         Padding(
           padding: const EdgeInsets.only(top: 5, left: 50),
           child: Row(children: [
-            const Icon(Icons.lock_outline_rounded, size: 11, color: _muted),
+            Icon(Icons.lock_outline_rounded, size: 11, color: _muted(context)),
             const SizedBox(width: 4),
             Flexible(
               child: Text('Official college emails only — not Gmail or Yahoo',
-                style: GoogleFonts.dmSans(fontSize: 11, color: _muted)),
+                style: GoogleFonts.dmSans(fontSize: 11, color: _muted(context))),
             ),
           ]),
         ),
@@ -1255,7 +1255,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
     mainAxisSize: MainAxisSize.min,
     children: [
       Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        _iconBox(Icons.mark_email_read_outlined, _blue),
+        _iconBox(Icons.mark_email_read_outlined, _blue(context)),
         const SizedBox(width: 10),
         Expanded(
           child: Container(
@@ -1263,12 +1263,12 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _border, width: 1.1),
+              border: Border.all(color: _border(context), width: 1.1),
             ),
             child: Row(children: [
               Expanded(
                 child: Text(_emailCtrl.text,
-                  style: GoogleFonts.firaCode(fontSize: 12, color: _ink),
+                  style: GoogleFonts.firaCode(fontSize: 12, color: _ink(context)),
                   overflow: TextOverflow.ellipsis),
               ),
               GestureDetector(
@@ -1279,7 +1279,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
                 }),
                 child: Text('Change',
                   style: GoogleFonts.dmSans(
-                    fontSize: 12, color: _blue, fontWeight: FontWeight.w600)),
+                    fontSize: 12, color: _blue(context), fontWeight: FontWeight.w600)),
               ),
             ]),
           ),
@@ -1299,30 +1299,30 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
       Padding(
         padding: const EdgeInsets.only(left: 50),
         child: _verifying
-          ? const SizedBox(width: 15, height: 15,
-              child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+          ? SizedBox(width: 15, height: 15,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _blue(context)))
           : _countdown > 0
             ? Text('Resend in ${_countdown}s',
-                style: GoogleFonts.dmSans(fontSize: 12, color: _muted))
+                style: GoogleFonts.dmSans(fontSize: 12, color: _muted(context)))
             : GestureDetector(
                 onTap: _resend,
                 child: Text('Resend Code',
                   style: GoogleFonts.dmSans(
-                    fontSize: 12, color: _blue, fontWeight: FontWeight.w700,
+                    fontSize: 12, color: _blue(context), fontWeight: FontWeight.w700,
                     decoration: TextDecoration.underline,
-                    decorationColor: _blue)),
+                    decorationColor: _blue(context))),
               ),
       ),
       if (_otpErr != null)
         Padding(
           padding: const EdgeInsets.only(top: 5, left: 50),
           child: Row(children: [
-            const Icon(Icons.error_outline_rounded, size: 12, color: _red),
+            Icon(Icons.error_outline_rounded, size: 12, color: _red(context)),
             const SizedBox(width: 4),
             Flexible(
               child: Text(_otpErr!,
                 style: GoogleFonts.dmSans(
-                  fontSize: 11, color: _red, fontWeight: FontWeight.w500)),
+                  fontSize: 11, color: _red(context), fontWeight: FontWeight.w500)),
             ),
           ]),
         ),
@@ -1340,7 +1340,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(9),
             border: Border.all(
-              color: _otpErr != null ? _red : _borderD, width: 1.2),
+              color: _otpErr != null ? _red(context) : _borderD(context), width: 1.2),
           ),
           child: TextField(
             controller: _dig[i],
@@ -1351,7 +1351,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (v) => _onDigitChanged(i, v),
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 17, fontWeight: FontWeight.w800, color: _ink),
+              fontSize: 17, fontWeight: FontWeight.w800, color: _ink(context)),
             decoration: const InputDecoration(
               counterText: '',
               isDense: false,
@@ -1373,10 +1373,10 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
           width: 40, height: 40,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _green.withOpacity(0.35), width: 1.2),
-            color: _greenL,
+            border: Border.all(color: _green(context).withOpacity(0.35), width: 1.2),
+            color: _greenL(context),
           ),
-          child: const Icon(Icons.verified_rounded, size: 18, color: _green),
+          child: Icon(Icons.verified_rounded, size: 18, color: _green(context)),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -1385,30 +1385,30 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _green.withOpacity(0.3), width: 1.1),
-              color: _greenL,
+              border: Border.all(color: _green(context).withOpacity(0.3), width: 1.1),
+              color: _greenL(context),
             ),
             child: Row(children: [
               Expanded(
                 child: Text(_verifiedEmail ?? '',
-                  style: GoogleFonts.firaCode(fontSize: 12, color: _green),
+                  style: GoogleFonts.firaCode(fontSize: 12, color: _green(context)),
                   overflow: TextOverflow.ellipsis),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _green.withOpacity(0.4)),
+                  border: Border.all(color: _green(context).withOpacity(0.4)),
                   color: Colors.white,
                 ),
                 child: Text('Verified',
                   style: GoogleFonts.dmSans(
-                    fontSize: 9.5, fontWeight: FontWeight.w700, color: _green)),
+                    fontSize: 9.5, fontWeight: FontWeight.w700, color: _green(context))),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: _resetEmail,
-                child: const Icon(Icons.close_rounded, size: 14, color: _muted),
+                child: Icon(Icons.close_rounded, size: 14, color: _muted(context)),
               ),
             ]),
           ),
@@ -1418,13 +1418,13 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         Padding(
           padding: const EdgeInsets.only(top: 7, left: 50),
           child: Row(children: [
-            const Icon(Icons.school_outlined, size: 12, color: _blue),
+            Icon(Icons.school_outlined, size: 12, color: _blue(context)),
             const SizedBox(width: 5),
             Flexible(
               child: Text(_colName!,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.dmSans(
-                  fontSize: 12, fontWeight: FontWeight.w700, color: _ink2)),
+                  fontSize: 12, fontWeight: FontWeight.w700, color: _ink2(context))),
             ),
           ]),
         ),
@@ -1444,7 +1444,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: ok ? _ink : const Color(0xFFCBD5E1),
+          color: ok ? _ink(context) : const Color(0xFFCBD5E1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Center(

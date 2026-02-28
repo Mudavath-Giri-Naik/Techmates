@@ -10,12 +10,12 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  static const Color _ink = Color(0xFF0D0D1A);
-  static const Color _muted = Color(0xFF6B7280);
-  static const Color _blue = Color(0xFF2563EB);
-  static const Color _red = Color(0xFFEF4444);
-  static const Color _border = Color(0xFFE5E7EB);
-  static const Color _fieldBg = Color(0xFFF9FAFB);
+  Color _ink(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _muted(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _blue(BuildContext context) => Theme.of(context).colorScheme.primary;
+  Color _red(BuildContext context) => Theme.of(context).colorScheme.error;
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
+  Color _fieldBg(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -69,7 +69,7 @@ class _SignupScreenState extends State<SignupScreen> {
           SnackBar(
             content: Text(errorMsg),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: _red,
+            backgroundColor: _red(context),
           ),
         );
       }
@@ -81,7 +81,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
@@ -95,9 +95,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _border, width: 0.8),
+                    border: Border.all(color: _border(context), width: 0.8),
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: _ink),
+                  child: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: _ink(context)),
                 ),
               ),
               const SizedBox(height: 28),
@@ -105,11 +105,11 @@ class _SignupScreenState extends State<SignupScreen> {
               // ── Brand ──
               Center(
                 child: RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1),
                     children: [
-                      TextSpan(text: 'Tech', style: TextStyle(color: _red)),
-                      TextSpan(text: 'mates', style: TextStyle(color: _blue)),
+                      TextSpan(text: 'Tech', style: TextStyle(color: _red(context))),
+                      TextSpan(text: 'mates', style: TextStyle(color: _blue(context))),
                     ],
                   ),
                 ),
@@ -117,26 +117,27 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 32),
 
               // ── Heading ──
-              const Text(
+              Text(
                 "Create account",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: _ink,
+                  color: _ink(context),
                   letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 "Join the student community for opportunities",
-                style: TextStyle(fontSize: 13, color: _muted),
+                style: TextStyle(fontSize: 13, color: _muted(context)),
               ),
               const SizedBox(height: 28),
 
               // ── Email field ──
-              _label("College Email"),
+              _label(context, "College Email"),
               const SizedBox(height: 6),
               _field(
+                context: context,
                 controller: _emailController,
                 hint: "you@college.edu.in",
                 icon: Icons.school_outlined,
@@ -145,9 +146,10 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 18),
 
               // ── Password field ──
-              _label("Password"),
+              _label(context, "Password"),
               const SizedBox(height: 6),
               _field(
+                context: context,
                 controller: _passwordController,
                 hint: "min. 6 characters",
                 icon: Icons.lock_outline_rounded,
@@ -162,7 +164,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: _red,
+                    color: _red(context),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
@@ -187,19 +189,19 @@ class _SignupScreenState extends State<SignupScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _blue.withOpacity(0.2), width: 0.8),
+                  border: Border.all(color: _blue(context).withOpacity(0.2), width: 0.8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline_rounded, size: 16, color: _blue),
+                    Icon(Icons.info_outline_rounded, size: 16, color: _blue(context)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         "Use your college email for better curation and verification.",
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: _blue.withOpacity(0.8),
+                          color: _blue(context).withOpacity(0.8),
                           height: 1.4,
                           fontWeight: FontWeight.w500,
                         ),
@@ -214,19 +216,19 @@ class _SignupScreenState extends State<SignupScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     "Already have an account?",
-                    style: TextStyle(fontSize: 12, color: _muted),
+                    style: TextStyle(fontSize: 12, color: _muted(context)),
                   ),
                   const SizedBox(width: 4),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Text(
+                    child: Text(
                       "Sign In",
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: _blue,
+                        color: _blue(context),
                       ),
                     ),
                   ),
@@ -242,19 +244,20 @@ class _SignupScreenState extends State<SignupScreen> {
 
   // ── Helpers ──
 
-  Widget _label(String text) {
+  Widget _label(BuildContext context, String text) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w700,
-        color: _muted,
+        color: _muted(context),
         letterSpacing: 1,
       ),
     );
   }
 
   Widget _field({
+    required BuildContext context,
     required TextEditingController controller,
     required String hint,
     required IconData icon,
@@ -263,26 +266,26 @@ class _SignupScreenState extends State<SignupScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: _fieldBg,
+        color: _fieldBg(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border, width: 0.8),
+        border: Border.all(color: _border(context), width: 0.8),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && !_isPasswordVisible,
         keyboardType: keyboardType,
-        style: const TextStyle(fontSize: 14, color: _ink, fontWeight: FontWeight.w500),
+        style: TextStyle(fontSize: 14, color: _ink(context), fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Color(0xFFB0B7C3), fontSize: 13),
-          prefixIcon: Icon(icon, size: 18, color: _muted),
+          prefixIcon: Icon(icon, size: 18, color: _muted(context)),
           suffixIcon: isPassword
               ? GestureDetector(
                   onTap: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                   child: Icon(
                     _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                     size: 18,
-                    color: _muted,
+                    color: _muted(context),
                   ),
                 )
               : null,

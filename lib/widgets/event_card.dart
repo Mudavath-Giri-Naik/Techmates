@@ -32,46 +32,46 @@ class _EventCardState extends State<EventCard> {
   final BookmarkService _bookmarkService = BookmarkService();
   bool _isSaved = false;
 
-  static const Color _surface      = Color(0xFFFAF8F4);
-  static const Color _stubSurface  = Color(0xFFF3F0EA);
-  static const Color _inkDeep      = Color(0xFF1C1C1E);
-  static const Color _inkMid       = Color(0xFF5C5C5E);
-  static const Color _inkFaint     = Color(0xFFB0AAA0);
-  static const Color _amber        = Color(0xFFC8862A);
-  static const Color _danger       = Color(0xFFA0291E);
-  static const Color _success      = Color(0xFF2A6B3E);
-  static const Color _border       = Color(0xFFD8D2C8);
+  Color _surface(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _stubSurface(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
+  Color _inkDeep(BuildContext context) => Theme.of(context).colorScheme.onSurface;
+  Color _inkMid(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _inkFaint(BuildContext context) => Theme.of(context).colorScheme.outline;
+  Color _amber(BuildContext context) => const Color(0xFFC8862A); // Gold/Amber usually OK
+  Color _danger(BuildContext context) => Theme.of(context).colorScheme.error;
+  Color _success(BuildContext context) => const Color(0xFF2A6B3E); // Success green
+  Color _border(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
-  TextStyle get _styleTitle => const TextStyle(
+  TextStyle get _styleTitle => TextStyle(
     fontFamily: 'PlayfairDisplay',
     fontSize: 19,
     fontWeight: FontWeight.w700,
-    color: _inkDeep,
+    color: _inkDeep(context),
     height: 1.15,
     letterSpacing: -0.2,
   );
 
-  TextStyle get _styleMicro => const TextStyle(
+  TextStyle get _styleMicro => TextStyle(
     fontFamily: 'CourierPrime',
     fontSize: 9,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.6,
-    color: _inkMid,
+    color: _inkMid(context),
   );
 
-  TextStyle get _styleData => const TextStyle(
+  TextStyle get _styleData => TextStyle(
     fontFamily: 'CourierPrime',
     fontSize: 11,
     fontWeight: FontWeight.w600,
-    color: _inkDeep,
+    color: _inkDeep(context),
     letterSpacing: 0.2,
   );
 
-  TextStyle get _styleVenue => const TextStyle(
+  TextStyle get _styleVenue => TextStyle(
     fontFamily: 'CourierPrime',
     fontSize: 11,
     fontWeight: FontWeight.w400,
-    color: _inkMid,
+    color: _inkMid(context),
     letterSpacing: 0.1,
   );
 
@@ -99,7 +99,7 @@ class _EventCardState extends State<EventCard> {
           ),
           duration: const Duration(seconds: 1),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: _inkDeep,
+          backgroundColor: _inkDeep(context),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           margin: const EdgeInsets.all(16),
         ),
@@ -123,10 +123,10 @@ class _EventCardState extends State<EventCard> {
   }
 
   _StatusConfig _getStatus(int daysLeft) {
-    if (daysLeft < 0)  return _StatusConfig('CLOSED',    _inkFaint);
-    if (daysLeft == 0) return _StatusConfig('LAST CALL', _danger);
-    if (daysLeft <= 5) return _StatusConfig('$daysLeft DAYS', _danger);
-    return _StatusConfig('$daysLeft DAYS', _success);
+    if (daysLeft < 0)  return _StatusConfig('CLOSED',    _inkFaint(context));
+    if (daysLeft == 0) return _StatusConfig('LAST CALL', _danger(context));
+    if (daysLeft <= 5) return _StatusConfig('$daysLeft DAYS', _danger(context));
+    return _StatusConfig('$daysLeft DAYS', _success(context));
   }
 
   @override
@@ -154,12 +154,12 @@ class _EventCardState extends State<EventCard> {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1C1C1E).withOpacity(0.08),
+            color: const Color(0xFF1C1C1E).withValues(alpha: 0.08),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: const Color(0xFF1C1C1E).withOpacity(0.04),
+            color: const Color(0xFF1C1C1E).withValues(alpha: 0.04),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -167,8 +167,8 @@ class _EventCardState extends State<EventCard> {
       ),
       child: CustomPaint(
         painter: _TicketPainter(
-          borderColor: _border,
-          stubLineColor: _inkFaint.withOpacity(0.6),
+          borderColor: _border(context),
+          stubLineColor: _inkFaint(context).withValues(alpha: 0.6),
         ),
         child: ClipPath(
           clipper: _TicketClipper(),
@@ -182,7 +182,7 @@ class _EventCardState extends State<EventCard> {
                 Expanded(
                   flex: 68,
                   child: Container(
-                    color: _surface,
+                    color: _surface(context),
                     padding: const EdgeInsets.fromLTRB(20, 18, 16, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,11 +206,11 @@ class _EventCardState extends State<EventCard> {
                               label: isFree ? 'FREE' : widget.event.entryFee!,
                               textStyle: _styleMicro.copyWith(
                                 fontSize: 8,
-                                color: isFree ? _success : _amber,
+                                color: isFree ? _success(context) : _amber(context),
                               ),
                               borderColor: isFree
-                                  ? _success.withOpacity(0.35)
-                                  : _amber.withOpacity(0.35),
+                                  ? _success(context).withValues(alpha: 0.35)
+                                  : _amber(context).withValues(alpha: 0.35),
                             ),
                           ],
                         ),
@@ -231,12 +231,12 @@ class _EventCardState extends State<EventCard> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 1),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 1),
                               child: Icon(
                                 Icons.place_outlined,
                                 size: 12,
-                                color: _inkFaint,
+                                color: _inkFaint(context),
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -258,12 +258,12 @@ class _EventCardState extends State<EventCard> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Padding(
-                                padding: EdgeInsets.only(top: 1),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 1),
                                 child: Icon(
                                   Icons.person_outline_rounded,
                                   size: 12,
-                                  color: _inkFaint,
+                                  color: _inkFaint(context),
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -283,7 +283,7 @@ class _EventCardState extends State<EventCard> {
                         const Spacer(),
 
                         // Thin divider
-                        Container(height: 1, color: _border),
+                        Container(height: 1, color: _border(context)),
 
                         const SizedBox(height: 10),
 
@@ -319,7 +319,7 @@ class _EventCardState extends State<EventCard> {
                 Expanded(
                   flex: 32,
                   child: Container(
-                    color: _stubSurface,
+                    color: _stubSurface(context),
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
                       horizontal: 10,
@@ -334,7 +334,7 @@ class _EventCardState extends State<EventCard> {
                             Text(
                               'NO. $serial',
                               style: _styleMicro.copyWith(
-                                color: _inkFaint,
+                                color: _inkFaint(context),
                                 letterSpacing: 1.4,
                               ),
                             ),
@@ -364,7 +364,7 @@ class _EventCardState extends State<EventCard> {
                                       ? Icons.bookmark_rounded
                                       : Icons.bookmark_outline_rounded,
                                   onTap: _toggleBookmark,
-                                  color: _isSaved ? _amber : _inkMid,
+                                  color: _isSaved ? _amber(context) : _inkMid(context),
                                 ),
                               ],
                             ),
@@ -390,12 +390,12 @@ class _EventCardState extends State<EventCard> {
                               textAlign: TextAlign.center,
                               style: _styleMicro.copyWith(
                                 fontSize: 7,
-                                color: _inkFaint,
+                                color: _inkFaint(context),
                                 letterSpacing: 2.0,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            _MiniBarcode(color: _inkFaint.withOpacity(0.55)),
+                            _MiniBarcode(color: _inkFaint(context).withValues(alpha: 0.55)),
                           ],
                         ),
 
@@ -403,8 +403,8 @@ class _EventCardState extends State<EventCard> {
                         _ApplyButton(
                           applyLink: widget.event.applyLink,
                           onTap: () => _launchURL(widget.event.applyLink),
-                          amberColor: _amber,
-                          inkFaintColor: _inkFaint,
+                          amberColor: _amber(context),
+                          inkFaintColor: _inkFaint(context),
                         ),
                       ],
                     ),
@@ -495,12 +495,12 @@ class _ApplyButton extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(
             color: hasLink
-                ? amberColor.withOpacity(0.5)
-                : inkFaintColor.withOpacity(0.4),
+                ? amberColor.withValues(alpha: 0.5)
+                : inkFaintColor.withValues(alpha: 0.4),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(3),
-          color: hasLink ? amberColor.withOpacity(0.08) : null,
+          color: hasLink ? amberColor.withValues(alpha: 0.08) : null,
         ),
         child: Text(
           'APPLY',

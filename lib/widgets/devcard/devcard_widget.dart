@@ -29,14 +29,14 @@ class DevCardWidget extends StatelessWidget {
     this.onShare,
   });
 
-  Color get _cardBg => isDark ? const Color(0xFF0D1120) : Colors.white;
-  Color get _text2 => isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
-  Color get _borderCol => isDark ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
+  Color _cardBg(BuildContext context) => Theme.of(context).colorScheme.surface;
+  Color _text2(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color _borderCol(BuildContext context) => Theme.of(context).colorScheme.outlineVariant;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: _cardBg,
+      color: _cardBg(context),
       child: Column(
         children: [
           // Section 1 — Header
@@ -48,22 +48,22 @@ class DevCardWidget extends StatelessWidget {
             branch: branch,
             year: year,
           ),
-          _divider(),
+          _divider(context),
 
           // Section 2 — Stats
           StatsSection(devCard: devCard, isDark: isDark),
-          _divider(),
+          _divider(context),
 
           // Section 3 — Languages
           LanguagesSection(
               languages: devCard.topLanguages,
               projects: devCard.projects,
               isDark: isDark),
-          _divider(),
+          _divider(context),
 
           // Section 4 — Streak & Calendar
           StreakSection(devCard: devCard, isDark: isDark),
-          _divider(),
+          _divider(context),
 
           // Section 5 — Recent Commits
           CommitsSection(
@@ -71,27 +71,27 @@ class DevCardWidget extends StatelessWidget {
               frameworks: devCard.topFrameworks.map((f) => f.name).toList(),
               projects: devCard.projects,
               isDark: isDark),
-          _divider(),
+          _divider(context),
 
           // Section 6 — Projects
           ProjectsSection(devCard: devCard, isDark: isDark, onReport: onReport),
-          _divider(),
+          _divider(context),
 
           // Section 7 — Footer
-          _footer(),
+          _footer(context),
         ],
       ),
     );
   }
 
-  Widget _divider() {
-    return Container(height: 1, color: _borderCol);
+  Widget _divider(BuildContext context) {
+    return Container(height: 1, color: _borderCol(context));
   }
 
-  Widget _footer() {
+  Widget _footer(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: _cardBg,
+      color: _cardBg(context),
       child: Row(
         children: [
           // Brand
@@ -111,7 +111,7 @@ class DevCardWidget extends StatelessWidget {
                     TextSpan(
                         text: ' · IN',
                         style: TextStyle(
-                            color: _text2,
+                            color: _text2(context),
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'monospace')),
@@ -121,7 +121,7 @@ class DevCardWidget extends StatelessWidget {
                 Text(
                   '${devCard.userId.substring(0, 8)} · ${_formatDate(devCard.lastFetchedAt)}',
                   style: TextStyle(
-                      color: _text2, fontSize: 8, fontFamily: 'monospace'),
+                      color: _text2(context), fontSize: 8, fontFamily: 'monospace'),
                 ),
               ],
             ),
@@ -131,8 +131,8 @@ class DevCardWidget extends StatelessWidget {
             OutlinedButton(
               onPressed: onReport,
               style: OutlinedButton.styleFrom(
-                foregroundColor: _text2,
-                side: BorderSide(color: _borderCol),
+                foregroundColor: _text2(context),
+                side: BorderSide(color: _borderCol(context)),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 minimumSize: Size.zero,

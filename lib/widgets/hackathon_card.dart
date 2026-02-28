@@ -6,127 +6,8 @@ import '../services/bookmark_service.dart';
 import '../utils/opportunity_options_sheet.dart';
 
 // ─────────────────────────────────────────────────────────────
-//  Card Theme
+//  Card Theme (Replaced with Theme.of)
 // ─────────────────────────────────────────────────────────────
-class _CardTheme {
-  final Color cardBg;
-  final Color cardBorder;
-  final Color titleColor;
-  final Color companyColor;
-  final Color secondaryText;
-  final Color mutedText;
-  final Color accentColor;
-  final Color accentBg;
-  final Color pillBg;
-  final Color pillBorder;
-  final Color pillText;
-  final Color buttonBg;
-  final Color buttonText;
-  final bool buttonOutlined;
-  final Color bookmarkActive;
-  final Color topBar;
-
-  const _CardTheme({
-    required this.cardBg,
-    required this.cardBorder,
-    required this.titleColor,
-    required this.companyColor,
-    required this.secondaryText,
-    required this.mutedText,
-    required this.accentColor,
-    required this.accentBg,
-    required this.pillBg,
-    required this.pillBorder,
-    required this.pillText,
-    required this.buttonBg,
-    required this.buttonText,
-    required this.buttonOutlined,
-    required this.bookmarkActive,
-    required this.topBar,
-  });
-}
-
-// Theme 1 — White & Ink
-const _t1 = _CardTheme(
-  cardBg:         Color(0xFFFFFFFF),
-  cardBorder:     Color(0xFFE4E7EC),
-  titleColor:     Color(0xFF0D1117),
-  companyColor:   Color(0xFF374151),
-  secondaryText:  Color(0xFF6B7280),
-  mutedText:      Color(0xFFB0B7C3),
-  accentColor:    Color(0xFF2563EB),
-  accentBg:       Color(0xFFEFF6FF),
-  pillBg:         Color(0xFFF9FAFB),
-  pillBorder:     Color(0xFFE4E7EC),
-  pillText:       Color(0xFF374151),
-  buttonBg:       Color(0xFF0D1117),
-  buttonText:     Color(0xFF0D1117),
-  buttonOutlined: true,
-  bookmarkActive: Color(0xFF2563EB),
-  topBar:         Color(0xFF2563EB),
-);
-
-// Theme 2 — Parchment & Amber
-const _t2 = _CardTheme(
-  cardBg:         Color(0xFFFFFCF5),
-  cardBorder:     Color(0xFFEADFC9),
-  titleColor:     Color(0xFF1C1506),
-  companyColor:   Color(0xFF4A3418),
-  secondaryText:  Color(0xFF7C5E3A),
-  mutedText:      Color(0xFFBEA98A),
-  accentColor:    Color(0xFFB45309),
-  accentBg:       Color(0xFFFFF7ED),
-  pillBg:         Color(0xFFFEF3C7),
-  pillBorder:     Color(0xFFF6D87A),
-  pillText:       Color(0xFF4A3418),
-  buttonBg:       Color(0xFF1C1506),
-  buttonText:     Color(0xFF1C1506),
-  buttonOutlined: true,
-  bookmarkActive: Color(0xFFB45309),
-  topBar:         Color(0xFFD97706),
-);
-
-// Theme 3 — Slate & Teal
-const _t3 = _CardTheme(
-  cardBg:         Color(0xFFF7FAFA),
-  cardBorder:     Color(0xFFCFE1E3),
-  titleColor:     Color(0xFF0C2229),
-  companyColor:   Color(0xFF2D5059),
-  secondaryText:  Color(0xFF4A7A85),
-  mutedText:      Color(0xFF92B8BE),
-  accentColor:    Color(0xFF0D9488),
-  accentBg:       Color(0xFFF0FDFA),
-  pillBg:         Color(0xFFE6F7F6),
-  pillBorder:     Color(0xFFB2E0DC),
-  pillText:       Color(0xFF0C3A36),
-  buttonBg:       Color(0xFF0D9488),
-  buttonText:     Color(0xFF0D9488),
-  buttonOutlined: true,
-  bookmarkActive: Color(0xFF0D9488),
-  topBar:         Color(0xFF0D9488),
-);
-
-// Theme 4 — Lavender & Violet
-const _t4 = _CardTheme(
-  cardBg:         Color(0xFFFAF9FF),
-  cardBorder:     Color(0xFFDDD6FE),
-  titleColor:     Color(0xFF12093A),
-  companyColor:   Color(0xFF3730A3),
-  secondaryText:  Color(0xFF5B51A8),
-  mutedText:      Color(0xFFAEA8D3),
-  accentColor:    Color(0xFF5B21B6),
-  accentBg:       Color(0xFFF5F3FF),
-  pillBg:         Color(0xFFEDE9FE),
-  pillBorder:     Color(0xFFDDD6FE),
-  pillText:       Color(0xFF2E1065),
-  buttonBg:       Color(0xFF5B21B6),
-  buttonText:     Color(0xFF5B21B6),
-  buttonOutlined: true,
-  bookmarkActive: Color(0xFF5B21B6),
-  topBar:         Color(0xFF7C3AED),
-);
-
-const _themes = [_t1, _t2, _t3, _t4];
 
 // ─────────────────────────────────────────────────────────────
 //  Widget
@@ -154,11 +35,6 @@ class HackathonCard extends StatefulWidget {
 class _HackathonCardState extends State<HackathonCard> {
   final BookmarkService _bookmarkService = BookmarkService();
   bool _isSaved = false;
-
-  _CardTheme get _theme {
-    final idx = (widget.serialNumber ?? widget.hackathon.typeSerialNo ?? 0) % 4;
-    return _themes[idx];
-  }
 
   @override
   void initState() {
@@ -197,7 +73,8 @@ class _HackathonCardState extends State<HackathonCard> {
   @override
   Widget build(BuildContext context) {
     _isSaved = _bookmarkService.isBookmarked(widget.hackathon.opportunityId);
-    final t = _theme;
+    
+    final colorScheme = Theme.of(context).colorScheme;
 
     final now      = DateTime.now();
     final today    = DateTime(now.year, now.month, now.day);
@@ -214,16 +91,16 @@ class _HackathonCardState extends State<HackathonCard> {
 
     if (daysLeft < 0) {
       timeLeftText  = "Closed";
-      timeLeftColor = const Color(0xFF9CA3AF);
-      timeLeftBg    = const Color(0xFFF3F4F6);
+      timeLeftColor = colorScheme.onSurfaceVariant;
+      timeLeftBg    = colorScheme.surfaceContainerHighest;
     } else if (daysLeft == 0) {
       timeLeftText  = "Ends Today";
-      timeLeftColor = const Color(0xFFDC2626);
-      timeLeftBg    = const Color(0xFFFEF2F2);
+      timeLeftColor = colorScheme.error;
+      timeLeftBg    = colorScheme.errorContainer;
     } else if (daysLeft <= 5) {
       timeLeftText  = "$daysLeft days left";
-      timeLeftColor = const Color(0xFFDC2626);
-      timeLeftBg    = const Color(0xFFFEF2F2);
+      timeLeftColor = colorScheme.error;
+      timeLeftBg    = colorScheme.errorContainer;
     } else if (daysLeft <= 15) {
       timeLeftText  = "$daysLeft days left";
       timeLeftColor = const Color(0xFFD97706);
@@ -243,14 +120,14 @@ class _HackathonCardState extends State<HackathonCard> {
       margin: const EdgeInsets.only(left: 16, right: 16, bottom: 2),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: t.cardBg,
+        color: colorScheme.surface,
         border: Border.all(
-          color: widget.isHighlighted ? t.accentColor : t.cardBorder,
+          color: widget.isHighlighted ? colorScheme.primary : colorScheme.outlineVariant,
           width: widget.isHighlighted ? 1.6 : 1.1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: colorScheme.shadow.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -273,7 +150,7 @@ class _HackathonCardState extends State<HackathonCard> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.business_outlined, size: 13, color: t.mutedText),
+                  Icon(Icons.business_outlined, size: 13, color: colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -281,7 +158,7 @@ class _HackathonCardState extends State<HackathonCard> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: t.companyColor,
+                        color: colorScheme.onSurface,
                         letterSpacing: 0.1,
                       ),
                       maxLines: 1,
@@ -294,7 +171,7 @@ class _HackathonCardState extends State<HackathonCard> {
                     Text(
                       "#${widget.serialNumber ?? widget.hackathon.typeSerialNo}",
                       style: TextStyle(
-                        color: t.accentColor,
+                        color: colorScheme.primary,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         fontStyle: FontStyle.italic,
@@ -308,7 +185,7 @@ class _HackathonCardState extends State<HackathonCard> {
                       height: 24,
                       child: IconButton(
                         padding: EdgeInsets.zero,
-                        icon: Icon(Icons.more_vert, size: 18, color: t.mutedText),
+                        icon: Icon(Icons.more_vert, size: 18, color: colorScheme.onSurfaceVariant),
                         onPressed: () => showOpportunityOptions(
                           context,
                           onEdit: widget.onEdit!,
@@ -339,14 +216,14 @@ class _HackathonCardState extends State<HackathonCard> {
                           Row(
                             children: [
                               Icon(Icons.location_on_outlined,
-                                  size: 11, color: t.accentColor),
+                                  size: 11, color: colorScheme.primary),
                               const SizedBox(width: 3),
                               Expanded(
                                 child: Text(
                                   widget.hackathon.location,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: t.accentColor,
+                                    color: colorScheme.primary,
                                     fontWeight: FontWeight.w500,
                                   ),
                                   maxLines: 1,
@@ -361,9 +238,9 @@ class _HackathonCardState extends State<HackathonCard> {
                           _Pill(
                             icon: Icons.emoji_events_outlined,
                             text: widget.hackathon.prizes,
-                            iconColor: t.accentColor,
-                            textColor: t.accentColor,
-                            bg: t.accentBg,
+                            iconColor: colorScheme.primary,
+                            textColor: colorScheme.primary,
+                            bg: colorScheme.primaryContainer,
                             // ── CHANGE 1: no border on prize pill ──
                             border: Colors.transparent,
                           )
@@ -385,13 +262,13 @@ class _HackathonCardState extends State<HackathonCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.event_outlined,
-                              size: 11, color: t.mutedText),
+                              size: 11, color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 3),
                           Text(
                             formattedDeadline,
                             style: TextStyle(
                               fontSize: 10.5,
-                              color: t.secondaryText,
+                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -411,7 +288,7 @@ class _HackathonCardState extends State<HackathonCard> {
               const SizedBox(height: 11),
 
               // ── Divider ──────────────────────────────────────────
-              Divider(height: 1, thickness: 0.8, color: t.cardBorder),
+              Divider(height: 1, thickness: 0.8, color: colorScheme.outlineVariant),
 
               const SizedBox(height: 12),
 
@@ -429,7 +306,7 @@ class _HackathonCardState extends State<HackathonCard> {
                   style: TextStyle(
                     fontSize: _titleFontSize(widget.hackathon.title),
                     fontWeight: FontWeight.w800,
-                    color: t.titleColor,
+                    color: colorScheme.onSurface,
                     letterSpacing: 0.5,
                     height: 1.2,
                   ),
@@ -445,10 +322,7 @@ class _HackathonCardState extends State<HackathonCard> {
                 children: [
                   _ApplyButton(
                     onTap: _launchURL,
-                    outlined: t.buttonOutlined,
-                    bgColor: t.buttonBg,
-                    textColor: t.buttonText,
-                    borderColor: t.buttonText,
+                    textColor: colorScheme.onSurface,
                   ),
                   GestureDetector(
                     onTap: _toggleBookmark,
@@ -456,19 +330,19 @@ class _HackathonCardState extends State<HackathonCard> {
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
                         color: _isSaved
-                            ? t.bookmarkActive.withValues(alpha: 0.1)
-                            : t.pillBg,
+                            ? colorScheme.primary.withValues(alpha: 0.1)
+                            : colorScheme.surfaceContainerHighest,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: _isSaved
-                              ? t.bookmarkActive.withValues(alpha: 0.3)
-                              : t.cardBorder,
+                              ? colorScheme.primary.withValues(alpha: 0.3)
+                              : colorScheme.outlineVariant,
                         ),
                       ),
                       child: Icon(
                         _isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
                         size: 16,
-                        color: _isSaved ? t.bookmarkActive : t.mutedText,
+                        color: _isSaved ? colorScheme.primary : colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -577,17 +451,11 @@ class _Pill extends StatelessWidget {
 
 class _ApplyButton extends StatefulWidget {
   final VoidCallback onTap;
-  final bool outlined;
-  final Color bgColor;
   final Color textColor;
-  final Color borderColor;
 
   const _ApplyButton({
     required this.onTap,
-    required this.outlined,
-    required this.bgColor,
     required this.textColor,
-    required this.borderColor,
   });
 
   @override

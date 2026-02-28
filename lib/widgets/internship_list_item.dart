@@ -123,7 +123,7 @@ class InternshipListCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.red),
                     ),
@@ -137,27 +137,27 @@ class InternshipListCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               internship.organization,
-              style: TextStyle(color: Colors.grey[700], fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
             ),
             const SizedBox(height: 12),
             
             // Details Row
             Row(
               children: [
-                _buildInfoChip(Icons.location_on_outlined, internship.location),
+                _buildInfoChip(Icons.location_on_outlined, internship.location, context),
                 const SizedBox(width: 8),
                 if (internship.mode != null)
-                   _buildInfoChip(Icons.work_outline, internship.mode!),
+                   _buildInfoChip(Icons.work_outline, internship.mode!, context),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                  if (internship.stipend != null)
-                  _buildInfoChip(Icons.attach_money, internship.stipend!),
+                  _buildInfoChip(Icons.attach_money, internship.stipend!, context),
                  const SizedBox(width: 8),
                  if (internship.duration != null)
-                  _buildInfoChip(Icons.access_time, internship.duration!),
+                  _buildInfoChip(Icons.access_time, internship.duration!, context),
               ],
             ),
              const SizedBox(height: 16),
@@ -168,7 +168,7 @@ class InternshipListCard extends StatelessWidget {
                children: [
                  Text(
                    "Deadline: ${_formatDate(internship.deadline)}",
-                   style: const TextStyle(fontSize: 12, color: Colors.grey),
+                   style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                  ),
                  ElevatedButton(
                    onPressed: _launchURL,
@@ -188,19 +188,20 @@ class InternshipListCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String label) {
+  Widget _buildInfoChip(IconData icon, String label, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.grey[700]),
+          Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[800])),
+          Text(label, style: TextStyle(fontSize: 12, color: colorScheme.onSurface)),
         ],
       ),
     );
