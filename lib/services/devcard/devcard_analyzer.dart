@@ -40,6 +40,7 @@ class DevCardAnalyzer {
         final size = e['size'] as int? ?? 0;
         langMap.putIfAbsent(name, () => _LangAccum(name, color));
         langMap[name]!.bytes += size;
+        langMap[name]!.projectCount++;
       }
     }
     final langList = langMap.values.toList()
@@ -52,6 +53,7 @@ class DevCardAnalyzer {
               color: l.color,
               bytes: l.bytes,
               percentage: totalBytes > 0 ? l.bytes / totalBytes : 0.0,
+              projectCount: l.projectCount,
             ))
         .toList();
 
@@ -352,34 +354,10 @@ class DevCardAnalyzer {
         .round();
 
     // STEP 7: Rank
-    String rank;
-    String rankEmoji;
-    String rankColor;
-    if (totalScore >= 950) {
-      rank = 'Elite';
-      rankEmoji = '👑';
-      rankColor = '#FFD700';
-    } else if (totalScore >= 800) {
-      rank = 'Pro Dev';
-      rankEmoji = '💜';
-      rankColor = '#9C27B0';
-    } else if (totalScore >= 600) {
-      rank = 'Hacker';
-      rankEmoji = '🔥';
-      rankColor = '#FF5722';
-    } else if (totalScore >= 400) {
-      rank = 'Builder';
-      rankEmoji = '⚡';
-      rankColor = '#FFC107';
-    } else if (totalScore >= 200) {
-      rank = 'Learner';
-      rankEmoji = '🔵';
-      rankColor = '#2196F3';
-    } else {
-      rank = 'Beginner';
-      rankEmoji = '🌱';
-      rankColor = '#9E9E9E';
-    }
+    final mappedRank = DevScoreBreakdown.rankInfoFromScore((totalScore / 10).round());
+    final String rank = mappedRank['rank'] ?? 'Beginner';
+    final String rankEmoji = mappedRank['emoji'] ?? '🌱';
+    final String rankColor = mappedRank['color'] ?? '#9E9E9E';
 
     // STEP 8: Reasons — handle every edge case
     final activeDayCount = activeDays;
@@ -493,7 +471,7 @@ class DevCardAnalyzer {
     } else if (activeDaysPercentage < 0.8) {
       consistencyTip =
           'You are at ${(activeDaysPercentage * 100).round()}% — '
-          'aim for 80% to push toward Pro Dev rank';
+          'aim for 80% to push toward the top ranks';
     } else {
       consistencyTip = 'Excellent consistency — you are in the top tier';
     }
@@ -741,7 +719,8 @@ class _LangAccum {
   final String name;
   final String color;
   int bytes;
-  _LangAccum(this.name, this.color) : bytes = 0;
+  int projectCount;
+  _LangAccum(this.name, this.color) : bytes = 0, projectCount = 0;
 }
 
 class _FwAccum {

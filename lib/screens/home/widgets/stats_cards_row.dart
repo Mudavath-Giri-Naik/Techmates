@@ -286,12 +286,17 @@ class _StatsCardsRowState extends State<StatsCardsRow>
     // Estimate next rank threshold
     final thresholds = {
       'Beginner': 50,
-      'Explorer': 100,
-      'Builder': 250,
-      'Architect': 500,
-      'Master': 1000,
+      'Learner': 100,
+      'Intermediate': 150,
+      'Skilled': 200,
+      'Experienced': 250,
+      'Expert': 300,
+      'Elite': 400,
+      'Master': 500,
+      'Grandmaster': 750,
+      'Legend': 1000,
     };
-    final nextThreshold = thresholds[rank] ?? 250;
+    final nextThreshold = thresholds[rank] ?? 100;
     final progress = (commits / nextThreshold).clamp(0.0, 1.0);
     final commitsNeeded = (nextThreshold - commits).clamp(0, nextThreshold);
 

@@ -37,12 +37,14 @@ class LanguageStat {
   final String color;
   final int bytes;
   final double percentage;
+  final int projectCount;
 
   LanguageStat({
     required this.name,
     required this.color,
     required this.bytes,
     required this.percentage,
+    this.projectCount = 0,
   });
 
   factory LanguageStat.fromJson(Map<String, dynamic> json) => LanguageStat(
@@ -50,10 +52,11 @@ class LanguageStat {
         color: json['color'] as String? ?? '#8B8B8B',
         bytes: json['bytes'] as int,
         percentage: (json['percentage'] as num).toDouble(),
+        projectCount: (json['projectCount'] as num?)?.toInt() ?? 0,
       );
 
   Map<String, dynamic> toJson() =>
-      {'name': name, 'color': color, 'bytes': bytes, 'percentage': percentage};
+      {'name': name, 'color': color, 'bytes': bytes, 'percentage': percentage, 'projectCount': projectCount};
 }
 
 // ─── FrameworkStat ──────────────────────────────────────────────
@@ -363,16 +366,26 @@ class DevScoreBreakdown {
 
   /// Compute rank info from a raw score (used by leaderboard / college screens).
   static Map<String, String> rankInfoFromScore(int score) {
-    if (score >= 80) {
-      return {'rank': 'Master', 'emoji': '👑', 'color': '#FFD700'};
+    if (score >= 90) {
+      return {'rank': 'Legend', 'emoji': '🌌', 'color': '#FF00FF'}; // Magenta
+    } else if (score >= 80) {
+      return {'rank': 'Grandmaster', 'emoji': '🔱', 'color': '#E040FB'}; // Purple
+    } else if (score >= 70) {
+      return {'rank': 'Master', 'emoji': '👑', 'color': '#FFD700'}; // Gold
     } else if (score >= 60) {
-      return {'rank': 'Architect', 'emoji': '🏗️', 'color': '#6750A4'};
+      return {'rank': 'Elite', 'emoji': '⚔️', 'color': '#FF3D00'}; // Red
+    } else if (score >= 50) {
+      return {'rank': 'Expert', 'emoji': '⭐', 'color': '#FF9100'}; // Orange
     } else if (score >= 40) {
-      return {'rank': 'Builder', 'emoji': '🔨', 'color': '#0061A4'};
+      return {'rank': 'Experienced', 'emoji': '🛡️', 'color': '#00B0FF'}; // Light Blue
+    } else if (score >= 30) {
+      return {'rank': 'Skilled', 'emoji': '�', 'color': '#00E676'}; // Green
     } else if (score >= 20) {
-      return {'rank': 'Explorer', 'emoji': '🧭', 'color': '#1A7A4A'};
+      return {'rank': 'Intermediate', 'emoji': '⚙️', 'color': '#76FF03'}; // Light Green
+    } else if (score >= 10) {
+      return {'rank': 'Learner', 'emoji': '📖', 'color': '#FFEA00'}; // Yellow
     } else {
-      return {'rank': 'Beginner', 'emoji': '🌱', 'color': '#9E9E9E'};
+      return {'rank': 'Beginner', 'emoji': '🌱', 'color': '#9E9E9E'}; // Grey
     }
   }
 }

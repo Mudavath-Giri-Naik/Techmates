@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../../models/devcard/devcard_model.dart';
 import '../home_theme.dart';
 
 /// Section 2 — College Leaderboard Spotlight.
@@ -339,8 +340,8 @@ class _CollegeLeaderboardCardState extends State<CollegeLeaderboardCard>
     final name = (student['name'] as String?) ?? '';
     final branch = (student['branch'] as String?) ?? '';
     final year = (student['year'] as String?) ?? '';
-    final rank = (student['rank'] as String?) ?? 'Newcomer';
     final score = (student['score'] as int?) ?? 0;
+    final rank = DevScoreBreakdown.rankInfoFromScore(score)['rank'] ?? 'Beginner';
     final commits = (student['commits'] as int?) ?? 0;
     final repos = (student['repos'] as int?) ?? 0;
     final collegeRank = (student['collegeRank'] as int?) ?? 1;
