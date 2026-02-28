@@ -62,7 +62,11 @@ void main() async {
     await SupabaseClientManager.initialize();
 
     // Initialize Role Service (Load from SharedPreferences cache — local only)
-    await UserRoleService().init();
+    try {
+      await UserRoleService().init();
+    } catch (e) {
+      debugPrint('[INIT] Role cache init failed - proceeding anyway: $e');
+    }
 
     // REMOVED: ensureSessionValid() was here — it made a network DB query
     // before runApp(), blocking the entire UI from appearing.
@@ -186,7 +190,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       // 1. Fetch fresh role (with timeout)
       try {
-        await UserRoleService().fetchAndCacheRole(user.id)
+        await UserRoleService().refreshRoleNow(user.id)
             .timeout(const Duration(seconds: 5));
       } on TimeoutException {
         debugPrint('⚠️ [App] Role fetch timed out, using cached.');
@@ -207,7 +211,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
 
       // 3. Student → check onboarding_completed (with timeout — already in ProfileService)
-      final profile = await ProfileService().fetchProfile(user.id);
+      final profile = await ProfileService()
+          .refreshProfileNow(user.id)
+          .timeout(const Duration(seconds: 5));
       final onboardingDone = profile?.onboardingCompleted ?? false;
       debugPrint('🧭 [App] profile=${profile == null ? "null" : "exists"}, onboarding_completed=$onboardingDone');
 

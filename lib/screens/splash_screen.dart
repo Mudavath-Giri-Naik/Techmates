@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import 'main_screen.dart';
@@ -26,10 +26,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late AnimationController _gridController;
   late AnimationController _contentController;
 
-  // Grid dots fade in
   late Animation<double> _gridOpacity;
-
-  // Staggered content animations
   late Animation<double> _logoFade;
   late Animation<double> _logoScale;
   late Animation<double> _brandFade;
@@ -40,11 +37,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late Animation<Offset> _taglineSlide;
   late Animation<double> _dotsFade;
 
+  bool _didNavigate = false;
+  bool _navigationInProgress = false;
+  final Stopwatch _stopwatch = Stopwatch();
+
   @override
   void initState() {
     super.initState();
 
-    // Grid animation — subtle pulse
     _gridController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -53,13 +53,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       CurvedAnimation(parent: _gridController, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)),
     );
 
-    // Content stagger controller
     _contentController = AnimationController(
       duration: const Duration(milliseconds: 2200),
       vsync: this,
     );
 
-    // Logo: fade + scale (0% → 30%)
     _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentController, curve: const Interval(0.0, 0.30, curve: Curves.easeOut)),
     );
@@ -67,7 +65,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       CurvedAnimation(parent: _contentController, curve: const Interval(0.0, 0.35, curve: Curves.easeOutBack)),
     );
 
-    // Brand name: fade + slide up (15% → 45%)
     _brandFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentController, curve: const Interval(0.15, 0.45, curve: Curves.easeOut)),
     );
@@ -75,7 +72,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       CurvedAnimation(parent: _contentController, curve: const Interval(0.15, 0.45, curve: Curves.easeOutCubic)),
     );
 
-    // Divider line: fade + expand width (35% → 60%)
     _lineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentController, curve: const Interval(0.35, 0.55, curve: Curves.easeOut)),
     );
@@ -83,7 +79,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       CurvedAnimation(parent: _contentController, curve: const Interval(0.35, 0.65, curve: Curves.easeOutCubic)),
     );
 
-    // Tagline: fade + slide up (50% → 80%)
     _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentController, curve: const Interval(0.50, 0.80, curve: Curves.easeOut)),
     );
@@ -91,75 +86,141 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       CurvedAnimation(parent: _contentController, curve: const Interval(0.50, 0.80, curve: Curves.easeOutCubic)),
     );
 
-    // Bottom dots: fade in (70% → 95%)
     _dotsFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentController, curve: const Interval(0.70, 0.95, curve: Curves.easeOut)),
     );
 
-    // Start animations
     _gridController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) _contentController.forward();
     });
 
-    // Eager fetch
-    OpportunityStore.instance.fetchAll();
+    unawaited(OpportunityStore.instance.fetchAll());
+    unawaited(_runSplashFlow());
+  }
 
-    // Navigate after splash
-    Timer(const Duration(seconds: 3), () async {
+  Future<void> _runSplashFlow() async {
+    _stopwatch.start();
+    debugPrint('[SPLASH] Started');
+    debugPrint('[SPLASH] Timer started');
+
+    await Future.any([
+      _splashLogic(),
+      Future.delayed(const Duration(seconds: 3), () async {
+        if (_didNavigate || !mounted) return;
+        debugPrint('[SPLASH] 3s hard cap triggered - forcing navigation');
+        await _forceNavigateFromCache();
+      }),
+    ]);
+  }
+
+  Future<void> _splashLogic() async {
+    final auth = AuthService();
+    final loggedIn = auth.isLoggedIn;
+    debugPrint('[SPLASH] Local session check: $loggedIn');
+
+    if (!loggedIn) {
+      _navigateTo(const LoginScreen(), 'LoginScreen');
+      return;
+    }
+
+    final user = auth.user;
+    if (user == null) {
+      _navigateTo(const LoginScreen(), 'LoginScreen');
+      return;
+    }
+    final userId = user.id;
+    final cachedRole = UserRoleService().role;
+    final cachedOnboarding = await ProfileService().getOnboardingCached(userId) ?? false;
+
+    debugPrint('[SPLASH] Cached role: $cachedRole');
+    debugPrint('[SPLASH] Cached onboarding: $cachedOnboarding');
+
+    if (cachedRole == 'admin' || cachedRole == 'super_admin') {
+      _navigateTo(const MainScreen(), 'MainScreen');
+      _runBackgroundRefresh(userId);
+      return;
+    }
+
+    if (cachedOnboarding) {
+      _navigateTo(const MainScreen(), 'MainScreen');
+    } else {
+      _navigateTo(
+        OnboardingFormScreen(
+          userId: userId,
+          initialName: user.userMetadata?['full_name'] as String? ?? '',
+        ),
+        'OnboardingFormScreen',
+      );
+    }
+    _runBackgroundRefresh(userId);
+  }
+
+  Future<void> _forceNavigateFromCache() async {
+    final auth = AuthService();
+    if (!auth.isLoggedIn) {
+      _navigateTo(const LoginScreen(), 'LoginScreen');
+      return;
+    }
+
+    final userId = auth.user?.id;
+    final cachedRole = UserRoleService().role;
+    final cachedOnboarding =
+        userId == null ? false : (await ProfileService().getOnboardingCached(userId) ?? false);
+    debugPrint('[SPLASH] Cached role: $cachedRole');
+    debugPrint('[SPLASH] Cached onboarding: $cachedOnboarding');
+
+    if (cachedRole == 'admin' || cachedRole == 'super_admin' || cachedOnboarding) {
+      _navigateTo(const MainScreen(), 'MainScreen');
+    } else if (userId != null) {
+      final user = auth.user;
+      _navigateTo(
+        OnboardingFormScreen(
+          userId: userId,
+          initialName: user?.userMetadata?['full_name'] as String? ?? '',
+        ),
+        'OnboardingFormScreen',
+      );
+    } else {
+      _navigateTo(const LoginScreen(), 'LoginScreen');
+    }
+  }
+
+  void _runBackgroundRefresh(String userId) {
+    unawaited(UserRoleService().fetchAndCacheRole(userId));
+    unawaited(ProfileService().fetchProfile(userId).then((_) {}));
+    unawaited(Future<void>(() async {
+      await Future.delayed(const Duration(milliseconds: 250));
       await AppUpdateService().checkForUpdate(context);
-      if (mounted) _navigateToNextScreen();
+    }));
+  }
+
+  void _navigateTo(Widget page, String screenName) {
+    if (!mounted || _didNavigate || _navigationInProgress) return;
+    _navigationInProgress = true;
+    debugPrint('[SPLASH] Navigating to: $screenName');
+    debugPrint('[SPLASH] Total splash time: ${_stopwatch.elapsedMilliseconds}ms');
+    debugPrint('[SPLASH] Done');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tryNavigate(page, 0);
     });
   }
 
-  Future<void> _navigateToNextScreen() async {
-    final auth = AuthService();
-    if (!auth.isLoggedIn) {
-      debugPrint('🔀 [Splash] Not logged in → LoginScreen');
-      if (mounted) {
-        Navigator.pushReplacement(context, FadePageRoute(page: const LoginScreen()));
+  void _tryNavigate(Widget page, int attempt) {
+    if (!mounted || _didNavigate) return;
+    try {
+      Navigator.pushReplacement(context, FadePageRoute(page: page));
+      _didNavigate = true;
+    } catch (e) {
+      debugPrint('[SPLASH] Navigation attempt ${attempt + 1} failed: $e');
+      if (attempt >= 3) {
+        _navigationInProgress = false;
+        return;
       }
-      return;
-    }
-
-    final userId = auth.user!.id;
-    debugPrint('🔀 [Splash] Logged in as ${auth.user!.email} (id: $userId)');
-
-    // 1. Fetch fresh role from DB and cache it
-    await UserRoleService().fetchAndCacheRole(userId);
-    final role = UserRoleService().role;
-    debugPrint('🔀 [Splash] Role = $role');
-
-    // 2. Admins → HomeScreen directly
-    if (role == 'admin' || role == 'super_admin') {
-      debugPrint('🔀 [Splash] Admin/SuperAdmin → HomeScreen');
-      if (mounted) {
-        Navigator.pushReplacement(context, FadePageRoute(page: const MainScreen()));
-      }
-      return;
-    }
-
-    // 3. Students — check onboarding_completed
-    final profile = await ProfileService().fetchProfile(userId);
-    final onboardingDone = profile?.onboardingCompleted ?? false;
-    debugPrint('🔀 [Splash] profile = ${profile == null ? "null (no row)" : "exists"}, onboarding_completed = $onboardingDone');
-
-    if (mounted) {
-      if (onboardingDone) {
-        debugPrint('🔀 [Splash] onboarding done → HomeScreen');
-        Navigator.pushReplacement(context, FadePageRoute(page: const MainScreen()));
-      } else {
-        debugPrint('🔀 [Splash] onboarding NOT done → OnboardingFormScreen');
-        Navigator.pushReplacement(
-          context,
-          FadePageRoute(
-            page: OnboardingFormScreen(
-              userId: userId,
-              initialName: profile?.name ?? auth.user!.userMetadata?['full_name'] as String? ?? '',
-            ),
-          ),
-        );
-      }
+      Future.delayed(const Duration(milliseconds: 80), () {
+        _tryNavigate(page, attempt + 1);
+      });
     }
   }
 
@@ -176,7 +237,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ── Animated dot grid background ──
           AnimatedBuilder(
             animation: _gridController,
             builder: (context, child) {
@@ -189,8 +249,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
               );
             },
           ),
-
-          // ── Main content ──
           Center(
             child: AnimatedBuilder(
               animation: _contentController,
@@ -199,8 +257,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Spacer(flex: 3),
-
-                    // Logo
                     FadeTransition(
                       opacity: _logoFade,
                       child: ScaleTransition(
@@ -213,8 +269,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // Brand name
                     SlideTransition(
                       position: _brandSlide,
                       child: FadeTransition(
@@ -235,8 +289,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Animated divider line
                     FadeTransition(
                       opacity: _lineFade,
                       child: SizedBox(
@@ -257,8 +309,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Tagline
                     SlideTransition(
                       position: _taglineSlide,
                       child: FadeTransition(
@@ -314,10 +364,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         ),
                       ),
                     ),
-
                     const Spacer(flex: 3),
-
-                    // Bottom loading dots
                     FadeTransition(
                       opacity: _dotsFade,
                       child: _LoadingDots(color: _muted),
@@ -334,10 +381,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 }
 
-// ────────────────────────────────────
-// DOT GRID PAINTER
-// ────────────────────────────────────
-
 class _DotGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -352,7 +395,6 @@ class _DotGridPainter extends CustomPainter {
       }
     }
 
-    // Slightly larger dots at intersections of a wider grid
     final accentPaint = Paint()
       ..color = const Color(0xFFD1D5DB).withValues(alpha: 0.4)
       ..style = PaintingStyle.fill;
@@ -368,10 +410,6 @@ class _DotGridPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
-// ────────────────────────────────────
-// ANIMATED LOADING DOTS
-// ────────────────────────────────────
 
 class _LoadingDots extends StatefulWidget {
   final Color color;
@@ -401,7 +439,6 @@ class _LoadingDotsState extends State<_LoadingDots> with TickerProviderStateMixi
       );
     }).toList();
 
-    // Stagger the dot animations
     for (int i = 0; i < 3; i++) {
       Future.delayed(Duration(milliseconds: i * 200), () {
         if (mounted) _controllers[i].repeat(reverse: true);
@@ -440,10 +477,6 @@ class _LoadingDotsState extends State<_LoadingDots> with TickerProviderStateMixi
     );
   }
 }
-
-// ────────────────────────────────────
-// FADE PAGE ROUTE
-// ────────────────────────────────────
 
 class FadePageRoute extends PageRouteBuilder {
   final Widget page;

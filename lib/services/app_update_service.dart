@@ -1,7 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 class AppUpdateService {
   static final AppUpdateService _instance = AppUpdateService._internal();
@@ -16,45 +19,37 @@ class AppUpdateService {
 
   Future<void> checkForUpdate(BuildContext context) async {
     if (_hasChecked) {
-      print("⚪ [UPDATE] Skipped (already checked)");
+      debugPrint('[UPDATE] Check done: skipped (already checked)');
       return;
     }
 
     _hasChecked = true;
-    print("🔵 [UPDATE] Checking for update...");
+    debugPrint('[UPDATE] Check started');
 
     try {
-      // 1. Get current app version
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
-      print('🔵 [UPDATE] Current app version: $currentVersion');
-      
-      // 2. Fetch min_version from Supabase
-      print('🔵 [UPDATE] Fetching app_update row...');
+
       final response = await Supabase.instance.client
           .from('app_update')
           .select('min_version')
           .eq('id', 1)
-          .single();
-      print('🔵 [UPDATE] Raw Supabase response: $response');
+          .single()
+          .timeout(const Duration(seconds: 4));
 
       final minVersion = response['min_version'] as String;
 
-      print("🔵 [UPDATE] Min version from DB: $minVersion");
-
-      // 3. Compare versions
       if (_isUpdateRequired(currentVersion, minVersion)) {
-        print("🔴 [UPDATE] FORCE UPDATE TRIGGERED");
-        
+        debugPrint('[UPDATE] Check done: force update required');
         if (!context.mounted) return;
 
         await showDialog(
           context: context,
           barrierDismissible: false,
-          useSafeArea: false, // Covers status bar/notch
+          useSafeArea: false,
           builder: (context) {
             return WillPopScope(
-              onWillPop: () async => true, // Allow system back button to dismiss
+              onWillPop: () async => true,
               child: Scaffold(
                 backgroundColor: Colors.white,
                 body: Stack(
@@ -106,15 +101,12 @@ class AppUpdateService {
           },
         );
       } else {
-        print("🟢 [UPDATE] App up to date");
+        debugPrint('[UPDATE] Check done: up to date');
       }
-    } on PostgrestException catch (e, st) {
-      print('🟡 [UPDATE][ERROR] PostgrestException while checking update');
-      print('🟡 [UPDATE][ERROR] code=${e.code}, message=${e.message}, details=${e.details}, hint=${e.hint}');
-      print('🟡 [UPDATE][STACK] $st');
-    } catch (e, st) {
-      print("🟢 [UPDATE] Error checking update, skipping: $e");
-      print('🟢 [UPDATE][STACK] $st');
+    } on TimeoutException {
+      debugPrint('[UPDATE] TIMED OUT - skipping');
+    } catch (e) {
+      debugPrint('[UPDATE] Check done: failed ($e)');
     }
   }
 
@@ -134,10 +126,9 @@ class AppUpdateService {
           return false;
         }
       }
-      return false; 
-    } catch (e) {
-      print("Error parsing version: $e");
-      return false; // Safe default
+      return false;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -145,8 +136,6 @@ class AppUpdateService {
     final url = Uri.parse("https://play.google.com/store/apps/details?id=com.techmates.app");
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      print("Could not launch $url");
     }
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,51 +17,72 @@ class UserRoleService {
   String _currentRole = 'student'; // Default safe role
 
   String get role => _currentRole;
-  
+
   bool get isStudent => _currentRole == 'student';
-  bool get isAdmin => _currentRole == 'admin' || _currentRole == 'super_admin'; // Admin/SuperAdmin are admins
+  bool get isAdmin => _currentRole == 'admin' || _currentRole == 'super_admin';
   bool get isSuperAdmin => _currentRole == 'super_admin';
-  bool get canEdit => isAdmin; // Valid for admin and super_admin
+  bool get canEdit => isAdmin;
 
   /// Initialize: Load role from cache
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _currentRole = prefs.getString(_roleKey) ?? 'student';
-    debugPrint("👤 [UserRoleService] Initialized with role: $_currentRole");
+    debugPrint('[ROLE] Cache hit: $_currentRole');
   }
 
-  /// Fetch role from Supabase and cache it
+  /// Cache-first role read. Returns immediately from cache, then refreshes in background.
   Future<void> fetchAndCacheRole(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedRole = prefs.getString(_roleKey);
+
+    if (cachedRole != null && cachedRole.isNotEmpty) {
+      _currentRole = cachedRole;
+      debugPrint('[ROLE] Cache hit: $_currentRole');
+    } else {
+      debugPrint('[ROLE] Cache miss - fetching from network');
+    }
+
+    unawaited(
+      _refreshRoleFromNetwork(userId, fallbackRole: _currentRole)
+          .then((_) {}),
+    );
+  }
+
+  /// Explicit network refresh for pull-to-refresh actions.
+  Future<String> refreshRoleNow(String userId) async {
+    return _refreshRoleFromNetwork(userId, fallbackRole: _currentRole);
+  }
+
+  Future<String> _refreshRoleFromNetwork(
+    String userId, {
+    required String fallbackRole,
+  }) async {
     final email = _client.auth.currentUser?.email ?? 'Unknown';
     debugPrint("🔍 [UserRoleService] Checking role for user: $userId (Email: $email)...");
-    
+
     try {
-      // Assuming 'user_roles' table: user_id (uuid), role (text)
-      // QUERY: Check if user exists in table (by ID, which is safer/correct). 
-      // User requested to "check if email matches", but ID is the key. 
-      // We will trust ID match implies strict relationship.
       final response = await _client
           .from('user_roles')
           .select('role')
           .eq('user_id', userId)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 6));
 
       String newRole = 'student';
-
       if (response != null && response['role'] != null) {
         newRole = response['role'] as String;
-        debugPrint("✅ [UserRoleService] Match found in user_roles table for $email.");
-        debugPrint("👤 [UserRoleService] Role fetched from DB: $newRole");
-      } else {
-        debugPrint("⚠️ [UserRoleService] No match found in user_roles for $email. Defaulting to 'student'.");
-        debugPrint("   -> Ensure you have inserted a row in 'user_roles' for this user ID.");
       }
 
-      // Update Cache
       await _cacheRole(newRole);
-      
+      debugPrint('[ROLE] Network fetch success: $newRole');
+      return newRole;
+    } on TimeoutException {
+      debugPrint('[ROLE] Network fetch FAILED/TIMEOUT - using cache');
+      return fallbackRole;
     } catch (e) {
       debugPrint("❌ [UserRoleService] Failed to fetch role: $e");
+      debugPrint('[ROLE] Network fetch FAILED/TIMEOUT - using cache');
+      return fallbackRole;
     }
   }
 

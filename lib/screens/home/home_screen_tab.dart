@@ -10,6 +10,7 @@ import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/bookmark_service.dart';
 import '../../services/home_data_service.dart';
+import '../../services/user_role_service.dart';
 
 import 'widgets/greeting_header.dart';
 import 'widgets/college_leaderboard_card.dart';
@@ -140,6 +141,24 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
     }
   }
 
+  Future<void> _onPullRefresh() async {
+    debugPrint('[REFRESH] Pull to refresh triggered');
+    try {
+      final user = AuthService().user;
+      if (user != null) {
+        await Future.wait([
+          UserRoleService().refreshRoleNow(user.id),
+          ProfileService().refreshProfileNow(user.id),
+        ]);
+      }
+      await _loadData();
+      debugPrint('[REFRESH] Data updated');
+    } catch (e) {
+      debugPrint('[REFRESH] Refresh failed: $e');
+      rethrow;
+    }
+  }
+
 
 
   @override
@@ -153,7 +172,7 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
           : _hasError
               ? _buildErrorState(context)
               : RefreshIndicator(
-                  onRefresh: _loadData,
+                  onRefresh: _onPullRefresh,
                   color: colorScheme.primary,
                   child: CustomScrollView(
                     physics: const BouncingScrollPhysics(
