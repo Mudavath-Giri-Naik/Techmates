@@ -9,6 +9,7 @@ import '../../services/profile_service.dart';
 import '../../services/bookmark_service.dart';
 import '../../services/status_service.dart';
 import '../../services/devcard/devcard_service.dart';
+import '../../services/user_role_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/devcard/devcard_model.dart';
 
@@ -16,6 +17,8 @@ import '../edit_profile_screen.dart';
 import '../devcard/devcard_screen.dart';
 import '../settings/settings_screen.dart';
 import '../network/follow_requests_screen.dart';
+import '../admin/admin_dashboard_screen.dart' as techmates_superadmin;
+import '../admin/regular_admin_dashboard_screen.dart' as techmates_admin;
 import '../../utils/time_ago.dart';
 
 // Brand Color Constants from reference
@@ -747,95 +750,101 @@ class _ProfileScreenState extends State<ProfileScreen>
     final top5 = langs.take(5).toList();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border.all(color: cs.outlineVariant),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
-        children: top5.asMap().entries.map((entry) {
-          int idx = entry.key;
-          LanguageStat lang = entry.value;
-
-          return Column(
-            children: [
-              Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...top5.map((lang) {
+            final color = _parseHexColor(lang.color);
+            final pct = (lang.percentage * 100).toStringAsFixed(0);
+            final count = _languageProjectCount(lang.name, lang.projectCount);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
                 children: [
                   Container(
-                    width: 8,
-                    height: 8,
+                    width: 7,
+                    height: 7,
                     decoration: BoxDecoration(
+                      color: color,
                       shape: BoxShape.circle,
-                      color: _langColor(lang.name, cs),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 6),
                   SizedBox(
-                    width: 96,
+                    width: 80,
                     child: Text(
                       lang.name,
-                      style: GoogleFonts.sora(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                      style: TextStyle(
                         color: cs.onSurface,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: TweenAnimationBuilder<double>(
-                        key: ValueKey(lang.name),
-                        tween: Tween(begin: 0.0, end: lang.percentage.clamp(0.0, 1.0)),
-                        duration: Duration(milliseconds: 900 + idx * 100),
-                        curve: Curves.easeOutCubic,
-                        builder: (_, value, __) {
-                          return LinearProgressIndicator(
-                            value: value,
-                            backgroundColor: cs.surfaceContainerHighest,
-                            valueColor: AlwaysStoppedAnimation(
-                              _langColor(lang.name, cs),
-                            ),
-                            minHeight: 6,
-                          );
-                        },
+                  SizedBox(
+                    width: 80,
+                    height: 4,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: lang.percentage.clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  SizedBox(
-                    width: 60,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${(lang.percentage * 100).round()}%',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                        Text(
-                          '${lang.projectCount} projects',
-                          style: GoogleFonts.sora(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                            color: cs.onSurfaceVariant.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
+                  Text(
+                    '$pct%',
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 9,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '$count projects',
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 9,
+                      fontFamily: 'monospace',
                     ),
                   ),
                 ],
               ),
-              if (idx != top5.length - 1) const SizedBox(height: 10),
-            ],
-          );
-        }).toList(),
+            );
+          }),
+        ],
       ),
     );
+  }
+
+  int _languageProjectCount(String langName, int fallback) {
+    final devCard = _devCard;
+    if (devCard == null || devCard.projects.isEmpty) {
+      return fallback;
+    }
+    return devCard.projects
+        .where((p) =>
+            p.primaryLanguage?.toLowerCase() == langName.toLowerCase())
+        .length;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1166,6 +1175,30 @@ class _ProfileScreenState extends State<ProfileScreen>
             },
             cs: cs,
           ),
+          
+          if (UserRoleService().role == 'admin' || UserRoleService().role == 'super_admin') ...[
+            Divider(height: 1, indent: 56, color: cs.outlineVariant),
+            _ActionItem(
+              iconBg: const Color(0xFFFFF3E0),
+              icon: Icons.admin_panel_settings_rounded,
+              iconColor: const Color(0xFFEF6C00),
+              title: 'Admin Dashboard',
+              subtitle: 'Manage app data & users',
+              trailing: Icon(Icons.chevron_right_rounded, color: cs.outline),
+              onTap: () {
+                if (UserRoleService().role == 'super_admin') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const techmates_superadmin.AdminDashboardScreen()),
+                  );
+                } else if (UserRoleService().role == 'admin') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const techmates_admin.RegularAdminDashboardScreen()),
+                  );
+                }
+              },
+              cs: cs,
+            ),
+          ],
         ],
       ),
     );
@@ -1245,11 +1278,23 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
 
-    if (confirm == true && mounted) {
+    if (confirm != true || !mounted) return;
+
+    try {
       await _authService.signOut();
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (_) => false);
-      }
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not log out. Please try again.',
+            style: GoogleFonts.sora(),
+          ),
+        ),
+      );
+      debugPrint('Profile logout failed: $e');
     }
   }
 
@@ -1662,6 +1707,15 @@ Widget _buildEmptySection(ColorScheme cs, String message) {
       textAlign: TextAlign.center,
     ),
   );
+}
+
+Color _parseHexColor(String hex) {
+  final cleaned = hex.replaceAll('#', '');
+  try {
+    return Color(int.parse('FF$cleaned', radix: 16));
+  } catch (_) {
+    return const Color(0xFF8B8B8B);
+  }
 }
 
 Color _langColor(String lang, ColorScheme cs) {
