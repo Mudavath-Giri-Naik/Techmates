@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
 import '../models/devcard/devcard_model.dart';
 import '../models/opportunity_model.dart';
+import '../utils/proxy_url.dart';
 
 /// Centralizes all Supabase queries for the Home Screen.
 /// Every query has a 5-second timeout and fails gracefully.
@@ -394,7 +395,7 @@ class HomeDataService {
           'name': (p['name'] as String?) ?? 'Unknown',
           'branch': (p['branch'] as String?) ?? '',
           'year': (p['year'] as String?) ?? '',
-          'avatarUrl': p['avatar_url'] as String?,
+          'avatarUrl': proxyUrl(p['avatar_url'] as String?),
           'score': score,
           'commits': (ad?['totalCommitsLastYear'] as num?)?.toInt() ?? 0,
           'repos': (ad?['totalPublicRepos'] as num?)?.toInt() ?? 0,

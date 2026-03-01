@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../utils/proxy_url.dart';
 
 import 'home/home_screen_tab.dart';
 import 'network/network_screen.dart';
@@ -28,7 +29,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildAvatarIcon({required bool isSelected}) {
     final user = Supabase.instance.client.auth.currentUser;
-    final avatarUrl = user?.userMetadata?['avatar_url'] as String?;
+    final avatarUrl = proxyUrl(user?.userMetadata?['avatar_url'] as String?);
 
     return Container(
       width: 26,

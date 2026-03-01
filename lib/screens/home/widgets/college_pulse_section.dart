@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../utils/proxy_url.dart';
 import '../home_theme.dart';
 
 /// Section 6 — College Pulse: overlapping avatars + student count.
@@ -204,7 +205,7 @@ class _CollegePulseSectionState extends State<CollegePulseSection>
 
   Widget _avatar(Map<String, dynamic> student, int index, BuildContext context) {
     final name = (student['name'] as String?) ?? '';
-    final avatarUrl = student['avatar_url'] as String?;
+    final avatarUrl = proxyUrl(student['avatar_url'] as String?);
     final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final colors = _avatarColors();
     final color = colors[index % colors.length];

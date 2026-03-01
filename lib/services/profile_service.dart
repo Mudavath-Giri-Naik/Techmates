@@ -47,11 +47,13 @@ class ProfileService {
     final cached = await getProfileCached(userId);
     if (cached != null) {
       debugPrint('[PROFILE] Cache hit');
-    } else {
-      debugPrint('[PROFILE] Cache miss - fetching from network');
+      // Refresh in background for next time
+      unawaited(_refreshProfileFromNetwork(userId).then((_) {}));
+      return cached;
     }
-    unawaited(_refreshProfileFromNetwork(userId).then((_) {}));
-    return cached;
+    // Cache miss — wait for network fetch so we don't return null
+    debugPrint('[PROFILE] Cache miss - fetching from network (awaited)');
+    return _refreshProfileFromNetwork(userId);
   }
 
   /// Explicit network refresh for pull-to-refresh actions.

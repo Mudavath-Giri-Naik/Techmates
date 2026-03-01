@@ -595,7 +595,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         GestureDetector(
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => DevCardScreen(),
+                              builder: (_) => DevCardScreen(userId: _targetUserId),
                             ));
                           },
                           child: Row(
@@ -883,7 +883,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(height: 12),
             FilledButton.tonal(
               onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => DevCardScreen())),
+                  MaterialPageRoute(builder: (_) => DevCardScreen(userId: _targetUserId))),
               child: const Text('Generate DevCard'),
             ),
           ],
@@ -957,7 +957,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               InkWell(
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => DevCardScreen())),
+                    builder: (_) => DevCardScreen(userId: _targetUserId))),
                 child: Row(
                   children: [
                     Text(

@@ -111,6 +111,9 @@ class AuthService {
       serverClientId: '968736212482-cdfo509mfoai7b9cceauqn4m9uabemdo.apps.googleusercontent.com',
     );
 
+    // Always sign out first to force the account chooser to appear
+    await googleSignIn.signOut();
+
     final googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
       debugPrint('[AUTH] Google Sign-In cancelled by user');

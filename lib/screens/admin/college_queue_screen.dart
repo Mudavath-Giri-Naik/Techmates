@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/supabase_client.dart';
+import '../../utils/proxy_url.dart';
 
 class CollegeQueueScreen extends StatefulWidget {
   const CollegeQueueScreen({super.key});
@@ -573,10 +574,10 @@ class _QueueItemTileState extends State<_QueueItemTile> {
                             CircleAvatar(
                               radius: 14,
                               backgroundColor: _blue.withOpacity(0.1),
-                              backgroundImage: user['avatar_url'] != null
-                                  ? NetworkImage(user['avatar_url'])
+                              backgroundImage: proxyUrl(user['avatar_url'] as String?) != null
+                                  ? NetworkImage(proxyUrl(user['avatar_url'] as String?)!)
                                   : null,
-                              child: user['avatar_url'] == null
+                              child: proxyUrl(user['avatar_url'] as String?) == null
                                   ? Text(
                                       (user['name'] as String? ?? 'U')[0]
                                           .toUpperCase(),

@@ -213,13 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            )
-                          ],
+
                         ),
                         child: Image.asset(
                           'assets/images/logo.png', 
@@ -232,7 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.2),
                         children: [
                           TextSpan(text: 'Tech', style: TextStyle(color: Color(0xFFF0190A))),
-                          TextSpan(text: 'mates', style: TextStyle(color: Color(0xFF0B19D9))),
+                          TextSpan(text: 'mates', style: TextStyle(color: Color(0xFF1F51FF))),
                         ],
                       )),
                     ])),

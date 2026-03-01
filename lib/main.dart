@@ -307,9 +307,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.deepPurple,
               brightness: Brightness.light,
+              surface: Colors.white,
             ),
+            scaffoldBackgroundColor: Colors.white,
             useMaterial3: true,
             appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
               systemOverlayStyle: SystemUiOverlayStyle(
                 statusBarColor: Colors.transparent,
                 statusBarIconBrightness: Brightness.dark,
@@ -337,9 +341,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.deepPurple,
               brightness: Brightness.dark,
+              surface: Colors.black,
             ),
+            scaffoldBackgroundColor: Colors.black,
             useMaterial3: true,
             appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.black,
+              surfaceTintColor: Colors.transparent,
               systemOverlayStyle: SystemUiOverlayStyle(
                 statusBarColor: Colors.transparent,
                 statusBarIconBrightness: Brightness.light,
