@@ -115,7 +115,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
     if (_hasError) return _buildError(cs);
 
     return Scaffold(
-      backgroundColor: cs.surface,
+
       body: RefreshIndicator(
         onRefresh: _fetchStudents,
         color: _blue,
@@ -914,7 +914,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
   // ═══════════════════════════════════════════════════════════════
   Widget _buildShimmer(ColorScheme cs) {
     return Scaffold(
-      backgroundColor: cs.surface,
+
       body: SafeArea(
         child: Shimmer.fromColors(
           baseColor: cs.surfaceContainerLow,
@@ -1001,7 +1001,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
   // ═══════════════════════════════════════════════════════════════
   Widget _buildError(ColorScheme cs) {
     return Scaffold(
-      backgroundColor: cs.surface,
+
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

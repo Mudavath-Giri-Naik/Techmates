@@ -708,15 +708,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _onCategorySelected(String category) {
     if (_selectedCategory == category) return;
+    
+    // Check if the store already has data for this category
+    final store = OpportunityStore.instance;
+    bool hasStoreData = false;
+    if (category == 'Internships') {
+      hasStoreData = store.internships.value.isNotEmpty;
+    } else if (category == 'Hackathons') {
+      hasStoreData = store.hackathons.value.isNotEmpty;
+    } else if (category == 'Events') {
+      hasStoreData = store.events.value.isNotEmpty;
+    }
+    
     setState(() {
       _selectedCategory = category;
-      // Add to stack if different (avoid duplicates at top)
       if (_navigationStack.isEmpty || _navigationStack.last != category) {
         _navigationStack.add(category);
       }
-      _originalItems = [];
-      _filteredItems = [];
-      _isLoading = true; // Show loading
+      if (!hasStoreData && category != 'Applied' && category != 'Apply Later') {
+        // Only show loading if we don't have cached data
+        _originalItems = [];
+        _filteredItems = [];
+        _isLoading = true;
+      }
     });
     _loadData(forceRefresh: false);
     if (category == 'Internships') {
@@ -765,8 +779,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _fetchEliteInternships();
   }
 
-  // 0 means "All", 1-12 means Jan-Dec
   Widget _buildMonthChips() {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+
     // Auto-scroll to selected month after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_monthChipScrollController.hasClients) {
@@ -780,12 +796,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     });
 
+    final defaultBg = isDark ? cs.surfaceContainerHighest : cs.surfaceContainerHighest;
+    final defaultBorder = isDark ? cs.outlineVariant.withValues(alpha: 0.5) : const Color(0xFFE5E7EB);
+    final selectedBorder = isDark ? cs.primary : cs.primary;
+    final defaultText = isDark ? cs.onSurfaceVariant : cs.onSurfaceVariant;
+
     return Container(
       width: 42,
-      color: Theme.of(context).colorScheme.surface,
+      color: cs.surface,
       child: SingleChildScrollView(
         controller: _monthChipScrollController,
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: EdgeInsets.only(
+          top: 6,
+          // Add extra padding at bottom so the chips aren't hidden by the bottom nav bar
+          bottom: 110 + MediaQuery.paddingOf(context).bottom,
+        ),
         child: Column(
           children: [
             // "All" chip
@@ -800,10 +825,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   height: 32,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: _selectedMonth == 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: _selectedMonth == 0 ? cs.primary : defaultBg,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: _selectedMonth == 0 ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E7EB),
+                      color: _selectedMonth == 0 ? selectedBorder : defaultBorder,
                       width: 1,
                     ),
                   ),
@@ -812,7 +837,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 9.5,
                       fontWeight: _selectedMonth == 0 ? FontWeight.w700 : FontWeight.w500,
-                      color: _selectedMonth == 0 ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: _selectedMonth == 0 ? Colors.white : defaultText,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -834,10 +859,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     height: 32,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: isSelected ? cs.primary : defaultBg,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E7EB),
+                        color: isSelected ? selectedBorder : defaultBorder,
                         width: 1,
                       ),
                     ),
@@ -846,7 +871,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       style: TextStyle(
                         fontSize: 9.5,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: isSelected ? Colors.white : defaultText,
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -861,15 +886,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildVerticalLabel() {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+
+    final bgColor = isDark ? cs.surfaceContainerHighest : const Color(0xFFF9FAFB);
+    final borderColor = isDark ? cs.outlineVariant.withValues(alpha: 0.5) : const Color(0xFFE5E7EB);
+
     return Container(
       width: 36,
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB), // Very light grey
+        color: bgColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFE5E7EB),
+          color: borderColor,
           width: 0.8,
         ),
       ),
@@ -884,7 +915,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: cs.onSurfaceVariant,
                 letterSpacing: 0.8,
               ),
             ),
@@ -1476,7 +1507,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         displacement: 20,
         strokeWidth: 2.5,
         child: ListView.builder(
-          padding: EdgeInsets.zero,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.paddingOf(context).bottom +
+                kBottomNavigationBarHeight +
+                32,
+          ),
           cacheExtent: 2000.0,
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: isInternships ? 1 : _filteredItems.length + (_hasMore ? 1 : 0),

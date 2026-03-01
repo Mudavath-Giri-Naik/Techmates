@@ -525,7 +525,7 @@ class _StubIcon extends StatelessWidget {
   const _StubIcon({
     required this.icon,
     required this.onTap,
-    this.color = const Color(0xFF1C1C1E),
+    this.color = const Color(0xFF6B6B6E),
   });
 
   @override

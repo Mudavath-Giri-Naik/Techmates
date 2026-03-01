@@ -60,7 +60,7 @@ class AppUpdateService {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.system_update, size: 80, color: Colors.deepPurple),
+                            const Icon(Icons.system_update, size: 80, color: Color(0xFF1565C0)),
                             const SizedBox(height: 24),
                             const Text(
                               "Update Required",
@@ -76,7 +76,7 @@ class AppUpdateService {
                             ElevatedButton(
                               onPressed: _launchStore,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple,
+                                backgroundColor: const Color(0xFF1565C0),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                               ),

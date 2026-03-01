@@ -145,8 +145,7 @@ class _NetworkScreenState extends State<NetworkScreen>
     Navigator.of(context)
         .push(MaterialPageRoute(
           builder: (_) => CollegeDashboardScreen(college: college),
-        ))
-        .then((_) => _fetchData());
+        ));
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -165,7 +164,6 @@ class _NetworkScreenState extends State<NetworkScreen>
         .toList();
 
     return Scaffold(
-      backgroundColor: cs.surface,
       body: Column(
         children: [
           // ── Fixed header ──────────────────────────────────────
@@ -242,7 +240,9 @@ class _NetworkScreenState extends State<NetworkScreen>
                 ),
                 Container(
                   decoration: BoxDecoration(
-                    color: cs.primaryContainer,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF1A2533)
+                        : const Color(0xFFD1E7FE),
                     borderRadius: BorderRadius.circular(50),
                   ),
                   padding:
@@ -251,14 +251,18 @@ class _NetworkScreenState extends State<NetworkScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.school_rounded,
-                          size: 14, color: cs.primary),
+                          size: 14, color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF90CAF9)
+                              : const Color(0xFF1565C0)),
                       const SizedBox(width: 4),
                       Text(
                         '$_totalColleges colleges',
                         style: GoogleFonts.sora(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: cs.onPrimaryContainer,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF90CAF9)
+                              : const Color(0xFF1565C0),
                         ),
                       ),
                     ],
@@ -335,14 +339,22 @@ class _NetworkScreenState extends State<NetworkScreen>
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? cs.primaryContainer : Colors.transparent,
+          color: isActive
+              ? (Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1A2533)
+                  : const Color(0xFFD1E7FE))
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(50),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 13, color: isActive ? cs.primary : cs.onSurfaceVariant),
+              Icon(icon, size: 13, color: isActive
+                  ? (Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF90CAF9)
+                      : const Color(0xFF1565C0))
+                  : cs.onSurfaceVariant),
               const SizedBox(width: 5),
             ],
             Text(
@@ -350,7 +362,11 @@ class _NetworkScreenState extends State<NetworkScreen>
               style: GoogleFonts.sora(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isActive ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                color: isActive
+                    ? (Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF90CAF9)
+                        : const Color(0xFF1565C0))
+                    : cs.onSurfaceVariant,
               ),
             ),
           ],
@@ -369,27 +385,39 @@ class _NetworkScreenState extends State<NetworkScreen>
         children: [
           _netStatCard(
             cs,
-            iconBg: cs.primaryContainer,
+            iconBg: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1A2533)
+                : const Color(0xFFD1E7FE),
             icon: Icons.school_rounded,
-            iconColor: cs.primary,
+            iconColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF90CAF9)
+                : const Color(0xFF1565C0),
             value: '$_totalColleges',
             label: 'Colleges',
           ),
           const SizedBox(width: 8),
           _netStatCard(
             cs,
-            iconBg: cs.tertiaryContainer,
+            iconBg: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF142E26)
+                : const Color(0xFFBAF1E3),
             icon: Icons.people_rounded,
-            iconColor: cs.tertiary,
+            iconColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF6EE7B7)
+                : const Color(0xFF0D7355),
             value: '$_totalStudents',
             label: 'Students',
           ),
           const SizedBox(width: 8),
           _netStatCard(
             cs,
-            iconBg: cs.secondaryContainer,
+            iconBg: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2D2006)
+                : const Color(0xFFFFF3D1),
             icon: Icons.location_on_rounded,
-            iconColor: cs.secondary,
+            iconColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFFFBBF24)
+                : const Color(0xFFB45309),
             value: '$_totalStates',
             label: 'States',
           ),
@@ -480,6 +508,20 @@ class _NetworkScreenState extends State<NetworkScreen>
   // MY COLLEGE CARD (Featured)
   // ═══════════════════════════════════════════════════════════════
   Widget _buildMyCollegeCard(CollegeNetworkInfo college, ColorScheme cs) {
+    final isDark = cs.brightness == Brightness.dark;
+    
+    // Light mode: pale green theme
+    // Dark mode: very dark, muted green theme
+    final bgColor = isDark ? const Color(0xFF0B2117) : const Color(0xFFF0FDF4);
+    final borderColor = isDark ? const Color(0xFF166534).withOpacity(0.5) : const Color(0xFFDCFCE7);
+    
+    // Yours badge
+    final badgeBg = isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7);
+    final badgeText = isDark ? const Color(0xFF34D399) : const Color(0xFF15803D);
+    
+    // Divider
+    final dividerColor = isDark ? const Color(0xFF166534).withOpacity(0.3) : const Color(0xFFBBF7D0).withOpacity(0.5);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: InkWell(
@@ -490,9 +532,9 @@ class _NetworkScreenState extends State<NetworkScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4), // Light green tint
+                color: bgColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFDCFCE7), width: 1.0),
+                border: Border.all(color: borderColor, width: 1.0),
               ),
               child: Column(
                 children: [
@@ -506,29 +548,31 @@ class _NetworkScreenState extends State<NetworkScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text.rich(
-                              TextSpan(
+                            RichText(
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              text: TextSpan(
+                                text: college.name,
+                                style: GoogleFonts.sora(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface,
+                                ),
                                 children: [
-                                  TextSpan(text: college.name),
-                                  if (college.isVerified)
-                                    const TextSpan(text: '\u00A0'),
-                                  if (college.isVerified)
+                                  if (college.isVerified) ...[
                                     const WidgetSpan(
-                                      alignment: PlaceholderAlignment.baseline,
-                                      baseline: TextBaseline.alphabetic,
+                                      child: SizedBox(width: 4),
+                                    ),
+                                    const WidgetSpan(
+                                      alignment: PlaceholderAlignment.middle,
                                       child: Icon(Icons.verified_rounded,
                                           size: 14, color: _blue),
                                     ),
+                                  ],
                                 ],
                               ),
-                              style: GoogleFonts.sora(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700,
-                                color: cs.onSurface,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 2),
                             Text(
                               [college.state, college.location]
                                   .where(
@@ -543,22 +587,6 @@ class _NetworkScreenState extends State<NetworkScreen>
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: cs.primaryContainer,
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: Text(
-                          'yours',
-                          style: GoogleFonts.sora(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                            color: cs.onPrimaryContainer,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
 
@@ -568,22 +596,64 @@ class _NetworkScreenState extends State<NetworkScreen>
                     padding: const EdgeInsets.only(top: 10),
                     decoration: BoxDecoration(
                       border: Border(
-                        top: BorderSide(color: const Color(0xFFBBF7D0).withOpacity(0.5)),
+                        top: BorderSide(color: dividerColor),
                       ),
                     ),
                     child: Row(
                       children: [
                         _mcStat(Icons.people_rounded,
                             '${college.studentCount}', 'students', cs),
-                        const SizedBox(width: 12),
-                        _mcStat(Icons.category_rounded, '', 'departments', cs),
-                        const SizedBox(width: 12),
-                        _mcStat(Icons.military_tech_rounded, 'Top:', '', cs,
-                            isSuffix: true),
+                        if (college.location != null && college.location!.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          _mcStat(Icons.location_on_rounded,
+                              college.location!, '', cs),
+                        ],
                       ],
                     ),
                   ),
                 ],
+              ),
+            ),
+            
+            // Yours badge at top right
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Text(
+                  'yours',
+                  style: GoogleFonts.sora(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: badgeText,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Yours badge at top right
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Text(
+                  'yours',
+                  style: GoogleFonts.sora(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: badgeText,
+                  ),
+                ),
               ),
             ),
             // Shimmer sweep overlay
@@ -748,12 +818,17 @@ class _NetworkScreenState extends State<NetworkScreen>
       {bool large = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorPairs = <List<Color>>[
-      [cs.primaryContainer, cs.onPrimaryContainer],
-      [cs.tertiaryContainer, cs.onTertiaryContainer],
-      [cs.secondaryContainer, cs.onSecondaryContainer],
       [
-        isDark ? const Color(0xFF1E0A3C) : const Color(0xFFF3E8FF),
-        isDark ? const Color(0xFFD8B4FE) : const Color(0xFF6B21A8),
+        isDark ? const Color(0xFF1A2533) : const Color(0xFFD1E7FE),
+        isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0),
+      ],
+      [
+        isDark ? const Color(0xFF142E26) : const Color(0xFFBAF1E3),
+        isDark ? const Color(0xFF6EE7B7) : const Color(0xFF0D7355),
+      ],
+      [
+        isDark ? const Color(0xFF2D2006) : const Color(0xFFFFF3D1),
+        isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
       ],
       [
         isDark ? const Color(0xFF1C0A00) : const Color(0xFFFFF7ED),
@@ -762,6 +837,10 @@ class _NetworkScreenState extends State<NetworkScreen>
       [
         isDark ? const Color(0xFF042F2E) : const Color(0xFFF0FDFA),
         isDark ? const Color(0xFF5EEAD4) : const Color(0xFF0F766E),
+      ],
+      [
+        isDark ? const Color(0xFF1A1A2E) : const Color(0xFFE8EAF6),
+        isDark ? const Color(0xFF9FA8DA) : const Color(0xFF3949AB),
       ],
     ];
     final pair = colorPairs[index % colorPairs.length];
@@ -794,7 +873,7 @@ class _NetworkScreenState extends State<NetworkScreen>
   // ═══════════════════════════════════════════════════════════════
   Widget _buildShimmer(ColorScheme cs) {
     return Scaffold(
-      backgroundColor: cs.surface,
+
       body: SafeArea(
         child: Shimmer.fromColors(
           baseColor: cs.surfaceContainerLow,
@@ -903,7 +982,7 @@ class _NetworkScreenState extends State<NetworkScreen>
   // ═══════════════════════════════════════════════════════════════
   Widget _buildError(ColorScheme cs) {
     return Scaffold(
-      backgroundColor: cs.surface,
+
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

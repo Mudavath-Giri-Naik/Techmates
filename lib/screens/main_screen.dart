@@ -99,7 +99,9 @@ class _MainScreenState extends State<MainScreen> {
           child: NavigationBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            indicatorColor: Theme.of(context).colorScheme.secondaryContainer,
+            indicatorColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1A2533)
+                : const Color(0xFFD1E7FE),
             height: 72,
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) =>

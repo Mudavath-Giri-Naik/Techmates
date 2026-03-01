@@ -305,7 +305,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           themeMode: ThemeNotifier.instance.themeMode,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.deepPurple,
+              seedColor: const Color(0xFF1565C0),
               brightness: Brightness.light,
               surface: Colors.white,
             ),
@@ -332,14 +332,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               },
             ),
             textSelectionTheme: TextSelectionThemeData(
-              cursorColor: Colors.deepPurple,
-              selectionColor: Colors.deepPurple.withOpacity(0.4),
-              selectionHandleColor: Colors.deepPurple,
+              cursorColor: const Color(0xFF1565C0),
+              selectionColor: const Color(0xFF1565C0).withOpacity(0.4),
+              selectionHandleColor: const Color(0xFF1565C0),
             ),
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.deepPurple,
+              seedColor: const Color(0xFF1565C0),
               brightness: Brightness.dark,
               surface: Colors.black,
             ),
@@ -366,9 +366,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               },
             ),
             textSelectionTheme: TextSelectionThemeData(
-              cursorColor: Colors.deepPurpleAccent,
-              selectionColor: Colors.deepPurple.withOpacity(0.4),
-              selectionHandleColor: Colors.deepPurpleAccent,
+              cursorColor: const Color(0xFF90CAF9),
+              selectionColor: const Color(0xFF1565C0).withOpacity(0.4),
+              selectionHandleColor: const Color(0xFF90CAF9),
             ),
           ),
           home: const SplashScreen(),

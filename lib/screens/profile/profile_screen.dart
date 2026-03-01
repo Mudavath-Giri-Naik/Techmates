@@ -207,20 +207,18 @@ class _ProfileScreenState extends State<ProfileScreen>
     final hasAppBar = !_isCurrentUser || Navigator.of(context).canPop();
 
     return Scaffold(
-      backgroundColor: cs.surface,
       appBar: hasAppBar
           ? AppBar(
-              title: Text(
-                _isCurrentUser
-                    ? 'Profile'
-                    : (_profile?.name ?? 'Profile'),
-                style: GoogleFonts.sora(
-                    fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: cs.surface,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-            )
+               title: Text(
+                 _isCurrentUser
+                     ? '' // Removed 'Profile' label here
+                     : (_profile?.name ?? 'Profile'),
+                 style: GoogleFonts.sora(
+                     fontSize: 18, fontWeight: FontWeight.bold),
+               ),
+               elevation: 0,
+               scrolledUnderElevation: 0,
+             )
           : null,
       body: RefreshIndicator(
         onRefresh: _loadData,
@@ -311,7 +309,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                 SliverToBoxAdapter(child: _buildLogoutButton()),
               ],
             ],
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 32 +
+                    MediaQuery.paddingOf(context).bottom +
+                    kBottomNavigationBarHeight,
+              ),
+            ),
           ],
         ),
       ),
@@ -1493,7 +1497,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildShimmer() {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: cs.surface,
+
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -1539,7 +1543,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildError() {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: cs.surface,
+
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -17,9 +17,9 @@ class StudentProfileScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+
       appBar: AppBar(
-        backgroundColor: cs.surface,
+  
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(

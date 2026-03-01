@@ -67,11 +67,9 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: colorScheme.surface,
       floatingActionButton: widget.floatingActionButton,
       appBar: widget.showAppBar
           ? AppBar(
-              backgroundColor: colorScheme.surface,
               elevation: 0,
               scrolledUnderElevation: 0,
               toolbarHeight: 56,
