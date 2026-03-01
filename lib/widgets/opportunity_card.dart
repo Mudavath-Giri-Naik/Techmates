@@ -117,7 +117,7 @@ class _OpportunityCardState extends State<OpportunityCard> {
     return Container(
       margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
+        color: theme.brightness == Brightness.dark ? Colors.black : theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: theme.colorScheme.outlineVariant, width: 1),
         boxShadow: [

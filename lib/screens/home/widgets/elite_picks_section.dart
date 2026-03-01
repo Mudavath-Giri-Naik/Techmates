@@ -127,8 +127,9 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
       Theme.of(context).colorScheme.tertiary,
     ];
     final Color baseColor = bgColors[index % bgColors.length];
-    final Color dynamicBgColor = baseColor.withValues(
-        alpha: Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.08);
+    final Color dynamicBgColor = Theme.of(context).brightness == Brightness.dark 
+        ? const Color(0xFF1E1E1E)
+        : baseColor.withValues(alpha: 0.08);
 
     // Format stipend
     String stipendText = 'Stipend N/A';
@@ -166,8 +167,14 @@ class _ElitePicksSectionState extends State<ElitePicksSection>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: dynamicBgColor,
-        borderRadius: BorderRadius.circular(20),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.black : dynamicBgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Theme.of(context).brightness == Brightness.dark 
+            ? Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1.1) 
+            : null,
+        boxShadow: Theme.of(context).brightness == Brightness.dark 
+            ? [BoxShadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -11,6 +11,9 @@ import '../../services/profile_service.dart';
 import '../../services/bookmark_service.dart';
 import '../../services/home_data_service.dart';
 import '../../services/user_role_service.dart';
+import '../../services/network_service.dart';
+
+import '../network/college_dashboard_screen.dart';
 
 import 'widgets/greeting_header.dart';
 import 'widgets/college_leaderboard_card.dart';
@@ -189,8 +192,22 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
                           : (_profile?.college ?? 'Your College'),
                       isLoading: false,
                       onFullBoard: () {
-                        // Navigate to Network tab (index 1)
-                        _navigateToTab(1);
+                        // Navigate directly to the college leaderboard dashboard
+                        final collegeId = _profile?.collegeId;
+                        if (collegeId != null && collegeId.isNotEmpty) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CollegeDashboardScreen(
+                                college: CollegeNetworkInfo(
+                                  id: collegeId,
+                                  name: _collegeName.isNotEmpty
+                                      ? _collegeName
+                                      : (_profile?.college ?? 'Your College'),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                       },
                     ),
                   ),
@@ -243,7 +260,23 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
                           studentCount: _collegeStudentCount,
                           collegeName: _collegeName,
                           topStudents: _collegePulseStudents,
-                          onTap: () => _navigateToTab(1),
+                          onTap: () {
+                            final collegeId = _profile?.collegeId;
+                            if (collegeId != null && collegeId.isNotEmpty) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => CollegeDashboardScreen(
+                                    college: CollegeNetworkInfo(
+                                      id: collegeId,
+                                      name: _collegeName.isNotEmpty
+                                          ? _collegeName
+                                          : (_profile?.college ?? 'Your College'),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ),
                     ),

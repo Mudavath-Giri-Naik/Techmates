@@ -178,7 +178,7 @@ class _NewThisWeekSectionState extends State<NewThisWeekSection>
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: HomeTheme.surfaceContainerLow(context),
+          color: Theme.of(context).brightness == Brightness.dark ? Colors.black : HomeTheme.surfaceContainerLow(context),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: HomeTheme.outlineVariant(context), width: 1),
         ),

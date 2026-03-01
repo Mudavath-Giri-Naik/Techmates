@@ -159,7 +159,7 @@ class _InternshipCardState extends State<InternshipCard> {
         children: [
           Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: widget.isHighlighted ? _blue(context) : Theme.of(context).colorScheme.outlineVariant,

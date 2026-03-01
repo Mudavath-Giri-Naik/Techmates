@@ -120,7 +120,7 @@ class _HackathonCardState extends State<HackathonCard> {
       margin: const EdgeInsets.only(left: 16, right: 16, bottom: 2),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: colorScheme.surface,
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.black : colorScheme.surface,
         border: Border.all(
           color: widget.isHighlighted ? colorScheme.primary : colorScheme.outlineVariant,
           width: widget.isHighlighted ? 1.6 : 1.1,

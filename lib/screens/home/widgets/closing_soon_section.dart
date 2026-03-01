@@ -99,7 +99,7 @@ class ClosingSoonSection extends StatelessWidget {
       width: 180,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: HomeTheme.surfaceContainerLow(context),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.transparent : HomeTheme.surfaceContainerLow(context),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

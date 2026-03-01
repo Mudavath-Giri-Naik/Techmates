@@ -32,8 +32,8 @@ class _EventCardState extends State<EventCard> {
   final BookmarkService _bookmarkService = BookmarkService();
   bool _isSaved = false;
 
-  Color _surface(BuildContext context) => Theme.of(context).colorScheme.surface;
-  Color _stubSurface(BuildContext context) => Theme.of(context).colorScheme.surfaceContainerHighest;
+  Color _surface(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.black : Theme.of(context).colorScheme.surface;
+  Color _stubSurface(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.black : Theme.of(context).colorScheme.surfaceContainerHighest;
   Color _inkDeep(BuildContext context) => Theme.of(context).colorScheme.onSurface;
   Color _inkMid(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
   Color _inkFaint(BuildContext context) => Theme.of(context).colorScheme.outline;

@@ -165,12 +165,10 @@ class _CollegeLeaderboardCardState extends State<CollegeLeaderboardCard>
                     width: double.infinity,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      color: _rankAccent((student['collegeRank'] as int?) ?? 1)
-                          .withValues(
-                              alpha: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? 0.15
-                                  : 0.08), // Dynamic very light background
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF121212)
+                          : _rankAccent((student['collegeRank'] as int?) ?? 1)
+                              .withValues(alpha: 0.08), // Dynamic very light background
                     ),
                     child: Stack(
                       children: [

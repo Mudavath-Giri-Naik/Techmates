@@ -80,7 +80,7 @@ class _StatsCardsRowState extends State<StatsCardsRow>
       width: 168,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: HomeTheme.surfaceContainer(context),
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : HomeTheme.surfaceContainer(context),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -155,7 +155,7 @@ class _StatsCardsRowState extends State<StatsCardsRow>
       width: 152,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: HomeTheme.surfaceContainer(context),
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : HomeTheme.surfaceContainer(context),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -304,7 +304,7 @@ class _StatsCardsRowState extends State<StatsCardsRow>
       width: 152,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: HomeTheme.surfaceContainer(context),
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : HomeTheme.surfaceContainer(context),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(

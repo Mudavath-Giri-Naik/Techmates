@@ -107,7 +107,7 @@ class _CollegePulseSectionState extends State<CollegePulseSection>
                  return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: HomeTheme.surfaceContainerLow(context), // Flat minimal background without borders or shadows
+                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : HomeTheme.surfaceContainerLow(context), // Flat minimal background without borders or shadows
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: child,
@@ -217,7 +217,7 @@ class _CollegePulseSectionState extends State<CollegePulseSection>
       padding: const EdgeInsets.all(2), // spacing for the colored ring
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: HomeTheme.surfaceContainerLow(context), // Match background to simulate margin cutout
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : HomeTheme.surfaceContainerLow(context), // Match background to simulate margin cutout
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -259,7 +259,7 @@ class _CollegePulseSectionState extends State<CollegePulseSection>
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: HomeTheme.surfaceContainerLow(context),
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : HomeTheme.surfaceContainerLow(context),
       ),
       child: Container(
         decoration: BoxDecoration(
