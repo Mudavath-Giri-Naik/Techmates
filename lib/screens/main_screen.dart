@@ -6,6 +6,7 @@ import 'network/network_screen.dart';
 import 'home_screen.dart'; // Existing — used as Explore tab
 import 'compete/compete_screen.dart';
 import 'profile/profile_screen.dart'; // Existing
+import '../widgets/offline_banner.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -64,10 +65,12 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // Allows content to flow under the curved navbar
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      extendBody: true,
+      body: OfflineBanner(
+        child: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

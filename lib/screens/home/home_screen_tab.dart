@@ -77,16 +77,16 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
       final lastVisitStr = prefs.getString(_lastVisitKey);
       final lastVisitTime = lastVisitStr != null
           ? DateTime.tryParse(lastVisitStr) ??
-              DateTime.now().subtract(const Duration(days: 7))
+                DateTime.now().subtract(const Duration(days: 7))
           : DateTime.now().subtract(const Duration(days: 7));
 
       // Parallel fetch: profile + all home sections
       final results = await Future.wait([
-        ProfileService().fetchProfile(userId),                      // 0
-        _homeDataService.fetchClosingSoon(),                        // 1
-        _homeDataService.fetchElitePicks(),                         // 2
-        _homeDataService.fetchNewThisWeek(),                        // 3
-        _homeDataService.fetchNewOpsSince(lastVisitTime),           // 4
+        ProfileService().fetchProfile(userId), // 0
+        _homeDataService.fetchClosingSoon(), // 1
+        _homeDataService.fetchElitePicks(), // 2
+        _homeDataService.fetchNewThisWeek(), // 3
+        _homeDataService.fetchNewOpsSince(lastVisitTime), // 4
       ]);
 
       final profile = results[0] as UserProfile?;
@@ -111,8 +111,8 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
         final pulseData = collegeResults[1] as Map<String, dynamic>;
         collegeCount = (pulseData['count'] as int?) ?? 0;
         collegeName = (pulseData['collegeName'] as String?) ?? collegeName;
-        pulseStudents =
-            ((pulseData['students'] as List?) ?? []).cast<Map<String, dynamic>>();
+        pulseStudents = ((pulseData['students'] as List?) ?? [])
+            .cast<Map<String, dynamic>>();
       }
 
       if (!mounted) return;
@@ -159,8 +159,6 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -170,99 +168,98 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
       body: _isLoading
           ? _buildShimmerSkeleton(context)
           : _hasError
-              ? _buildErrorState(context)
-              : RefreshIndicator(
-                  onRefresh: _onPullRefresh,
-                  color: colorScheme.primary,
-                  child: CustomScrollView(
-                    physics: const BouncingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
-                    ),
-                    slivers: [
-                      // Section 1 — Greeting Header
-                      SliverToBoxAdapter(
-                        child: GreetingHeader(profile: _profile),
-                      ),
-
-                      // Section 2 — College Leaderboard Spotlight
-                      SliverToBoxAdapter(
-                        child: CollegeLeaderboardCard(
-                          students: _leaderboardStudents,
-                          collegeName: _collegeName.isNotEmpty
-                              ? _collegeName
-                              : (_profile?.college ?? 'Your College'),
-                          isLoading: false,
-                          onFullBoard: () {
-                            // Navigate to Network tab (index 1)
-                            _navigateToTab(1);
-                          },
-                        ),
-                      ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                      // Section 3 — Closing Soon
-                      if (_closingSoon.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: ClosingSoonSection(
-                            items: _closingSoon,
-                            onSeeAll: () => _navigateToTab(2),
-                          ),
-                        ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                      // Section 4 — Elite Picks
-                      if (_elitePicks.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: ElitePicksSection(items: _elitePicks),
-                          ),
-                        ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                      // Section 5 — New This Week
-                      if (_newThisWeek.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: NewThisWeekSection(
-                              items: _newThisWeek,
-                              newSinceLastVisit: _newSinceLastVisit,
-                              onViewAll: () => _navigateToTab(2),
-                            ),
-                          ),
-                        ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                      // Section 6 — College Pulse
-                      if (_collegeStudentCount > 0)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: CollegePulseSection(
-                              studentCount: _collegeStudentCount,
-                              collegeName: _collegeName,
-                              topStudents: _collegePulseStudents,
-                              onTap: () => _navigateToTab(1),
-                            ),
-                          ),
-                        ),
-
-                      // Bottom spacing to keep last section clear of bottom nav/safe area.
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: 32 +
-                              MediaQuery.paddingOf(context).bottom +
-                              kBottomNavigationBarHeight,
-                        ),
-                      ),
-                    ],
-                  ),
+          ? _buildErrorState(context)
+          : RefreshIndicator(
+              onRefresh: _onPullRefresh,
+              color: colorScheme.primary,
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
                 ),
+                slivers: [
+                  // Section 1 — Greeting Header
+                  SliverToBoxAdapter(child: GreetingHeader(profile: _profile)),
+
+                  // Section 2 — College Leaderboard Spotlight
+                  SliverToBoxAdapter(
+                    child: CollegeLeaderboardCard(
+                      students: _leaderboardStudents,
+                      collegeName: _collegeName.isNotEmpty
+                          ? _collegeName
+                          : (_profile?.college ?? 'Your College'),
+                      isLoading: false,
+                      onFullBoard: () {
+                        // Navigate to Network tab (index 1)
+                        _navigateToTab(1);
+                      },
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                  // Section 3 — Closing Soon
+                  if (_closingSoon.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: ClosingSoonSection(
+                        items: _closingSoon,
+                        onSeeAll: () => _navigateToTab(2),
+                      ),
+                    ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                  // Section 4 — Elite Picks
+                  if (_elitePicks.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: ElitePicksSection(items: _elitePicks),
+                      ),
+                    ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                  // Section 5 — New This Week
+                  if (_newThisWeek.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: NewThisWeekSection(
+                          items: _newThisWeek,
+                          newSinceLastVisit: _newSinceLastVisit,
+                          onViewAll: () => _navigateToTab(2),
+                        ),
+                      ),
+                    ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                  // Section 6 — College Pulse
+                  if (_collegeStudentCount > 0)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: CollegePulseSection(
+                          studentCount: _collegeStudentCount,
+                          collegeName: _collegeName,
+                          topStudents: _collegePulseStudents,
+                          onTap: () => _navigateToTab(1),
+                        ),
+                      ),
+                    ),
+
+                  // Bottom spacing to keep last section clear of bottom nav/safe area.
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height:
+                          32 +
+                          MediaQuery.paddingOf(context).bottom +
+                          kBottomNavigationBarHeight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -272,8 +269,7 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
     // For now, we can use the bottom nav bar's onDestinationSelected
     // by finding the nearest ancestor State
     try {
-      final mainScreenState =
-          context.findAncestorStateOfType<State>();
+      final mainScreenState = context.findAncestorStateOfType<State>();
       if (mainScreenState != null && mainScreenState.mounted) {
         // Try to call setState on MainScreen to change tab
         // This is a simple approach — we look for the _MainScreenState
@@ -291,8 +287,9 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
   Widget _buildShimmerSkeleton(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = isDark ? const Color(0xFF2B2930) : Colors.grey.shade300;
-    final highlightColor =
-        isDark ? const Color(0xFF36343B) : Colors.grey.shade100;
+    final highlightColor = isDark
+        ? const Color(0xFF36343B)
+        : Colors.grey.shade100;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -418,10 +415,7 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
           const SizedBox(height: 8),
           Text(
             'Couldn\'t load your dashboard.',
-            style: TextStyle(
-              fontSize: 13,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
           FilledButton.tonal(

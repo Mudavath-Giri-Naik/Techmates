@@ -1,3 +1,5 @@
+import '../utils/proxy_url.dart';
+
 /// Follow status for a user relationship.
 enum FollowStatus {
   none,
@@ -61,7 +63,7 @@ class FollowRequestModel {
       followId: json['follow_id'] as String,
       followerId: json['follower_id'] as String,
       name: json['name'] as String?,
-      avatarUrl: json['avatar_url'] as String?,
+      avatarUrl: proxyUrl(json['avatar_url'] as String?),
       college: json['college'] as String?,
       branch: json['branch'] as String?,
       year: json['year'] as String?,
@@ -103,7 +105,7 @@ class FollowUserItem {
       name: json['name'] as String?,
       branch: json['branch'] as String?,
       year: json['year'] as String?,
-      avatarUrl: json['avatar_url'] as String?,
+      avatarUrl: proxyUrl(json['avatar_url'] as String?),
       college: json['college'] as String?,
       isPrivate: json['is_private'] as bool? ?? false,
       followStatus: FollowStatus.fromString(statusStr),

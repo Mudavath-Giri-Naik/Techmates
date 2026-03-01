@@ -149,6 +149,11 @@ class _DevCardScreenState extends State<DevCardScreen> {
 
   Future<void> _share() async {
     try {
+      // If share is triggered from inside the card (footer button),
+      // let that tap/ripple frame settle before capturing the boundary.
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await WidgetsBinding.instance.endOfFrame;
+
       final boundary = _repaintKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
       if (boundary == null) return;

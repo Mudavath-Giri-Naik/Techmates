@@ -230,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             parent: AlwaysScrollableScrollPhysics(),
           ),
           slivers: [
-            SliverToBoxAdapter(child: _buildHeroHeader(_profile!, cs)),
+            SliverToBoxAdapter(child: _buildHeroHeader(_profile!, cs, hasAppBar)),
             if (_profile!.isPrivate && !_isCurrentUser)
               SliverToBoxAdapter(
                 child: Padding(
@@ -322,13 +322,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   // HERO HEADER
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildHeroHeader(UserProfile profile, ColorScheme cs) {
+  Widget _buildHeroHeader(UserProfile profile, ColorScheme cs, bool hasAppBar) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
         16,
-        _isCurrentUser
-            ? MediaQuery.of(context).padding.top + 12
-            : 8,
+        hasAppBar
+            ? 8
+            : (MediaQuery.of(context).padding.top + 12),
         16,
         0,
       ),
@@ -595,7 +595,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         GestureDetector(
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => const DevCardScreen(),
+                              builder: (_) => DevCardScreen(),
                             ));
                           },
                           child: Row(
@@ -883,7 +883,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(height: 12),
             FilledButton.tonal(
               onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DevCardScreen())),
+                  MaterialPageRoute(builder: (_) => DevCardScreen())),
               child: const Text('Generate DevCard'),
             ),
           ],
@@ -957,7 +957,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               InkWell(
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const DevCardScreen())),
+                    builder: (_) => DevCardScreen())),
                 child: Row(
                   children: [
                     Text(

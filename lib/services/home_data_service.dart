@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
 import '../models/devcard/devcard_model.dart';
@@ -7,6 +9,7 @@ import '../models/opportunity_model.dart';
 
 /// Centralizes all Supabase queries for the Home Screen.
 /// Every query has a 5-second timeout and fails gracefully.
+/// FIX 7: Cache-first pattern — show cached data instantly, refresh in background.
 class HomeDataService {
   static final HomeDataService _instance = HomeDataService._internal();
   factory HomeDataService() => _instance;
@@ -14,11 +17,59 @@ class HomeDataService {
 
   final SupabaseClient _client = SupabaseClientManager.instance;
 
-  // ── Closing Soon (deadlines within 7 days) ──
-  // Queries detail tables directly for reliability.
-  Future<List<Map<String, dynamic>>> fetchClosingSoon() async {
+  // FIX 7: Cache keys and duration
+  static const _closingSoonKey = 'home_closing_soon_v1';
+  static const _elitePicksKey = 'home_elite_picks_v1';
+  static const _newThisWeekKey = 'home_new_this_week_v1';
+  static const _collegePulseKey = 'home_college_pulse_v1';
+  static const _leaderboardKey = 'home_leaderboard_v1';
+  static const _homeCacheDuration = Duration(hours: 2);
+
+  // ── Generic cache helpers ──
+  Future<void> _saveCache(String key, dynamic data) async {
     try {
-      // deadline columns are `date` type → use YYYY-MM-DD format
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, jsonEncode(data));
+      await prefs.setInt('${key}_time', DateTime.now().millisecondsSinceEpoch);
+    } catch (e) {
+      debugPrint('[HomeDataService] Cache save error for $key: $e');
+    }
+  }
+
+  Future<dynamic> _loadCache(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheTime = prefs.getInt('${key}_time');
+      if (cacheTime == null) return null;
+      final age = DateTime.now().millisecondsSinceEpoch - cacheTime;
+      if (age > _homeCacheDuration.inMilliseconds) return null;
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) return null;
+      return jsonDecode(raw);
+    } catch (e) {
+      debugPrint('[HomeDataService] Cache load error for $key: $e');
+      return null;
+    }
+  }
+
+  // ── Closing Soon (deadlines within 7 days) ──
+  Future<List<Map<String, dynamic>>> fetchClosingSoon() async {
+    // Try cache first
+    final cached = await _loadCache(_closingSoonKey);
+    if (cached != null) {
+      debugPrint('[HomeDataService] Closing soon: cache hit');
+      unawaited(_refreshClosingSoonInBackground());
+      return (cached as List).cast<Map<String, dynamic>>();
+    }
+    return _fetchClosingSoonFromNetwork();
+  }
+
+  Future<void> _refreshClosingSoonInBackground() async {
+    try { await _fetchClosingSoonFromNetwork(); } catch (_) {}
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchClosingSoonFromNetwork() async {
+    try {
       final today = DateTime.now();
       final nowDate =
           '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
@@ -26,10 +77,7 @@ class HomeDataService {
       final sevenDate =
           '${sevenDaysLater.year}-${sevenDaysLater.month.toString().padLeft(2, '0')}-${sevenDaysLater.day.toString().padLeft(2, '0')}';
 
-      debugPrint('📅 [HomeDataService] Closing Soon range: $nowDate → $sevenDate');
-
       final results = await Future.wait([
-        // Query 1 — Internships
         _client
             .from('internship_details')
             .select('opportunity_id, title, company, deadline')
@@ -38,7 +86,6 @@ class HomeDataService {
             .order('deadline', ascending: true)
             .limit(4)
             .timeout(const Duration(seconds: 5)),
-        // Query 2 — Hackathons
         _client
             .from('hackathon_details')
             .select('opportunity_id, title, company, deadline')
@@ -47,7 +94,6 @@ class HomeDataService {
             .order('deadline', ascending: true)
             .limit(4)
             .timeout(const Duration(seconds: 5)),
-        // Query 3 — Events
         _client
             .from('event_details')
             .select('opportunity_id, title, organiser, apply_deadline')
@@ -58,11 +104,8 @@ class HomeDataService {
             .timeout(const Duration(seconds: 5)),
       ]);
 
-      debugPrint('📅 [HomeDataService] Internships: ${(results[0] as List).length}, Hackathons: ${(results[1] as List).length}, Events: ${(results[2] as List).length}');
-
       final List<Map<String, dynamic>> merged = [];
 
-      // Internships
       for (final item in results[0] as List) {
         merged.add({
           'id': item['opportunity_id'],
@@ -72,7 +115,6 @@ class HomeDataService {
           'deadline': item['deadline'],
         });
       }
-      // Hackathons
       for (final item in results[1] as List) {
         merged.add({
           'id': item['opportunity_id'],
@@ -82,7 +124,6 @@ class HomeDataService {
           'deadline': item['deadline'],
         });
       }
-      // Events — map organiser→company, apply_deadline→deadline
       for (final item in results[2] as List) {
         merged.add({
           'id': item['opportunity_id'],
@@ -93,14 +134,14 @@ class HomeDataService {
         });
       }
 
-      // Sort by deadline ASC, take first 6
       merged.sort((a, b) {
         final da = DateTime.tryParse(a['deadline'] ?? '') ?? DateTime(2099);
         final db = DateTime.tryParse(b['deadline'] ?? '') ?? DateTime(2099);
         return da.compareTo(db);
       });
-      debugPrint('📅 [HomeDataService] Total closing soon: ${merged.length}');
-      return merged.take(6).toList();
+      final result = merged.take(6).toList();
+      await _saveCache(_closingSoonKey, result);
+      return result;
     } catch (e) {
       debugPrint('❌ [HomeDataService] fetchClosingSoon error: $e');
       return [];
@@ -108,15 +149,25 @@ class HomeDataService {
   }
 
   // ── Elite Picks ──
-  // Queries internship_details directly. Has fallback.
   Future<List<Map<String, dynamic>>> fetchElitePicks() async {
+    final cached = await _loadCache(_elitePicksKey);
+    if (cached != null) {
+      debugPrint('[HomeDataService] Elite picks: cache hit');
+      unawaited(_refreshElitePicksInBackground());
+      return (cached as List).cast<Map<String, dynamic>>();
+    }
+    return _fetchElitePicksFromNetwork();
+  }
+
+  Future<void> _refreshElitePicksInBackground() async {
+    try { await _fetchElitePicksFromNetwork(); } catch (_) {}
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchElitePicksFromNetwork() async {
     try {
-      // deadline is `date` type → use YYYY-MM-DD format
       final today = DateTime.now();
       final nowDate =
           '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-
-      debugPrint('🏆 [HomeDataService] Elite Picks query: deadline >= $nowDate, is_elite = true');
 
       var response = await _client
           .from('internship_details')
@@ -128,11 +179,7 @@ class HomeDataService {
           .limit(5)
           .timeout(const Duration(seconds: 5));
 
-      debugPrint('🏆 [HomeDataService] Elite Picks response: ${(response as List).length} items');
-
-      // Fallback: if no elite picks, fetch latest 3 internships
       if ((response as List).isEmpty) {
-        debugPrint('🏆 [HomeDataService] No elite picks found, using fallback');
         response = await _client
             .from('internship_details')
             .select(
@@ -141,10 +188,11 @@ class HomeDataService {
             .order('deadline', ascending: true)
             .limit(3)
             .timeout(const Duration(seconds: 5));
-        debugPrint('🏆 [HomeDataService] Fallback response: ${(response as List).length} items');
       }
 
-      return (response as List).cast<Map<String, dynamic>>();
+      final result = (response as List).cast<Map<String, dynamic>>();
+      await _saveCache(_elitePicksKey, result);
+      return result;
     } catch (e) {
       debugPrint('❌ [HomeDataService] fetchElitePicks error: $e');
       return [];
@@ -153,6 +201,26 @@ class HomeDataService {
 
   // ── New This Week (4 most recent) ──
   Future<List<Opportunity>> fetchNewThisWeek() async {
+    final cached = await _loadCache(_newThisWeekKey);
+    if (cached != null) {
+      debugPrint('[HomeDataService] New this week: cache hit');
+      unawaited(_refreshNewThisWeekInBackground());
+      try {
+        return (cached as List)
+            .map((json) => Opportunity.fromJson(json as Map<String, dynamic>))
+            .toList();
+      } catch (_) {
+        // If parse fails, fall through to network
+      }
+    }
+    return _fetchNewThisWeekFromNetwork();
+  }
+
+  Future<void> _refreshNewThisWeekInBackground() async {
+    try { await _fetchNewThisWeekFromNetwork(); } catch (_) {}
+  }
+
+  Future<List<Opportunity>> _fetchNewThisWeekFromNetwork() async {
     try {
       final response = await _client
           .from('opportunities')
@@ -161,9 +229,12 @@ class HomeDataService {
           .limit(4)
           .timeout(const Duration(seconds: 5));
 
-      return (response as List)
+      final result = (response as List)
           .map((json) => Opportunity.fromJson(json))
           .toList();
+      // Cache the raw JSON for faster restore
+      await _saveCache(_newThisWeekKey, response);
+      return result;
     } catch (e) {
       debugPrint('❌ [HomeDataService] fetchNewThisWeek error: $e');
       return [];
@@ -206,6 +277,21 @@ class HomeDataService {
     if (collegeId == null || collegeId.isEmpty) {
       return {'count': 0, 'students': [], 'collegeName': ''};
     }
+    // Try cache first
+    final cached = await _loadCache('${_collegePulseKey}_$collegeId');
+    if (cached != null) {
+      debugPrint('[HomeDataService] College pulse: cache hit');
+      unawaited(_refreshCollegePulseInBackground(collegeId));
+      return cached as Map<String, dynamic>;
+    }
+    return _fetchCollegePulseFromNetwork(collegeId);
+  }
+
+  Future<void> _refreshCollegePulseInBackground(String collegeId) async {
+    try { await _fetchCollegePulseFromNetwork(collegeId); } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>> _fetchCollegePulseFromNetwork(String collegeId) async {
     try {
       final countResult = await _client
           .from('profiles')
@@ -223,7 +309,6 @@ class HomeDataService {
           .limit(3)
           .timeout(const Duration(seconds: 5));
 
-      // Get college name from current user's profile
       final userProfile = await _client
           .from('profiles')
           .select('college')
@@ -231,11 +316,13 @@ class HomeDataService {
           .maybeSingle()
           .timeout(const Duration(seconds: 5));
 
-      return {
+      final result = {
         'count': countResult.count,
         'students': students as List,
         'collegeName': userProfile?['college'] ?? '',
       };
+      await _saveCache('${_collegePulseKey}_$collegeId', result);
+      return result;
     } catch (e) {
       debugPrint('❌ [HomeDataService] fetchCollegePulse error: $e');
       return {'count': 0, 'students': [], 'collegeName': ''};
@@ -246,10 +333,24 @@ class HomeDataService {
   Future<List<Map<String, dynamic>>> fetchCollegeLeaderboard(
       String? collegeId) async {
     if (collegeId == null || collegeId.isEmpty) return [];
+    // Try cache first
+    final cached = await _loadCache('${_leaderboardKey}_$collegeId');
+    if (cached != null) {
+      debugPrint('[HomeDataService] Leaderboard: cache hit');
+      unawaited(_refreshLeaderboardInBackground(collegeId));
+      return (cached as List).cast<Map<String, dynamic>>();
+    }
+    return _fetchLeaderboardFromNetwork(collegeId);
+  }
+
+  Future<void> _refreshLeaderboardInBackground(String collegeId) async {
+    try { await _fetchLeaderboardFromNetwork(collegeId); } catch (_) {}
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchLeaderboardFromNetwork(String collegeId) async {
     try {
       final currentUserId = _client.auth.currentUser?.id ?? '';
 
-      // Fetch college profiles (including current user)
       final profiles = await _client
           .from('profiles')
           .select('id, name, branch, year, avatar_url, github_url')
@@ -263,14 +364,12 @@ class HomeDataService {
 
       final userIds = profileList.map((p) => p['id'].toString()).toList();
 
-      // Fetch devcard_cache for those users
       final devcards = await _client
           .from('devcard_cache')
           .select('user_id, analyzed_data')
           .inFilter('user_id', userIds)
           .timeout(const Duration(seconds: 5));
 
-      // Build lookup map: user_id -> analyzed_data
       final devcardMap = <String, Map<String, dynamic>>{};
       for (final dc in devcards as List) {
         final uid = dc['user_id']?.toString() ?? '';
@@ -280,15 +379,13 @@ class HomeDataService {
         }
       }
 
-      // Merge and build student list
       final students = <Map<String, dynamic>>[];
       for (final p in profileList) {
         final uid = p['id']?.toString() ?? '';
-        final ad = devcardMap[uid]; // analyzed_data
+        final ad = devcardMap[uid];
         final sb = ad?['scoreBreakdown'] as Map<String, dynamic>?;
 
         final score = (sb?['total'] as num?)?.toInt() ?? 0;
-        // Always compute rank from score (normalize to 0-100 scale)
         final rankInfo = DevScoreBreakdown.rankInfoFromScore((score / 10).round());
 
         students.add({
@@ -306,18 +403,15 @@ class HomeDataService {
         });
       }
 
-      // Sort by score DESC, take top 3
       students.sort(
           (a, b) => (b['score'] as int).compareTo(a['score'] as int));
       final top3 = students.take(3).toList();
 
-      // Assign college rank
       for (int i = 0; i < top3.length; i++) {
         top3[i]['collegeRank'] = i + 1;
       }
 
-      debugPrint(
-          '🏆 [HomeDataService] College leaderboard: ${top3.length} students');
+      await _saveCache('${_leaderboardKey}_$collegeId', top3);
       return top3;
     } catch (e) {
       debugPrint('❌ [HomeDataService] fetchCollegeLeaderboard error: $e');

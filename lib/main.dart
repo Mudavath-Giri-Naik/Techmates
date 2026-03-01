@@ -20,6 +20,7 @@ import 'screens/splash_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/opportunity_detail_screen.dart';
 import 'core/theme_notifier.dart';
+import 'models/user_profile.dart';
 
 
 
@@ -28,7 +29,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("Background message: ${message.messageId}");
 }
 
-// CHANGED: main() now only does local/essential init. All network calls are deferred.
+// FIX 11: main() does only local/instant init. Supabase init is non-blocking.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -40,40 +41,41 @@ void main() async {
     systemNavigationBarColor: Colors.white,
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
-  
+
   String? error;
 
   try {
+    // ── Local-only init (no network, instant) ──
     final packageInfo = await PackageInfo.fromPlatform();
     debugPrint("🚀 Techmates App Version: ${packageInfo.version}");
     debugPrint("📦 Build Number: ${packageInfo.buildNumber}");
 
     await ThemeNotifier.instance.init();
-
-    // Load env file (local asset)
     await dotenv.load(fileName: ".env");
-    
+
+    // Firebase init (local — reads google-services.json)
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    
-    // Set the background messaging handler early on, as a named top-level function
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // CHANGED: Supabase init now uses autoRefreshToken: false (see supabase_client.dart)
-    // so this will NOT make any network calls and completes instantly.
+    // Supabase must be awaited — MyApp.initState accesses Supabase.instance
+    // immediately. The 5s timeout in SupabaseClientManager prevents hanging.
     await SupabaseClientManager.initialize();
 
-    // Initialize Role Service (Load from SharedPreferences cache — local only)
-    try {
-      await UserRoleService().init();
-    } catch (e) {
-      debugPrint('[INIT] Role cache init failed - proceeding anyway: $e');
+    // If Supabase failed to initialize, don't proceed to MyApp
+    if (!SupabaseClientManager.isInitialized) {
+      error = 'Supabase failed to initialize. Check your internet connection and .env file.';
     }
 
-    // REMOVED: ensureSessionValid() was here — it made a network DB query
-    // before runApp(), blocking the entire UI from appearing.
-    // Now deferred to _runDeferredStartupTasks() below.
+    // Load cached role from SharedPreferences (local only)
+    if (error == null) {
+      try {
+        await UserRoleService().init();
+      } catch (e) {
+        debugPrint('[INIT] Role cache init failed - proceeding anyway: $e');
+      }
+    }
 
   } catch (e) {
     error = e.toString();
@@ -165,8 +167,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }));
     }
 
-    // 4. Eager fetch opportunities in background
-    unawaited(OpportunityStore.instance.fetchAll());
+    // 4. Eager fetch opportunities — removed, splash_screen already does this
 
     // 5. Check for app update in background (needs context, delayed slightly)
     unawaited(Future.delayed(const Duration(seconds: 2), () {
@@ -185,62 +186,84 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       debugPrint('🧭 [App] signedIn → running routing for ${user.email}');
 
-      // Always wait a beat so the navigator is ready after login screen
-      await Future.delayed(const Duration(milliseconds: 100));
-
       final ctx = navigatorKey.currentContext;
       if (ctx == null || !ctx.mounted) return;
 
-      // 1. Fetch fresh role (with timeout)
-      try {
-        await UserRoleService().refreshRoleNow(user.id)
-            .timeout(const Duration(seconds: 5));
-      } on TimeoutException {
-        debugPrint('⚠️ [App] Role fetch timed out, using cached.');
-      } catch (e) {
-        debugPrint('⚠️ [App] Role fetch failed: $e');
-      }
-      final role = UserRoleService().role;
-      debugPrint('🧭 [App] Role = $role');
+      // FIX 12: Check cache first — navigate immediately if available
+      final cachedRole = UserRoleService().role;
+      final cachedProfile = await ProfileService().getProfileCached(user.id);
 
-      // 2. Admin → MainScreen (full bottom navigation)
-      if (role == 'admin' || role == 'super_admin') {
-        debugPrint('🧭 [App] Admin → MainScreen');
-        navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-          (r) => false,
-        );
+      if (cachedRole.isNotEmpty && cachedProfile != null) {
+        debugPrint('🧭 [App] Cache hit — navigating immediately');
+        _navigateForUser(user, cachedRole, cachedProfile);
+
+        // Refresh in background (fire-and-forget)
+        unawaited(Future.wait([
+          UserRoleService().refreshRoleNow(user.id)
+              .timeout(const Duration(seconds: 8), onTimeout: () => ''),
+          ProfileService().refreshProfileNow(user.id)
+              .timeout(const Duration(seconds: 8), onTimeout: () => null),
+        ]));
         return;
       }
 
-      // 3. Student → check onboarding_completed (with timeout — already in ProfileService)
-      final profile = await ProfileService()
-          .refreshProfileNow(user.id)
-          .timeout(const Duration(seconds: 5));
-      final onboardingDone = profile?.onboardingCompleted ?? false;
-      debugPrint('🧭 [App] profile=${profile == null ? "null" : "exists"}, onboarding_completed=$onboardingDone');
-
-      if (onboardingDone) {
-        debugPrint('🧭 [App] onboarding done → MainScreen');
-        navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-          (r) => false,
-        );
-      } else {
-        debugPrint('🧭 [App] onboarding NOT done → OnboardingFormScreen');
-        navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => OnboardingFormScreen(
-              userId: user.id,
-              initialName: profile?.name ??
-                  (user.userMetadata?['full_name'] as String?) ??
-                  '',
-            ),
-          ),
-          (r) => false,
-        );
+      // No cache — FIX 2: fetch role + profile in parallel (max 5s)
+      debugPrint('🧭 [App] No cache — fetching role + profile in parallel');
+      String role = 'student';
+      UserProfile? profile;
+      try {
+        final results = await Future.wait([
+          UserRoleService().refreshRoleNow(user.id)
+              .timeout(const Duration(seconds: 5), onTimeout: () => 'student'),
+          ProfileService().refreshProfileNow(user.id)
+              .timeout(const Duration(seconds: 5), onTimeout: () => null),
+        ]);
+        role = results[0] as String? ?? 'student';
+        profile = results[1] as UserProfile?;
+      } catch (e) {
+        debugPrint('⚠️ [App] Parallel fetch failed: $e');
+        role = UserRoleService().role;
       }
+
+      _navigateForUser(user, role, profile);
     });
+  }
+
+  void _navigateForUser(User user, String role, UserProfile? profile) {
+    debugPrint('🧭 [App] Role = $role');
+
+    if (role == 'admin' || role == 'super_admin') {
+      debugPrint('🧭 [App] Admin → MainScreen');
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+        (r) => false,
+      );
+      return;
+    }
+
+    final onboardingDone = profile?.onboardingCompleted ?? false;
+    debugPrint('🧭 [App] profile=${profile == null ? "null" : "exists"}, onboarding_completed=$onboardingDone');
+
+    if (onboardingDone) {
+      debugPrint('🧭 [App] onboarding done → MainScreen');
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+        (r) => false,
+      );
+    } else {
+      debugPrint('🧭 [App] onboarding NOT done → OnboardingFormScreen');
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => OnboardingFormScreen(
+            userId: user.id,
+            initialName: profile?.name ??
+                (user.userMetadata?['full_name'] as String?) ??
+                '',
+          ),
+        ),
+        (r) => false,
+      );
+    }
   }
 
   @override

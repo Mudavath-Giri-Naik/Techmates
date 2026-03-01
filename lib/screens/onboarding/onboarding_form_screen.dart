@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/college_service.dart';
 import '../../services/college_otp_service.dart';
 import '../../utils/email_validator.dart';
+import '../../utils/proxy_url.dart';
 import '../main_screen.dart';
 import '../auth/login_screen.dart';
 
@@ -124,7 +125,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
 
   String? get _avatar {
     final m = Supabase.instance.client.auth.currentUser?.userMetadata;
-    return m?['avatar_url'] as String? ?? m?['picture'] as String?;
+    return proxyUrl(m?['avatar_url'] as String? ?? m?['picture'] as String?);
   }
 
   String get _dispName {

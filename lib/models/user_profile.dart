@@ -1,3 +1,5 @@
+import '../utils/proxy_url.dart';
+
 class UserProfile {
   final String id;
   final String email;
@@ -51,7 +53,7 @@ class UserProfile {
       college: json['college'] as String?,
       branch: json['branch'] as String?,
       year: json['year'] as String?,
-      avatarUrl: json['avatar_url'] as String?,
+      avatarUrl: proxyUrl(json['avatar_url'] as String?),
       role: json['role'] as String? ?? 'student',
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null

@@ -1,4 +1,5 @@
 import 'follow_model.dart';
+import '../utils/proxy_url.dart';
 
 /// Represents a student as seen in the Network feature.
 /// Parsed from the `get_college_students` RPC response.
@@ -43,7 +44,7 @@ class StudentNetworkModel {
       name: json['name'] as String?,
       branch: json['branch'] as String?,
       year: json['year'] as String?,
-      avatarUrl: json['avatar_url'] as String?,
+      avatarUrl: proxyUrl(json['avatar_url'] as String?),
       college: json['college'] as String?,
       githubUrl: json['github_url'] as String?,
       linkedinUrl: json['linkedin_url'] as String?,

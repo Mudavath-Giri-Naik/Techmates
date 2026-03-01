@@ -6,6 +6,7 @@ import '../core/supabase_client.dart';
 import '../services/auth_service.dart';
 import '../services/avatar_service.dart';
 import '../services/profile_service.dart';
+import '../utils/proxy_url.dart';
 
 class SmartAvatar extends StatefulWidget {
   final double size;
@@ -65,8 +66,8 @@ class _SmartAvatarState extends State<SmartAvatar> {
         if (user == null) return _buildPlaceholder();
 
         final metadata = user.userMetadata ?? {};
-        final String? metadataCustomUrl = metadata['custom_avatar_url'];
-        final String? providerUrl = metadata['avatar_url'] ?? metadata['picture'];
+        final String? metadataCustomUrl = proxyUrl(metadata['custom_avatar_url'] as String?);
+        final String? providerUrl = proxyUrl((metadata['avatar_url'] ?? metadata['picture']) as String?);
         
         // Priority: 
         // 1. Local Preview (picking)

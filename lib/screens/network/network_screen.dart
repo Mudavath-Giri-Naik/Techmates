@@ -271,7 +271,7 @@ class _NetworkScreenState extends State<NetworkScreen>
             // Search bar
             Container(
               decoration: BoxDecoration(
-                color: _blueCont.withOpacity(0.4),
+                color: cs.surfaceContainerHigh.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
@@ -335,7 +335,7 @@ class _NetworkScreenState extends State<NetworkScreen>
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? _blueCont.withOpacity(0.6) : Colors.transparent,
+          color: isActive ? cs.primaryContainer : Colors.transparent,
           borderRadius: BorderRadius.circular(50),
         ),
         child: Row(
@@ -410,7 +410,7 @@ class _NetworkScreenState extends State<NetworkScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: _blueCont.withOpacity(0.3),
+          color: iconBg.withOpacity(0.6),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -490,8 +490,9 @@ class _NetworkScreenState extends State<NetworkScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _blueCont.withOpacity(0.4),
+                color: const Color(0xFFF0FDF4), // Light green tint
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFDCFCE7), width: 1.0),
               ),
               child: Column(
                 children: [
@@ -567,7 +568,7 @@ class _NetworkScreenState extends State<NetworkScreen>
                     padding: const EdgeInsets.only(top: 10),
                     decoration: BoxDecoration(
                       border: Border(
-                        top: BorderSide(color: _blueCont.withOpacity(0.5)),
+                        top: BorderSide(color: const Color(0xFFBBF7D0).withOpacity(0.5)),
                       ),
                     ),
                     child: Row(
@@ -664,8 +665,8 @@ class _NetworkScreenState extends State<NetworkScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: _blueCont.withOpacity(0.1),
-            border: Border.all(color: _blueCont.withOpacity(0.6), width: 0.5),
+            color: cs.surfaceContainerLowest,
+            border: Border.all(color: cs.outlineVariant.withOpacity(0.6), width: 0.6),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(

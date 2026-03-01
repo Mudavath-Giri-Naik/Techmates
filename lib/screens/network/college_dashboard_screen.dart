@@ -4,7 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../models/devcard/devcard_model.dart';
 import '../../models/student_network_model.dart';
 import '../../services/network_service.dart';
-import 'student_profile_screen.dart';
+import '../profile/profile_screen.dart';
 
 // ─── Brand Constants ──────────────────────────────────────────────
 const _blue    = Color(0xFF1565C0);
@@ -856,25 +856,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
     Navigator.of(context)
         .push(
           MaterialPageRoute(
-            builder: (_) => StudentProfileScreen(
-              student: StudentNetworkModel(
-                id: student.id,
-                name: student.name,
-                branch: student.branch,
-                year: student.year,
-                avatarUrl: student.avatarUrl,
-                college: widget.college.name,
-                githubUrl: student.githubUrl,
-                linkedinUrl: student.linkedinUrl,
-                instagramUrl: student.instagramUrl,
-                collegeVerified: student.collegeVerified,
-                isPrivate: student.isPrivate,
-                githubScore: student.githubScore,
-                followStatus: student.followStatus,
-                followerCount: student.followerCount,
-                followingCount: student.followingCount,
-              ),
-            ),
+            builder: (_) => ProfileScreen(userId: student.id),
           ),
         )
         .then((_) => _fetchStudents());

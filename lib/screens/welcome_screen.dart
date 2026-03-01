@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/user_role_service.dart';
+import '../utils/proxy_url.dart';
 import 'main_screen.dart';
 
 // ══════════════════════════════════════════════════════════════════════
@@ -101,8 +102,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     }
     if (name.isEmpty) name = 'Techmate';
 
-    String? avatarUrl =
-        user.userMetadata?['avatar_url'] ?? user.userMetadata?['picture'];
+    String? avatarUrl = proxyUrl(
+        (user.userMetadata?['avatar_url'] ?? user.userMetadata?['picture']) as String?);
     if (avatarUrl == null || avatarUrl.isEmpty) {
       final p = await ProfileService().fetchProfile(user.id);
       if (p?.avatarUrl != null && p!.avatarUrl!.isNotEmpty) {

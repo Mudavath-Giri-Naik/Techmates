@@ -1,16 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_client.dart';
 import '../utils/college_email_validator.dart';
-import 'profile_service.dart';
 import 'user_role_service.dart';
 
 class AuthService {
+  // Singleton — only one listener ever registered
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+
   final SupabaseClient _client = SupabaseClientManager.instance;
 
-  AuthService() {
+  AuthService._internal() {
     _client.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
@@ -47,11 +51,7 @@ class AuthService {
         onConflict: 'id',
         ignoreDuplicates: false,
       );
-      // Keep local cache warm.
-      final profile = await ProfileService().refreshProfileNow(user.id);
-      if (profile == null) {
-        debugPrint('[AUTH] Login sync done, profile not found in DB');
-      }
+      debugPrint('[AUTH] Login profile upsert done');
     } catch (e) {
       debugPrint('[AUTH] Failed to sync profile on login: $e');
     }
@@ -101,13 +101,44 @@ class AuthService {
   }
 
   // =============================
-  // Google Login
+  // Google Login (Native — no browser needed)
   // =============================
   Future<void> signInWithGoogle() async {
-    await _client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: 'io.supabase.flutter://signin-callback/',
+    debugPrint('[AUTH] Starting native Google Sign-In...');
+
+    // Use Google Play Services to show native account chooser
+    final googleSignIn = GoogleSignIn(
+      serverClientId: '968736212482-cdfo509mfoai7b9cceauqn4m9uabemdo.apps.googleusercontent.com',
     );
+
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) {
+      debugPrint('[AUTH] Google Sign-In cancelled by user');
+      throw 'Google Sign-In was cancelled.';
+    }
+
+    debugPrint('[AUTH] Google user: ${googleUser.email}');
+
+    final googleAuth = await googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    final accessToken = googleAuth.accessToken;
+
+    if (idToken == null) {
+      debugPrint('[AUTH] Failed to get ID token from Google');
+      throw 'Failed to get ID token from Google.';
+    }
+
+    debugPrint('[AUTH] Got Google ID token, authenticating with Supabase...');
+
+    // Authenticate with Supabase using the Google ID token
+    // This goes through the proxy (api.girinaik.in) — no browser redirect needed
+    final response = await _client.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
+
+    debugPrint('[AUTH] Supabase auth response: ${response.user?.email ?? 'null'}');
   }
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
