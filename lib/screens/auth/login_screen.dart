@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main_screen.dart';
 import '../../services/auth_service.dart';
+import '../../services/user_role_service.dart';
+import '../../services/profile_service.dart';
+import '../onboarding/onboarding_form_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import 'reset_password_screen.dart';
@@ -75,10 +78,48 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _auth.ensureSessionValid();
+      final user = _auth.user;
+      if (user == null) throw Exception('No user after auth');
+
+      final userId = user.id;
+
+      // Await the ACTUAL network role fetch (not cache-first)
+      final roleService = UserRoleService();
+      final role = await roleService.refreshRoleNow(userId);
+
+      debugPrint('🔑 [LoginScreen] Post-auth role: $role');
+
+      if (role == 'admin' || role == 'super_admin') {
+        // Admins skip onboarding entirely
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+          );
+        }
+        return;
+      }
+
+      // For students, fetch profile from network to get real onboarding status
+      final profile = await ProfileService().fetchProfile(userId);
+      final onboarded = profile?.onboardingCompleted ?? false;
+
+      debugPrint('🔑 [LoginScreen] Onboarding complete: $onboarded');
+
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-        );
+        if (onboarded) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => OnboardingFormScreen(
+                userId: userId,
+                initialName: user.userMetadata?['full_name'] as String? ?? '',
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

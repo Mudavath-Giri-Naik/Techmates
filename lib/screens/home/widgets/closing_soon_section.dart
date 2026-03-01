@@ -6,11 +6,13 @@ import '../home_theme.dart';
 class ClosingSoonSection extends StatelessWidget {
   final List<Map<String, dynamic>> items;
   final VoidCallback? onSeeAll;
+  final void Function(String opportunityId, String type)? onItemTap;
 
   const ClosingSoonSection({
     super.key,
     required this.items,
     this.onSeeAll,
+    this.onItemTap,
   });
 
   @override
@@ -57,8 +59,19 @@ class ClosingSoonSection extends StatelessWidget {
               physics: const BouncingScrollPhysics(),
               itemCount: items.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) =>
-                  _buildDeadlineCard(context, items[index]),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return GestureDetector(
+                  onTap: () {
+                    final id = (item['id'] as String?) ?? '';
+                    final type = (item['type'] as String?) ?? '';
+                    if (id.isNotEmpty && onItemTap != null) {
+                      onItemTap!(id, type);
+                    }
+                  },
+                  child: _buildDeadlineCard(context, item),
+                );
+              },
             ),
           ),
         ],

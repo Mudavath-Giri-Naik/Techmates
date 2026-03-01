@@ -13,18 +13,34 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainScreen> createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreenTab(),
-    NetworkScreen(),
-    HomeScreen(), // Existing opportunities screen → Explore tab
-    CompeteScreen(),
-    ProfileScreen(),
+  /// Switch to a specific tab by index.
+  void switchTab(int index) {
+    if (index >= 0 && index < _screens.length) {
+      setState(() => _currentIndex = index);
+    }
+  }
+
+  /// Switch to Explore tab and navigate to a specific opportunity.
+  void navigateToOpportunity(String opportunityId, String type) {
+    setState(() => _currentIndex = 2); // Explore tab
+    // Use a post-frame callback to let the Explore tab fully render
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      HomeScreen.exploreKey.currentState?.navigateToItem(opportunityId, type);
+    });
+  }
+
+  final List<Widget> _screens = [
+    const HomeScreenTab(),
+    const NetworkScreen(),
+    HomeScreen(key: HomeScreen.exploreKey),
+    const CompeteScreen(),
+    const ProfileScreen(),
   ];
 
   Widget _buildAvatarIcon({required bool isSelected}) {

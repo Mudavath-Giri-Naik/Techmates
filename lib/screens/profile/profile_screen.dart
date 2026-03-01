@@ -1157,12 +1157,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_devCard == null || _devCard!.projects.isEmpty) {
       return _buildEmptySection(cs, 'No popular projects available');
     }
-    final projectsList = List<ProjectAnalysis>.from(_devCard!.projects)
-      ..sort((a, b) => b.stars.compareTo(a.stars));
-    final topProjects = projectsList.take(3).toList();
+    final topProjects = _devCard!.projects.take(3).toList();
 
     return Column(
-      children: topProjects.map((project) {
+      children: topProjects.asMap().entries.map((entry) {
+        final index = entry.key;
+        final project = entry.value;
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           child: InkWell(
@@ -1187,8 +1187,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                         color: cs.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(8)),
                     alignment: Alignment.center,
-                    child: Text(_projectEmoji(project.name),
-                        style: const TextStyle(fontSize: 18),
+                    child: Text('#${index + 1}',
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 15,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w700),
                         textAlign: TextAlign.center),
                   ),
                   const SizedBox(width: 12),

@@ -46,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
 
     _gridController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     _gridOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
 
     _contentController = AnimationController(
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
@@ -91,27 +91,42 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
 
     _gridController.forward();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) _contentController.forward();
-    });
+    _contentController.forward();
 
     unawaited(OpportunityStore.instance.fetchAll());
     unawaited(_runSplashFlow());
   }
 
+  // The destination page resolved by _splashLogic
+  Widget? _resolvedPage;
+  String? _resolvedScreenName;
+
   Future<void> _runSplashFlow() async {
     _stopwatch.start();
     debugPrint('[SPLASH] Started');
-    debugPrint('[SPLASH] Timer started');
 
+    // Run minimum display time and splash logic in parallel
     await Future.any([
-      _splashLogic(),
-      Future.delayed(const Duration(seconds: 3), () async {
+      _splashWithMinTime(),
+      Future.delayed(const Duration(seconds: 2), () async {
         if (_didNavigate || !mounted) return;
-        debugPrint('[SPLASH] 3s hard cap triggered - forcing navigation');
+        debugPrint('[SPLASH] 2s hard cap triggered - forcing navigation');
         await _forceNavigateFromCache();
       }),
     ]);
+  }
+
+  Future<void> _splashWithMinTime() async {
+    // Run both in parallel: resolve destination + minimum display time
+    await Future.wait([
+      _splashLogic(),
+      Future.delayed(const Duration(milliseconds: 1000)),
+    ]);
+
+    // Navigate to the resolved destination
+    if (_resolvedPage != null && !_didNavigate && mounted) {
+      _navigateTo(_resolvedPage!, _resolvedScreenName ?? 'Unknown');
+    }
   }
 
   Future<void> _splashLogic() async {
@@ -120,13 +135,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     debugPrint('[SPLASH] Local session check: $loggedIn');
 
     if (!loggedIn) {
-      _navigateTo(const LoginScreen(), 'LoginScreen');
+      _resolvedPage = const LoginScreen();
+      _resolvedScreenName = 'LoginScreen';
       return;
     }
 
     final user = auth.user;
     if (user == null) {
-      _navigateTo(const LoginScreen(), 'LoginScreen');
+      _resolvedPage = const LoginScreen();
+      _resolvedScreenName = 'LoginScreen';
       return;
     }
     final userId = user.id;
@@ -137,21 +154,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     debugPrint('[SPLASH] Cached onboarding: $cachedOnboarding');
 
     if (cachedRole == 'admin' || cachedRole == 'super_admin') {
-      _navigateTo(const MainScreen(), 'MainScreen');
+      _resolvedPage = const MainScreen();
+      _resolvedScreenName = 'MainScreen';
       _runBackgroundRefresh(userId);
       return;
     }
 
     if (cachedOnboarding) {
-      _navigateTo(const MainScreen(), 'MainScreen');
+      _resolvedPage = const MainScreen();
+      _resolvedScreenName = 'MainScreen';
     } else {
-      _navigateTo(
-        OnboardingFormScreen(
-          userId: userId,
-          initialName: user.userMetadata?['full_name'] as String? ?? '',
-        ),
-        'OnboardingFormScreen',
+      _resolvedPage = OnboardingFormScreen(
+        userId: userId,
+        initialName: user.userMetadata?['full_name'] as String? ?? '',
       );
+      _resolvedScreenName = 'OnboardingFormScreen';
     }
     _runBackgroundRefresh(userId);
   }

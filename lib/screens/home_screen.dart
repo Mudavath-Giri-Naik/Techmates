@@ -37,11 +37,19 @@ import '../screens/admin/create_opportunity_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  /// Key to access HomeScreen state for external navigation.
+  static final GlobalKey<HomeScreenState> exploreKey = GlobalKey<HomeScreenState>();
+
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+
+  /// Public method for external navigation (called from MainScreen).
+  Future<void> navigateToItem(String opportunityId, String type) async {
+    await _handleNotificationNavigation(opportunityId, type);
+  }
 
   final InternshipService _internshipService = InternshipService();
   final HackathonService _hackathonService = HackathonService();
@@ -352,8 +360,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _highlightedOpportunityId = opportunityId;
       });
       
-      // Clear highlight after 2 seconds
-      Future.delayed(const Duration(seconds: 2), () {
+      // Clear highlight after 3 seconds
+      Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
           setState(() {
             _highlightedOpportunityId = null;

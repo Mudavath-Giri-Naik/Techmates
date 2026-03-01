@@ -189,33 +189,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final ctx = navigatorKey.currentContext;
       if (ctx == null || !ctx.mounted) return;
 
-      // FIX 12: Check cache first — navigate immediately if available
-      final cachedRole = UserRoleService().role;
-      final cachedProfile = await ProfileService().getProfileCached(user.id);
-
-      if (cachedRole.isNotEmpty && cachedProfile != null) {
-        debugPrint('🧭 [App] Cache hit — navigating immediately');
-        _navigateForUser(user, cachedRole, cachedProfile);
-
-        // Refresh in background (fire-and-forget)
-        unawaited(Future.wait([
-          UserRoleService().refreshRoleNow(user.id)
-              .timeout(const Duration(seconds: 8), onTimeout: () => ''),
-          ProfileService().refreshProfileNow(user.id)
-              .timeout(const Duration(seconds: 8), onTimeout: () => null),
-        ]));
-        return;
-      }
-
-      // No cache — FIX 2: fetch role + profile in parallel (max 5s)
-      debugPrint('🧭 [App] No cache — fetching role + profile in parallel');
+      // Always fetch role + profile from network to get accurate data
+      debugPrint('🧭 [App] Fetching role + profile from network');
       String role = 'student';
       UserProfile? profile;
       try {
         final results = await Future.wait([
           UserRoleService().refreshRoleNow(user.id)
               .timeout(const Duration(seconds: 5), onTimeout: () => 'student'),
-          ProfileService().refreshProfileNow(user.id)
+          ProfileService().fetchProfile(user.id)
               .timeout(const Duration(seconds: 5), onTimeout: () => null),
         ]);
         role = results[0] as String? ?? 'student';
@@ -372,6 +354,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             ),
           ),
           home: const SplashScreen(),
+          builder: (context, child) {
+            Offset? _downPos;
+            return Listener(
+              onPointerDown: (e) {
+                _downPos = e.position;
+              },
+              onPointerUp: (e) {
+                if (_downPos != null) {
+                  final distance = (e.position - _downPos!).distance;
+                  if (distance < 20) {
+                    HapticFeedback.selectionClick();
+                  }
+                }
+                _downPos = null;
+              },
+              onPointerCancel: (_) {
+                _downPos = null;
+              },
+              child: child,
+            );
+          },
           routes: {
             '/login': (context) => const LoginScreen(),
             '/opportunity_detail': (context) {

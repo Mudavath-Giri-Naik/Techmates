@@ -39,10 +39,22 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
   String _topScore = '—';
   String _topRank = '—';
 
+  late AnimationController _listAnimController;
+
   @override
   void initState() {
     super.initState();
+    _listAnimController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
     _fetchStudents();
+  }
+
+  @override
+  void dispose() {
+    _listAnimController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchStudents() async {
@@ -60,13 +72,8 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
 
       final branches = NetworkService().extractBranches(students);
 
-      // Build year list from actual data
-      const yearOrder = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Alumni', 'Other'];
-      final yearSet = students.map((s) => s.yearTabLabel).toSet();
-      final years = <String>['All Years'];
-      for (final y in yearOrder) {
-        if (yearSet.contains(y)) years.add(y);
-      }
+      // Always show all years
+      final years = <String>['All Years', '1st Year', '2nd Year', '3rd Year', '4th Year'];
 
       if (mounted) {
         setState(() {
@@ -82,6 +89,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
               : '—';
           _isLoading = false;
         });
+        _listAnimController.forward(from: 0.0);
       }
     } catch (e) {
       if (mounted) {
@@ -105,6 +113,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
           _activeYear == 'All Years' || s.yearTabLabel == _activeYear;
       return matchDept && matchYear;
     }).toList();
+    _listAnimController.forward(from: 0.0);
   }
 
   @override
@@ -131,16 +140,40 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
             SliverToBoxAdapter(child: _buildDeptFilter(cs)),
             SliverToBoxAdapter(child: _buildYearTabs(cs)),
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final student = _filteredStudents[index];
-                  final globalRank = _allStudents.indexOf(student) + 1;
-                  return _buildLeaderboardItem(student, globalRank, cs);
-                },
-                childCount: _filteredStudents.length,
+            if (_filteredStudents.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.people_outline_rounded,
+                            size: 40, color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+                        const SizedBox(height: 10),
+                        Text(
+                          'No students found of $_activeYear',
+                          style: GoogleFonts.sora(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final student = _filteredStudents[index];
+                    final globalRank = _allStudents.indexOf(student) + 1;
+                    return _buildLeaderboardItem(student, globalRank, cs);
+                  },
+                  childCount: _filteredStudents.length,
+                ),
               ),
-            ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
@@ -205,7 +238,6 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         color: cs.surface,
-        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,8 +245,9 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
           // Name + verified
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
+              Flexible(
                 child: Text(
                   college.name,
                   style: GoogleFonts.sora(
@@ -261,16 +294,19 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
           const SizedBox(height: 12),
 
           // 4 hero stat cards
-          Row(
-            children: [
-              _heroStat('${_allStudents.length}', 'STUDENTS', cs),
-              const SizedBox(width: 8),
-              _heroStat('$_deptCount', 'DEPTS', cs),
-              const SizedBox(width: 8),
-              _heroStat('$_topScore', 'TOP SCORE', cs, suffix: ' pts'),
-              const SizedBox(width: 8),
-              _heroStat(_topRank, 'TOP RANK', cs, small: true),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _heroStat('${_allStudents.length}', 'STUDENTS', cs),
+                const SizedBox(width: 8),
+                _heroStat('$_deptCount', 'DEPTS', cs),
+                const SizedBox(width: 8),
+                _heroStat('$_topScore', 'TOP SCORE', cs, suffix: ' pts'),
+                const SizedBox(width: 8),
+                _heroStat(_topRank, 'TOP RANK', cs, small: true),
+              ],
+            ),
           ),
         ],
       ),
@@ -281,63 +317,70 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
       {String? suffix, bool small = false}) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
-          border: Border.all(color: cs.outlineVariant),
+          color: _blue.withValues(alpha: 0.05),
+          border: Border.all(color: _blue.withValues(alpha: 0.2)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            suffix != null
-                ? Text.rich(
-                    TextSpan(children: [
-                      TextSpan(
-                        text: value,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: cs.onSurface,
-                          height: 1,
-                        ),
-                      ),
-                      TextSpan(
-                        text: suffix,
-                        style: GoogleFonts.sora(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ]),
-                  )
-                : Text(
-                    value,
-                    style: small
-                        ? GoogleFonts.sora(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: cs.onSurface,
-                            height: 1,
-                          )
-                        : GoogleFonts.jetBrainsMono(
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: suffix != null
+                  ? Text.rich(
+                      TextSpan(children: [
+                        TextSpan(
+                          text: value,
+                          style: GoogleFonts.jetBrainsMono(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: cs.onSurface,
                             height: 1,
                           ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: GoogleFonts.sora(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurfaceVariant,
-                letterSpacing: 0.3,
+                        ),
+                        TextSpan(
+                          text: suffix,
+                          style: GoogleFonts.sora(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ]),
+                    )
+                  : Text(
+                      value,
+                      style: small
+                          ? GoogleFonts.sora(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: cs.onSurface,
+                              height: 1,
+                            )
+                          : GoogleFonts.jetBrainsMono(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: cs.onSurface,
+                              height: 1,
+                            ),
+                    ),
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                style: GoogleFonts.sora(
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurfaceVariant,
+                  letterSpacing: 0.3,
+                ),
               ),
             ),
           ],
@@ -352,93 +395,103 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
   Widget _buildPodium(ColorScheme cs) {
     final top3 = _allStudents.take(3).toList();
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // 2nd place (left)
-          _podiumItem(top3[1], 2, cs),
-          const SizedBox(width: 8),
+          _podiumItem(top3[1], 2, cs, 0.15),
+          const SizedBox(width: 6),
           // 1st place (center — tallest)
-          _podiumItem(top3[0], 1, cs),
-          const SizedBox(width: 8),
+          _podiumItem(top3[0], 1, cs, 0.0),
+          const SizedBox(width: 6),
           // 3rd place (right)
-          _podiumItem(top3[2], 3, cs),
+          _podiumItem(top3[2], 3, cs, 0.25),
         ],
       ),
     );
   }
 
-  Widget _podiumItem(StudentNetworkModel student, int position, ColorScheme cs) {
+  Widget _podiumItem(StudentNetworkModel student, int position, ColorScheme cs,
+      double animDelay) {
     final podiumColor = _podiumMedalColor(position);
-    final avatarSize = position == 1 ? 68.0 : position == 2 ? 56.0 : 52.0;
+    final avatarSize = position == 1 ? 70.0 : position == 2 ? 56.0 : 52.0;
     final fontSize = position == 1 ? 22.0 : position == 2 ? 18.0 : 16.0;
     final label = position == 1 ? '1ST' : position == 2 ? '2ND' : '3RD';
+    final podiumHeight = position == 1 ? 48.0 : position == 2 ? 32.0 : 28.0;
+
+    // Staggered scale animation
+    final itemAnim = CurvedAnimation(
+      parent: _listAnimController,
+      curve: Interval(animDelay, (animDelay + 0.5).clamp(0.0, 1.0),
+          curve: Curves.easeOutBack),
+    );
 
     return Expanded(
-      child: GestureDetector(
-        onTap: () => _openProfile(student),
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Crown for 1st
-              if (position == 1) const Text('👑', style: TextStyle(fontSize: 16)),
+      child: FadeTransition(
+        opacity: Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
+          parent: _listAnimController,
+          curve: Interval(animDelay, (animDelay + 0.4).clamp(0.0, 1.0),
+              curve: Curves.easeOut),
+        )),
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.8, end: 1.0).animate(itemAnim),
+          child: GestureDetector(
+            onTap: () => _openProfile(student),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Crown for 1st
+                if (position == 1) const Text('👑', style: TextStyle(fontSize: 18)),
+                if (position == 1) const SizedBox(height: 2),
 
-              // Rank label
-              Text(
-                label,
-                style: GoogleFonts.sora(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                  color: podiumColor,
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Avatar with medal
-              SizedBox(
-                width: avatarSize + 8,
-                height: avatarSize + 8,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: avatarSize,
-                      height: avatarSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: podiumColor, width: 3),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: _podiumGradient(position),
+                // Avatar with glow
+                SizedBox(
+                  width: avatarSize + 16,
+                  height: avatarSize + 16,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: avatarSize,
+                        height: avatarSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: podiumColor, width: 3),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: _podiumGradient(position),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: podiumColor.withValues(alpha: position == 1 ? 0.4 : 0.2),
+                              blurRadius: position == 1 ? 20 : 12,
+                              spreadRadius: position == 1 ? 2 : 0,
+                            ),
+                          ],
                         ),
-                        boxShadow: position == 1
-                            ? [
-                                BoxShadow(
-                                  color: _gold.withOpacity(0.35),
-                                  blurRadius: 16,
+                        child: ClipOval(
+                          child: student.avatarUrl != null &&
+                                  student.avatarUrl!.isNotEmpty
+                              ? Image.network(
+                                  student.avatarUrl!,
+                                  fit: BoxFit.cover,
+                                  width: avatarSize,
+                                  height: avatarSize,
+                                  errorBuilder: (_, __, ___) => Center(
+                                    child: Text(
+                                      _initials(student.name),
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: fontSize,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
                                 )
-                              ]
-                            : [],
-                      ),
-                      child: ClipOval(
-                        child: student.avatarUrl != null &&
-                                student.avatarUrl!.isNotEmpty
-                            ? Image.network(
-                                student.avatarUrl!,
-                                fit: BoxFit.cover,
-                                width: avatarSize,
-                                height: avatarSize,
-                                errorBuilder: (_, __, ___) => Center(
+                              : Center(
                                   child: Text(
                                     _initials(student.name),
                                     style: GoogleFonts.jetBrainsMono(
@@ -448,86 +501,113 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
                                     ),
                                   ),
                                 ),
-                              )
-                            : Center(
-                                child: Text(
-                                  _initials(student.name),
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                      ),
-                    ),
-                    // Medal badge
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: podiumColor,
-                          border: Border.all(
-                              color: cs.surfaceContainerLow, width: 2),
                         ),
-                        child: Center(
-                          child: Text(
-                            '$position',
-                            style: GoogleFonts.sora(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                      ),
+                      // Medal badge
+                      Positioned(
+                        bottom: 0,
+                        right: 4,
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: podiumColor,
+                            boxShadow: [
+                              BoxShadow(
+                                color: podiumColor.withValues(alpha: 0.3),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$position',
+                              style: GoogleFonts.sora(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 7),
+                const SizedBox(height: 8),
 
-              // Name
-              Text(
-                _firstName(student.name),
-                style: GoogleFonts.sora(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
+                // Name
+                Text(
+                  _firstName(student.name),
+                  style: GoogleFonts.sora(
+                    fontSize: position == 1 ? 13 : 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              // Score
-              Text(
-                '${student.githubScore} pts',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurfaceVariant,
+                const SizedBox(height: 2),
+                // Score with shimmer for 1st
+                ShaderMask(
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: [podiumColor, podiumColor.withValues(alpha: 0.7), podiumColor],
+                  ).createShader(bounds),
+                  child: Text(
+                    '${student.githubScore} pts',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: position == 1 ? 14 : 12,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              // Branch
-              Text(
-                _abbreviateBranch(student.branch),
-                style: GoogleFonts.sora(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurfaceVariant,
+                // Podium bar
+                const SizedBox(height: 6),
+                Container(
+                  height: podiumHeight,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: podiumColor.withValues(alpha: 0.12),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(10),
+                    ),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.sora(
+                            fontSize: position == 1 ? 12 : 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            color: podiumColor,
+                          ),
+                        ),
+                        Text(
+                          _abbreviateBranch(student.branch),
+                          style: GoogleFonts.sora(
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w500,
+                            color: podiumColor.withValues(alpha: 0.7),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -540,7 +620,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 0, 0),
       child: SizedBox(
-        height: 42,
+        height: 32,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
@@ -559,10 +639,17 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
                 duration: const Duration(milliseconds: 200),
                 margin: const EdgeInsets.only(right: 6),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: isActive ? _blueCont : Colors.transparent,
                   borderRadius: BorderRadius.circular(50),
+                  border: Border.all(
+                    color: isActive
+                        ? _blueOn.withValues(alpha: 0.2)
+                        : cs.outlineVariant.withValues(alpha: 0.5),
+                    width: 0.5,
+                  ),
                 ),
                 child: Text(
                   dept,

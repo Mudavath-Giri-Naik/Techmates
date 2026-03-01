@@ -14,6 +14,7 @@ import '../../services/user_role_service.dart';
 import '../../services/network_service.dart';
 
 import '../network/college_dashboard_screen.dart';
+import '../main_screen.dart';
 
 import 'widgets/greeting_header.dart';
 import 'widgets/college_leaderboard_card.dart';
@@ -220,6 +221,10 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
                       child: ClosingSoonSection(
                         items: _closingSoon,
                         onSeeAll: () => _navigateToTab(2),
+                        onItemTap: (opportunityId, type) {
+                          final mainState = context.findAncestorStateOfType<MainScreenState>();
+                          mainState?.navigateToOpportunity(opportunityId, type);
+                        },
                       ),
                     ),
 
@@ -297,23 +302,8 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
   }
 
   void _navigateToTab(int index) {
-    // Find the MainScreen ancestor and switch tab
-    // The MainScreen uses IndexedStack, so we need to use a callback
-    // For now, we can use the bottom nav bar's onDestinationSelected
-    // by finding the nearest ancestor State
-    try {
-      final mainScreenState = context.findAncestorStateOfType<State>();
-      if (mainScreenState != null && mainScreenState.mounted) {
-        // Try to call setState on MainScreen to change tab
-        // This is a simple approach — we look for the _MainScreenState
-        final scaffold = Scaffold.maybeOf(context);
-        if (scaffold != null) {
-          // Navigate using Navigator if we can't reach the tab controller
-        }
-      }
-    } catch (_) {
-      // Fallback: do nothing
-    }
+    final mainState = context.findAncestorStateOfType<MainScreenState>();
+    mainState?.switchTab(index);
   }
 
   // ── Shimmer Skeleton ──────────────────────────────────────
