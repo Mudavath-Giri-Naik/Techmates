@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -82,6 +83,12 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   bool get _isCurrentUser =>
       widget.userId == null || widget.userId == _authService.user?.id;
+
+  /// True when profile is private AND viewer is NOT an accepted follower.
+  bool get _isProfileRestricted =>
+      !_isCurrentUser &&
+      (_profile?.isPrivate ?? false) &&
+      _followStatus != FollowStatus.following;
 
   String get _targetUserId =>
       widget.userId ?? _authService.user?.id ?? '';
@@ -210,12 +217,15 @@ class _ProfileScreenState extends State<ProfileScreen>
       appBar: hasAppBar
           ? AppBar(
                title: Text(
-                 _isCurrentUser
-                     ? '' // Removed 'Profile' label here
-                     : (_profile?.name ?? 'Profile'),
+                 !_isCurrentUser
+                     ? (_profile?.name ?? 'Profile')
+                     : '',
                  style: GoogleFonts.sora(
                      fontSize: 18, fontWeight: FontWeight.bold),
                ),
+               toolbarHeight: _isCurrentUser && !Navigator.of(context).canPop()
+                   ? 0
+                   : kToolbarHeight,
                elevation: 0,
                scrolledUnderElevation: 0,
              )
@@ -229,37 +239,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           slivers: [
             SliverToBoxAdapter(child: _buildHeroHeader(_profile!, cs, hasAppBar)),
-            if (_profile!.isPrivate && !_isCurrentUser)
+            if (_isProfileRestricted)
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.lock_outline,
-                          size: 48,
-                          color: cs.onSurfaceVariant.withOpacity(0.5)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'This account is private',
-                        style: GoogleFonts.sora(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Follow to see their profile.',
-                        style: GoogleFonts.sora(
-                          fontSize: 14,
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                child: _buildPrivateOverlay(cs),
               )
             else ...[
               SliverToBoxAdapter(
@@ -518,26 +500,30 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                         const SizedBox(height: 5),
 
-                        // Followers · Following — both tappable
+                        // Followers · Following — tappable only if not restricted
                         Row(
                           children: [
                             GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (_) => FollowListScreen(
-                                    userId: _targetUserId,
-                                    title: 'Followers',
-                                    isFollowers: true,
-                                  ),
-                                ));
-                              },
+                              onTap: _isProfileRestricted
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(MaterialPageRoute(
+                                        builder: (_) => FollowListScreen(
+                                          userId: _targetUserId,
+                                          title: 'Followers',
+                                          isFollowers: true,
+                                        ),
+                                      ));
+                                    },
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.people_outline_rounded,
                                     size: 12,
-                                    color: const Color(0xFFE65100),
+                                    color: _isProfileRestricted
+                                        ? cs.onSurfaceVariant
+                                        : const Color(0xFFE65100),
                                   ),
                                   const SizedBox(width: 3),
                                   Text(
@@ -545,7 +531,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     style: GoogleFonts.sora(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
-                                      color: const Color(0xFFE65100),
+                                      color: _isProfileRestricted
+                                          ? cs.onSurfaceVariant
+                                          : const Color(0xFFE65100),
                                     ),
                                   ),
                                   const SizedBox(width: 2),
@@ -572,17 +560,21 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                             GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (_) => FollowListScreen(
-                                    userId: _targetUserId,
-                                    title: 'Following',
-                                    isFollowers: false,
-                                  ),
-                                ));
-                              },
+                              onTap: _isProfileRestricted
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(MaterialPageRoute(
+                                        builder: (_) => FollowListScreen(
+                                          userId: _targetUserId,
+                                          title: 'Following',
+                                          isFollowers: false,
+                                        ),
+                                      ));
+                                    },
                               child: Text(
-                                '$_followingCount following',
+                                _isProfileRestricted
+                                    ? '$_followingCount following'
+                                    : '$_followingCount following',
                                 style: GoogleFonts.sora(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w600,
@@ -595,41 +587,42 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                         const SizedBox(height: 6),
 
-                        // View DevCard link
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => DevCardScreen(userId: _targetUserId),
-                            ));
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 15,
-                                height: 15,
-                                decoration: BoxDecoration(
-                                  color: _brandBlueContainer,
-                                  borderRadius: BorderRadius.circular(4),
+                        // View DevCard link — hidden for restricted profiles
+                        if (!_isProfileRestricted)
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => DevCardScreen(userId: _targetUserId),
+                              ));
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 15,
+                                  height: 15,
+                                  decoration: BoxDecoration(
+                                    color: _brandBlueContainer,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Icon(
+                                    Icons.code_rounded,
+                                    size: 9,
+                                    color: _brandBlue,
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.code_rounded,
-                                  size: 9,
-                                  color: _brandBlue,
+                                const SizedBox(width: 4),
+                                Text(
+                                  'View DevCard',
+                                  style: GoogleFonts.sora(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: _brandBlue,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'View DevCard',
-                                style: GoogleFonts.sora(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: _brandBlue,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -745,6 +738,135 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PRIVATE ACCOUNT OVERLAY
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildPrivateOverlay(ColorScheme cs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            // ── Blurred placeholder content ──
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.5,
+                  child: Column(
+                    children: [
+                      // Fake section bars to give "blurred content" feel
+                      _blurPlaceholderBar(cs, 1.0),
+                      const SizedBox(height: 10),
+                      _blurPlaceholderBar(cs, 0.7),
+                      const SizedBox(height: 10),
+                      _blurPlaceholderBar(cs, 0.85),
+                      const SizedBox(height: 10),
+                      _blurPlaceholderBar(cs, 0.6),
+                      const SizedBox(height: 10),
+                      _blurPlaceholderBar(cs, 0.9),
+                      const SizedBox(height: 10),
+                      _blurPlaceholderBar(cs, 0.5),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Frosted glass overlay ──
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isDark
+                        ? [
+                            cs.surface.withOpacity(0.3),
+                            cs.surface.withOpacity(0.7),
+                            cs.surface.withOpacity(0.95),
+                          ]
+                        : [
+                            cs.surface.withOpacity(0.4),
+                            cs.surface.withOpacity(0.75),
+                            cs.surface.withOpacity(0.95),
+                          ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Lock icon + message ──
+            Positioned.fill(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 30),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: cs.onSurface.withOpacity(0.06),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: cs.outlineVariant.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 24,
+                      color: cs.onSurfaceVariant.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'This Account is Private',
+                    style: GoogleFonts.sora(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _followStatus == FollowStatus.pending
+                        ? 'Your follow request is pending'
+                        : 'Follow this account to see their full profile',
+                    style: GoogleFonts.sora(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _blurPlaceholderBar(ColorScheme cs, double widthFactor) {
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: 28,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );
@@ -1110,39 +1232,46 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_devCard == null || _devCard!.topFrameworks.isEmpty) {
       return _buildEmptySection(cs, 'No framework data available');
     }
-    final frameworks = _devCard!.topFrameworks.map((e) => e.name).take(10);
+    final frameworks = _devCard!.topFrameworks.take(10).toList();
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: frameworks.map((tech) {
-        return InkWell(
-          borderRadius: BorderRadius.circular(50),
-          onTap: () {},
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: cs.surface,
-              border: Border.all(color: cs.outlineVariant),
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _techColor(tech, cs)),
-                ),
-                const SizedBox(width: 6),
-                Text(tech,
+      children: frameworks.map((fw) {
+        final projLabel = fw.projectCount == 1
+            ? '1 project'
+            : '${fw.projectCount} projects';
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border.all(color: cs.outlineVariant),
+            borderRadius: BorderRadius.circular(50),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _techColor(fw.name, cs)),
+              ),
+              const SizedBox(width: 6),
+              Text(fw.name,
+                  style: GoogleFonts.sora(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface)),
+              if (fw.projectCount > 0) ...[
+                const SizedBox(width: 5),
+                Text('· $projLabel',
                     style: GoogleFonts.sora(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurface)),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                        color: cs.onSurfaceVariant)),
               ],
-            ),
+            ],
           ),
         );
       }).toList(),

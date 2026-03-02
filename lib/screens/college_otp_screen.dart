@@ -158,22 +158,24 @@ class _CollegeOtpScreenState extends State<CollegeOtpScreen> {
     try {
       final domain = widget.collegeEmail.split('@').last.toLowerCase();
 
-      // Save college info to profile
+      // If unknown domain, create unverified college FIRST to get the ID
+      String? collegeId = widget.collegeId;
+      final String? collegeName = widget.collegeName;
+      if (collegeId == null) {
+        collegeId = await _collegeService.handleUnknownDomain(
+          domain,
+          collegeName ?? domain,
+        );
+      }
+
+      // Save college info to profile (now with the correct college_id)
       await _collegeService.saveCollegeToProfile(
         widget.userId,
         widget.collegeEmail,
         domain,
-        widget.collegeId,
-        widget.collegeName,
+        collegeId,
+        collegeName,
       );
-
-      // If no collegeId, call RPC to create unverified college
-      if (widget.collegeId == null) {
-        await _collegeService.handleUnknownDomain(
-          domain,
-          widget.collegeName ?? domain,
-        );
-      }
 
       // Mark onboarding as completed
       await SupabaseClientManager.instance
