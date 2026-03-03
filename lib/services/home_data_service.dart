@@ -173,7 +173,7 @@ class HomeDataService {
       var response = await _client
           .from('internship_details')
           .select(
-              'opportunity_id, title, company, stipend, deadline, emp_type, tags, duration, location')
+              'opportunity_id, title, company, stipend, deadline, emp_type, tags, duration, location, link')
           .eq('is_elite', true)
           .gte('deadline', nowDate)
           .order('deadline', ascending: true)
@@ -184,7 +184,7 @@ class HomeDataService {
         response = await _client
             .from('internship_details')
             .select(
-                'opportunity_id, title, company, stipend, deadline, emp_type, tags, duration')
+                'opportunity_id, title, company, stipend, deadline, emp_type, tags, duration, link')
             .gte('deadline', nowDate)
             .order('deadline', ascending: true)
             .limit(3)
@@ -317,10 +317,19 @@ class HomeDataService {
           .maybeSingle()
           .timeout(const Duration(seconds: 5));
 
+      final collegeInfo = await _client
+          .from('colleges')
+          .select('location, state')
+          .eq('id', collegeId)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 5));
+
       final result = {
         'count': countResult.count,
         'students': students as List,
         'collegeName': userProfile?['college'] ?? '',
+        'collegeLocation': collegeInfo?['location'] ?? '',
+        'collegeState': collegeInfo?['state'] ?? '',
       };
       await _saveCache('${_collegePulseKey}_$collegeId', result);
       return result;
