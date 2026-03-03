@@ -511,7 +511,9 @@ class _HomeScreenTabState extends State<HomeScreenTab>
       padding: const EdgeInsets.only(top: 16),
       child: SizedBox(
         height: 150,
-        child: Row(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 36),
+          child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -535,6 +537,7 @@ class _HomeScreenTabState extends State<HomeScreenTab>
                 child: _podiumAvatar(student: third, size: 58, rank: 3, cs: cs),
               ),
           ],
+          ),
         ),
       ),
     );
