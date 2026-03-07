@@ -6,7 +6,7 @@ class UserProfile {
   final String? name;
   final String? college;
   final String? branch;
-  final String? year;
+  final int? year;
   final String? avatarUrl;
   final String role;
   final bool isActive;
@@ -21,6 +21,10 @@ class UserProfile {
   final String? collegeId;
   final bool onboardingCompleted;
   final bool isPrivate;
+  // New Stats Fields
+  final int? streakDays;
+  final int? longestStreak;
+  final int? githubScore;
 
   UserProfile({
     required this.id,
@@ -43,6 +47,9 @@ class UserProfile {
     this.collegeId,
     this.onboardingCompleted = false,
     this.isPrivate = false,
+    this.streakDays,
+    this.longestStreak,
+    this.githubScore,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -52,7 +59,7 @@ class UserProfile {
       name: json['name'] as String?,
       college: json['college'] as String?,
       branch: json['branch'] as String?,
-      year: json['year'] as String?,
+      year: json['year'] != null ? int.tryParse(json['year'].toString()) : null,
       avatarUrl: proxyUrl(json['avatar_url'] as String?),
       role: json['role'] as String? ?? 'student',
       isActive: json['is_active'] as bool? ?? true,
@@ -71,6 +78,9 @@ class UserProfile {
       collegeId: json['college_id'] as String?,
       onboardingCompleted: json['onboarding_completed'] as bool? ?? false,
       isPrivate: json['is_private'] as bool? ?? false,
+      streakDays: json['streak_days'] != null ? int.tryParse(json['streak_days'].toString()) : null,
+      longestStreak: json['longest_streak'] != null ? int.tryParse(json['longest_streak'].toString()) : null,
+      githubScore: json['github_score'] != null ? int.tryParse(json['github_score'].toString()) : null,
     );
   }
 
@@ -79,7 +89,6 @@ class UserProfile {
       'id': id,
       'email': email,
       'name': name,
-      'college': college,
       'branch': branch,
       'year': year,
       'avatar_url': avatarUrl,
@@ -96,6 +105,9 @@ class UserProfile {
       'college_id': collegeId,
       'onboarding_completed': onboardingCompleted,
       'is_private': isPrivate,
+      'streak_days': streakDays,
+      'longest_streak': longestStreak,
+      'github_score': githubScore,
     };
   }
 
@@ -103,7 +115,7 @@ class UserProfile {
     String? name,
     String? college,
     String? branch,
-    String? year,
+    int? year,
     String? avatarUrl,
     String? role,
     bool? isActive,
@@ -116,6 +128,9 @@ class UserProfile {
     String? collegeId,
     bool? onboardingCompleted,
     bool? isPrivate,
+    int? streakDays,
+    int? longestStreak,
+    int? githubScore,
   }) {
     return UserProfile(
       id: id,
@@ -138,6 +153,9 @@ class UserProfile {
       collegeId: collegeId ?? this.collegeId,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       isPrivate: isPrivate ?? this.isPrivate,
+      streakDays: streakDays ?? this.streakDays,
+      longestStreak: longestStreak ?? this.longestStreak,
+      githubScore: githubScore ?? this.githubScore,
     );
   }
 }

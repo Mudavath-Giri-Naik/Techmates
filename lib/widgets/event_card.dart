@@ -32,8 +32,8 @@ class _EventCardState extends State<EventCard> {
   final BookmarkService _bookmarkService = BookmarkService();
   bool _isSaved = false;
 
-  Color _surface(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.black : Theme.of(context).colorScheme.surface;
-  Color _stubSurface(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.black : Theme.of(context).colorScheme.surfaceContainerHighest;
+  Color _surface(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? const Color(0xFF141414) : const Color(0xFFFAFAFA);
+  Color _stubSurface(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0);
   Color _inkDeep(BuildContext context) => Theme.of(context).colorScheme.onSurface;
   Color _inkMid(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
   Color _inkFaint(BuildContext context) => Theme.of(context).colorScheme.outline;
@@ -152,22 +152,11 @@ class _EventCardState extends State<EventCard> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1C1C1E).withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-          BoxShadow(
-            color: const Color(0xFF1C1C1E).withValues(alpha: 0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.transparent, // Background handled by the ticket sections
       ),
       child: CustomPaint(
         painter: _TicketPainter(
-          borderColor: _border(context),
+          borderColor: Colors.transparent, // Transparent border
           stubLineColor: _inkFaint(context).withValues(alpha: 0.6),
         ),
         child: ClipPath(

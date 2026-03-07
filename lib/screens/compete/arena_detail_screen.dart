@@ -254,7 +254,7 @@ class _ArenaDetailScreenState extends State<ArenaDetailScreen> {
   Widget _podiumItem(
       Map<String, dynamic> entry, int position, ColorScheme cs, ThemeData theme) {
     final profile = entry['profiles'] as Map<String, dynamic>?;
-    final name = profile?['name'] as String? ?? 'Unknown';
+    final name = (profile?['full_name'] ?? profile?['name']) as String? ?? 'Unknown';
     final avatarUrl = proxyUrl(profile?['avatar_url'] as String?);
     final userId = entry['user_id'] as String? ?? '';
     final rating = entry['rating'];
@@ -362,7 +362,7 @@ class _ArenaDetailScreenState extends State<ArenaDetailScreen> {
     final isCurrentUser = userId == widget.userId;
 
     final profile = entry['profiles'] as Map<String, dynamic>?;
-    final name = profile?['name'] as String? ?? 'Unknown';
+    final name = (profile?['full_name'] ?? profile?['name']) as String? ?? 'Unknown';
     final avatarUrl = proxyUrl(profile?['avatar_url'] as String?);
     final college = profile?['college'] as String?;
     final branch = profile?['branch'] as String?;

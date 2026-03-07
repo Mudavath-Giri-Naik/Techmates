@@ -303,7 +303,7 @@ class HomeDataService {
 
       final students = await _client
           .from('profiles')
-          .select('id, name, avatar_url')
+          .select('id, full_name, avatar_url')
           .eq('college_id', collegeId)
           .neq('id', _client.auth.currentUser?.id ?? '')
           .order('created_at')
@@ -363,7 +363,7 @@ class HomeDataService {
 
       final profiles = await _client
           .from('profiles')
-          .select('id, name, branch, year, avatar_url, github_url')
+          .select('id, full_name, branch, year, avatar_url, github_url')
           .eq('college_id', collegeId)
           .eq('is_active', true)
           .limit(20)
@@ -401,7 +401,7 @@ class HomeDataService {
         students.add({
           'id': uid,
           'isCurrentUser': uid == currentUserId,
-          'name': (p['name'] as String?) ?? 'Unknown',
+          'name': (p['full_name'] ?? p['name'] as String?) ?? 'Unknown',
           'branch': (p['branch'] as String?) ?? '',
           'year': (p['year'] as String?) ?? '',
           'avatarUrl': proxyUrl(p['avatar_url'] as String?),

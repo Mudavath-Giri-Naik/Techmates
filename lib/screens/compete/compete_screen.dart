@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../services/compete_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../features/compete/games/speed_match/speed_match_notifier.dart';
+import '../../features/compete/games/speed_match/screens/speed_match_info_screen.dart';
+import '../../services/leaderboard_service.dart';
+import '../../models/leaderboard_entry.dart';
+import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
-import 'arena_detail_screen.dart';
+import '../profile/profile_screen.dart';
 
 class CompeteScreen extends StatefulWidget {
   const CompeteScreen({super.key});
@@ -12,134 +17,147 @@ class CompeteScreen extends StatefulWidget {
 }
 
 class _CompeteScreenState extends State<CompeteScreen> {
-  final _service = CompeteService();
+  String _selectedScope = 'class'; // 'class' | 'college'
+  String? _selectedDomainKey;      // null = Brain Score overall
+  List<LeaderboardEntry> _entries = [];
+  bool _isLoading = false;
+  int _currentUserRank = 0;
+  
+  final _leaderboardService = LeaderboardService();
+  final _auth = AuthService();
   final _profileService = ProfileService();
-
-  bool _loading = true;
-  String? _error;
-  List<Map<String, dynamic>> _arenas = [];
-  Map<String, Map<String, dynamic>> _arenaStats = {}; // arenaId → stats
-  String? _userId;
-  String? _collegeId;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadLeaderboard();
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadLeaderboard() async {
+    setState(() => _isLoading = true);
+    
+    final user = _auth.user;
+    if (user == null) {
+      debugPrint('[Compete] ❌ No authenticated user');
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final profile = await _profileService.fetchProfile(user.id);
+    if (profile == null) {
+      debugPrint('[Compete] ❌ Profile is null for user=${user.id}');
+      setState(() => _isLoading = false);
+      return;
+    }
+    
+    final collegeId = profile.collegeId;
+    final branch = profile.branch ?? '';
+    final year = profile.year ?? 1;
+
+    if (collegeId == null || collegeId.isEmpty) {
+      debugPrint('[Compete] ❌ collegeId is null/empty — cannot load leaderboard');
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    List<LeaderboardEntry> entries;
 
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        setState(() {
-          _error = 'Not logged in';
-          _loading = false;
-        });
-        return;
+      debugPrint('=== FETCHING LEADERBOARD ===');
+      debugPrint('Scope: $_selectedScope, Domain: $_selectedDomainKey');
+      debugPrint('Profile params: collegeId=$collegeId, branch=$branch, year=$year');
+      if (_selectedDomainKey != null) {
+        entries = await _leaderboardService.fetchDomainLeaderboard(
+          domainKey: _selectedDomainKey!,
+          scope: _selectedScope,
+          collegeId: collegeId,
+          branch: branch,
+          year: year,
+          currentUserId: user.id,
+        );
+      } else if (_selectedScope == 'class') {
+        entries = await _leaderboardService.fetchClassLeaderboard(
+          collegeId: collegeId,
+          branch: branch,
+          year: year,
+          currentUserId: user.id,
+        );
+      } else {
+        entries = await _leaderboardService.fetchCollegeLeaderboard(
+          collegeId: collegeId,
+          currentUserId: user.id,
+        );
       }
-      _userId = user.id;
-
-      // Fetch profile for college_id
-      final profile = await _profileService.fetchProfile(user.id);
-      _collegeId = profile?.collegeId;
-
-      // Fetch arenas and user stats in parallel
-      final results = await Future.wait([
-        _service.fetchArenas(),
-        _service.fetchUserArenaStats(user.id),
-      ]);
-
-      final arenas = results[0] as List<Map<String, dynamic>>;
-      final stats = results[1] as List<Map<String, dynamic>>;
-
-      // Map stats by arena_id for quick lookup
-      final statsMap = <String, Map<String, dynamic>>{};
-      for (final s in stats) {
-        final arenaId = s['arena_id'] as String?;
-        if (arenaId != null) statsMap[arenaId] = s;
+      debugPrint('Fetched ${entries.length} entries successfully.');
+      for (var i = 0; i < entries.length && i < 5; i++) {
+        final e = entries[i];
+        debugPrint('  #${e.rank} ${e.fullName} score=${e.brainScore} isMe=${e.isCurrentUser}');
       }
-
-      if (mounted) {
-        setState(() {
-          _arenas = arenas;
-          _arenaStats = statsMap;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('❌ [CompeteScreen] Load error: $e');
-      if (mounted) {
-        setState(() {
-          _error = 'Failed to load arenas. Please try again.';
-          _loading = false;
-        });
-      }
+    } catch (e, stackTrace) {
+      entries = [];
+      debugPrint('[Compete] ❌ Error loading leaderboard: $e');
+      debugPrint('Stacktrace: $stackTrace');
     }
+
+    if (!mounted) return;
+
+    setState(() {
+      _entries = entries;
+      _currentUserRank = entries.firstWhere(
+        (e) => e.isCurrentUser, 
+        orElse: () => LeaderboardEntry(
+          userId: '', fullName: '', brainScore: 0, rank: 0, rankDelta: 0, streakDays: 0, isCurrentUser: false
+        )
+      ).rank;
+      _isLoading = false;
+      debugPrint('[Compete] ✅ State updated: ${_entries.length} entries, myRank=$_currentUserRank');
+    });
   }
 
-  // Arena icon based on name
-  IconData _arenaIcon(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('memory')) return Icons.grid_view_rounded;
-    if (lower.contains('math')) return Icons.calculate_outlined;
-    if (lower.contains('code') || lower.contains('logic')) {
-      return Icons.code_rounded;
-    }
-    return Icons.bolt_rounded;
-  }
+  // Colors
+  static const bg          = Color(0xFFFAFAF8);
+  static const ink         = Color(0xFF111110);
+  static const inkSubtle   = Color(0xFFBBBBBB);
+  static const border      = Color(0xFFF0EDE6);
+  static const chipBg      = Color(0xFFF0EDE6);
+  static const teal        = Color(0xFF0D9488);
+  static const tealLight   = Color(0xFFF0FDF9);
+  static const tealBorder  = Color(0xFF99F6E4);
+  static const gold        = Color(0xFFD4A017);
+  static const goldLight   = Color(0xFFFFFBEB);
 
-  // Arena description based on name
-  String _arenaDescription(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('memory')) return 'Test your visual recall and pattern recognition';
-    if (lower.contains('math')) return 'Solve problems under time pressure';
-    if (lower.contains('code') || lower.contains('logic')) {
-      return 'Debug and reason through logic puzzles';
-    }
-    return 'Compete and prove your skill';
-  }
+  final _domains = [
+    { 'key': 'speed',       'label': 'Speed',    'icon': Icons.bolt,              'bg': const Color(0xFFFFF4ED), 'fg': const Color(0xFFC2440A), 'border': const Color(0xFFFED7AA) },
+    { 'key': 'memory',      'label': 'Memory',   'icon': Icons.memory,            'bg': const Color(0xFFEFF6FF), 'fg': const Color(0xFF1D5BB5), 'border': const Color(0xFFBFDBFE) },
+    { 'key': 'attention',   'label': 'Focus',    'icon': Icons.center_focus_weak, 'bg': const Color(0xFFF0FDF4), 'fg': const Color(0xFF166534), 'border': const Color(0xFFBBF7D0) },
+    { 'key': 'flexibility', 'label': 'Logic',    'icon': Icons.hub_outlined,      'bg': const Color(0xFFFDF4FF), 'fg': const Color(0xFF7E22CE), 'border': const Color(0xFFE9D5FF) },
+    { 'key': 'math',        'label': 'Math',     'icon': Icons.calculate_outlined,'bg': const Color(0xFFFFF7ED), 'fg': const Color(0xFFB45309), 'border': const Color(0xFFFDE68A) },
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: bg,
       body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator.adaptive())
-            : _error != null
-                ? _buildError(cs)
-                : _buildContent(cs, theme),
-      ),
-    );
-  }
-
-  Widget _buildError(ColorScheme cs) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+        bottom: false,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.tonal(
-              onPressed: _loadData,
-              child: const Text('Retry'),
+            _buildTopNav(),        // title + scope tabs
+            Expanded(
+              child: RefreshIndicator(
+                color: teal,
+                onRefresh: _loadLeaderboard,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  children: [
+                    _buildPodium(),        // top 3 winners
+                    const SizedBox(height: 12),
+                    _buildDomainChips(),   // horizontally scrollable domain selector
+                    _buildPlayButton(),    // Play Now CTA
+                    _buildLeaderboardList(), // full rankings
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -147,52 +165,669 @@ class _CompeteScreenState extends State<CompeteScreen> {
     );
   }
 
-  Widget _buildContent(ColorScheme cs, ThemeData theme) {
-    return RefreshIndicator.adaptive(
-      onRefresh: _loadData,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
-        children: [
-          // ── Header ──
-          Text(
-            'Compete',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: cs.onSurface,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Test your ability under pressure',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: cs.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 28),
+  Widget _buildTopNav() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: chipBg,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          _scopeTab('Class',   'class'),
+          _scopeTab('College', 'college'),
+        ]),
+      ),
+    );
+  }
 
-          // ── Arena Cards ──
-          if (_arenas.isEmpty)
-            _buildEmptyState(cs)
-          else
-            ..._arenas.map((arena) => _buildArenaCard(arena, cs, theme)),
+  Widget _scopeTab(String label, String value) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_selectedScope != value) {
+            setState(() => _selectedScope = value);
+            _loadLeaderboard();
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: _selectedScope == value ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: _selectedScope == value
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0,1))]
+              : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(label,
+            style: GoogleFonts.syne(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _selectedScope == value ? ink : inkSubtle,
+            )),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPodium() {
+    if (_isLoading && _entries.isEmpty) {
+      return const SizedBox(
+        height: 220,
+        child: Center(child: CircularProgressIndicator(color: teal)),
+      );
+    }
+    
+    LeaderboardEntry? first = _entries.isNotEmpty ? _entries[0] : null;
+    LeaderboardEntry? second = _entries.length > 1 ? _entries[1] : null;
+    LeaderboardEntry? third = _entries.length > 2 ? _entries[2] : null;
+
+    return SizedBox(
+      height: 220,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(child: _podiumSlot(rank: 2, entry: second, blockH: 68)),
+            Expanded(child: _podiumSlot(rank: 1, entry: first,  blockH: 96, isFirst: true)),
+            Expanded(child: _podiumSlot(rank: 3, entry: third, blockH: 52)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _podiumSlot({required int rank, LeaderboardEntry? entry, required int blockH, bool isFirst = false}) {
+    final name = entry?.fullName ?? '-';
+    final score = entry?.brainScore ?? 0;
+    final avatarUrl = entry?.avatarUrl;
+    final isCollege = _selectedScope == 'college';
+    final branchYear = isCollege && entry != null && entry.branch != null
+        ? '${_shortBranch(entry.branch!)}${entry.year != null ? ' · Y${entry.year}' : ''}'
+        : null;
+
+    return GestureDetector(
+      onTap: entry != null ? () {
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => ProfileScreen(userId: entry.userId),
+        ));
+      } : null,
+      child: Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (isFirst) const Text('👑', style: TextStyle(fontSize: 14)),
+        if (isFirst) const SizedBox(height: 2),
+        
+        Container(
+          width: isFirst ? 52 : 44,
+          height: isFirst ? 52 : 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isFirst ? goldLight : chipBg,
+            border: Border.all(
+              color: isFirst ? gold.withValues(alpha: 0.5) : border,
+              width: isFirst ? 2.5 : 1.5,
+            ),
+          ),
+          child: ClipOval(
+            child: avatarUrl != null 
+              ? Image.network(avatarUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Icon(Icons.person_outline, size: isFirst ? 22 : 18, color: isFirst ? gold : inkSubtle))
+              : Icon(Icons.person_outline, size: isFirst ? 22 : 18, color: isFirst ? gold : inkSubtle),
+          ),
+        ),
+        const SizedBox(height: 5),
+        
+        Text(name,
+          style: GoogleFonts.syne(
+            fontSize: isFirst ? 10 : 9,
+            fontWeight: FontWeight.w600,
+            color: isFirst ? ink : const Color(0xFF333333),
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+        if (branchYear != null)
+          Text(branchYear,
+            style: GoogleFonts.dmMono(
+              fontSize: 7,
+              color: inkSubtle,
+              letterSpacing: 0.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        const SizedBox(height: 2),
+        
+        Text(score.toString(),
+          style: GoogleFonts.dmMono(
+            fontSize: 8,
+            color: isFirst ? gold : inkSubtle,
+          )),
+        const SizedBox(height: 4),
+        
+        Container(
+          height: blockH.toDouble(),
+          decoration: BoxDecoration(
+            color: isFirst ? goldLight : (rank == 2 ? chipBg : const Color(0xFFF5F4F2)),
+            border: Border(
+              top:   BorderSide(color: isFirst ? gold.withValues(alpha: 0.25) : border, width: 1.5),
+              left:  BorderSide(color: isFirst ? gold.withValues(alpha: 0.25) : border, width: 1.5),
+              right: BorderSide(color: isFirst ? gold.withValues(alpha: 0.25) : border, width: 1.5),
+            ),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(rank.toString(),
+            style: GoogleFonts.instrumentSerif(
+              fontSize: 22,
+              color: isFirst ? gold : inkSubtle,
+            )),
+        ),
+      ],
+    ),
+    );
+  }
+
+  /// Shorten branch name: "Computer Science & Engineering (CSE)" → "CSE"
+  String _shortBranch(String branch) {
+    final match = RegExp(r'\(([^)]+)\)').firstMatch(branch);
+    if (match != null) return match.group(1)!;
+    if (branch.length > 12) return branch.substring(0, 12);
+    return branch;
+  }
+
+  Widget _buildDomainChips() {
+    // "All" chip + domain chips
+    final allChips = [
+      { 'key': 'all', 'label': 'All', 'icon': Icons.leaderboard_rounded, 'bg': const Color(0xFFF0FDF9), 'fg': const Color(0xFF0D9488), 'border': const Color(0xFF99F6E4) },
+      ..._domains,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          child: Text('WEEKLY CHAMPION · PICK DOMAIN',
+            style: GoogleFonts.dmMono(fontSize: 8.5, letterSpacing: 1.6, color: inkSubtle)),
+        ),
+        SizedBox(
+          height: 52,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
+            physics: const BouncingScrollPhysics(),
+            itemCount: allChips.length,
+            separatorBuilder: (context, _) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final d = allChips[i];
+              final chipKey = d['key'] as String;
+              final isAll = chipKey == 'all';
+              final isSelected = isAll
+                  ? _selectedDomainKey == null
+                  : _selectedDomainKey == chipKey;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedDomainKey = isAll ? null : chipKey;
+                  });
+                  _loadLeaderboard();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: d['bg'] as Color,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: d['border'] as Color,
+                      width: 1.5,
+                    ),
+                    boxShadow: isSelected
+                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0,2))]
+                      : [],
+                  ),
+                  child: Opacity(
+                    opacity: isSelected ? 1.0 : 0.42,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(d['icon'] as IconData, size: 13, color: d['fg'] as Color),
+                        const SizedBox(width: 6),
+                        Text(d['label'] as String,
+                          style: GoogleFonts.syne(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: d['fg'] as Color,
+                          )),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlayButton() {
+    // Hide when "All" is selected
+    if (_selectedDomainKey == null) return const SizedBox.shrink();
+
+    final domainData = _domains.firstWhere(
+      (d) => d['key'] == _selectedDomainKey,
+      orElse: () => _domains[0],
+    );
+    final domainLabel = domainData['label'] as String;
+    final domainFg = domainData['fg'] as Color;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: GestureDetector(
+        onTap: _onPlayTap,
+        child: Container(
+          width: double.infinity,
+          height: 52,
+          decoration: BoxDecoration(
+            color: ink,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(domainData['icon'] as IconData, color: domainFg, size: 18),
+              const SizedBox(width: 8),
+              Text('Play $domainLabel',
+                style: GoogleFonts.syne(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.02,
+                )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onPlayTap() {
+    int activeIndex = 0;
+    if (_selectedDomainKey != null) {
+      activeIndex = _domains.indexWhere((d) => d['key'] == _selectedDomainKey);
+      if (activeIndex == -1) activeIndex = 0;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _GamePickerSheet(
+        domainIndex: activeIndex,
+        domainName: _domains[activeIndex]['label'] as String,
+        domainColor: _domains[activeIndex]['fg'] as Color,
+        domainBg: _domains[activeIndex]['bg'] as Color,
+        domainBorder: _domains[activeIndex]['border'] as Color,
+        onGameSelected: (gameScreen) {
+          Navigator.pop(context);
+          Navigator.push(context, MaterialPageRoute(builder: (_) => gameScreen)).then((_) {
+            // refresh leaderboard after game completes
+            _loadLeaderboard();
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildLeaderboardList() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('FULL RANKINGS',
+                style: GoogleFonts.dmMono(fontSize: 8.5, letterSpacing: 1.6, color: inkSubtle)),
+              if (_currentUserRank > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: tealLight,
+                    border: Border.all(color: tealBorder),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text('You · #$_currentUserRank',
+                    style: GoogleFonts.dmMono(fontSize: 9, color: teal, letterSpacing: 0.8)),
+                ),
+            ],
+          ),
+        ),
+        if (_isLoading && _entries.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator(color: teal)),
+          )
+        else if (_entries.length <= 3)
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: Text(
+                _entries.isEmpty ? 'Be the first to compete!' : 'No more rankings below the podium.',
+                style: GoogleFonts.syne(color: inkSubtle),
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              children: _entries.sublist(3).map((e) => _buildLbRow(e)).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLbRow(LeaderboardEntry item) {
+    final isMe = item.isCurrentUser;
+    final delta = item.rankDelta;
+    final isCollege = _selectedScope == 'college';
+    
+    String subtitle;
+    if (isCollege && item.branch != null) {
+      subtitle = '${_shortBranch(item.branch!)}${item.year != null ? ' · Y${item.year}' : ''}';
+    } else if (item.topDomain != null) {
+      subtitle = item.totalSessions != null
+          ? '${item.topDomain} · ${item.totalSessions} sessions'
+          : item.topDomain!;
+    } else {
+      subtitle = '${item.streakDays}d streak';
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => ProfileScreen(userId: item.userId),
+        ));
+      },
+      child: Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isMe ? tealLight : Colors.white,
+        border: Border.all(
+          color: isMe ? tealBorder : border,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(children: [
+        SizedBox(
+          width: 22,
+          child: Text(item.rank.toString(),
+            style: GoogleFonts.dmMono(
+              fontSize: 11,
+              color: isMe ? teal : inkSubtle,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(width: 10),
+        
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isMe ? tealLight : chipBg,
+            border: Border.all(
+              color: isMe ? tealBorder : border,
+              width: 1.5,
+            ),
+          ),
+          child: ClipOval(
+            child: item.avatarUrl != null 
+              ? Image.network(item.avatarUrl!, fit: BoxFit.cover, errorBuilder: (_,__,___) => Icon(Icons.person_outline, size: 16, color: isMe ? teal : inkSubtle))
+              : Icon(Icons.person_outline, size: 16, color: isMe ? teal : inkSubtle),
+          ),
+        ),
+        const SizedBox(width: 10),
+        
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(item.fullName,
+              style: GoogleFonts.syne(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isMe ? teal : ink,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(subtitle,
+              style: GoogleFonts.dmMono(
+                fontSize: 9,
+                color: isMe ? teal.withValues(alpha: 0.6) : inkSubtle,
+                letterSpacing: 0.05,
+              )),
+          ],
+        )),
+        
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(item.brainScore.toString(),
+              style: GoogleFonts.instrumentSerif(
+                fontSize: 19,
+                color: isMe ? teal : ink,
+                height: 1,
+              )),
+            if (delta != 0)
+              const SizedBox(height: 3),
+            if (delta != 0)
+              Text(delta > 0 ? '▲ +$delta' : '▼ ${delta.abs()}',
+                style: GoogleFonts.dmMono(
+                  fontSize: 8,
+                  letterSpacing: 0.6,
+                  color: delta > 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                )),
+          ],
+        ),
+      ]),
+    ),
+    );
+  }
+}
+
+class _GameItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Widget screen;
+
+  const _GameItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.screen,
+  });
+}
+
+class _GamePickerSheet extends StatelessWidget {
+  final int domainIndex;
+  final String domainName;
+  final Color domainColor;
+  final Color domainBg;
+  final Color domainBorder;
+  final void Function(Widget gameScreen) onGameSelected;
+
+  const _GamePickerSheet({
+    required this.domainIndex,
+    required this.domainName,
+    required this.domainColor,
+    required this.domainBg,
+    required this.domainBorder,
+    required this.onGameSelected,
+  });
+
+  List<_GameItem> _gamesForDomain(int domainIndex) {
+    if (domainIndex == 0) {
+      return [
+        _GameItem(
+          title: 'Speed Match',
+          subtitle: 'Match the pattern fast',
+          icon: Icons.bolt,
+          screen: SpeedMatchInfoScreen(notifier: SpeedMatchNotifier()),
+        ),
+      ];
+    }
+    return [];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final games = _gamesForDomain(domainIndex);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAFAF8),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDDDAD2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Header
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: domainBg,
+                border: Border.all(color: domainBorder, width: 1.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                domainName.toUpperCase(),
+                style: GoogleFonts.dmMono(
+                  fontSize: 11,
+                  letterSpacing: 1.6,
+                  fontWeight: FontWeight.w500,
+                  color: domainColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text('Games',
+              style: GoogleFonts.instrumentSerif(
+                fontSize: 22,
+                color: const Color(0xFF111110),
+              )),
+          ]),
+          const SizedBox(height: 6),
+          Text(
+            games.isEmpty
+              ? 'No games available yet for this domain.'
+              : '${games.length} game${games.length > 1 ? "s" : ""} available · tap to play',
+            style: GoogleFonts.dmMono(
+              fontSize: 9,
+              letterSpacing: 0.8,
+              color: const Color(0xFFBBBBBB),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Game grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.4,
+            ),
+            itemCount: games.isEmpty ? 4 : games.length,
+            itemBuilder: (context, i) {
+              if (games.isEmpty || i >= games.length) {
+                return _emptyGameBox(i + 1);
+              }
+              return _gameBox(games[i]);
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(ColorScheme cs) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 64),
+  Widget _gameBox(_GameItem game) {
+    return GestureDetector(
+      onTap: () => onGameSelected(game.screen),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFF0EDE6), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(Icons.sports_esports_outlined,
-                size: 48, color: cs.onSurfaceVariant.withOpacity(0.4)),
-            const SizedBox(height: 16),
-            Text(
-              'No arenas available yet',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15),
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: domainBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: domainBorder, width: 1),
+              ),
+              child: Icon(game.icon, size: 18, color: domainColor),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(game.title,
+                  style: GoogleFonts.syne(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF111110),
+                  )),
+                const SizedBox(height: 2),
+                Text(game.subtitle,
+                  style: GoogleFonts.dmMono(
+                    fontSize: 9,
+                    color: const Color(0xFFBBBBBB),
+                    letterSpacing: 0.4,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ],
         ),
@@ -200,126 +835,52 @@ class _CompeteScreenState extends State<CompeteScreen> {
     );
   }
 
-  Widget _buildArenaCard(
-      Map<String, dynamic> arena, ColorScheme cs, ThemeData theme) {
-    final arenaId = arena['id'] as String;
-    final name = arena['name'] as String? ?? 'Arena';
-    final stats = _arenaStats[arenaId];
-    final rating = stats?['rating'] != null
-        ? double.tryParse(stats!['rating'].toString())?.toStringAsFixed(0) ?? '—'
-        : '—';
-    final sessions = stats?['total_sessions']?.toString() ?? '0';
-    final icon = _arenaIcon(name);
-    final description = _arenaDescription(name);
-
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _navigateToGame(arena),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.black.withOpacity(0.08),
-              ),
-              color: isDark
-                  ? Colors.white.withOpacity(0.03)
-                  : Colors.black.withOpacity(0.015),
-            ),
-            child: Row(
-              children: [
-                // Icon
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: cs.primaryContainer.withOpacity(0.6),
-                  ),
-                  child: Icon(icon, size: 22, color: cs.primary),
-                ),
-                const SizedBox(width: 14),
-
-                // Name + description
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Rating + Sessions
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      rating,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sessions == '0' ? 'New' : '$sessions played',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right_rounded,
-                    size: 20, color: cs.onSurfaceVariant.withOpacity(0.5)),
-              ],
-            ),
-          ),
+  Widget _emptyGameBox(int num) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F3EE),
+        border: Border.all(
+          color: const Color(0xFFE8E5DE),
+          width: 1.5,
         ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFECEAE4),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.lock_outline,
+              size: 16,
+              color: Color(0xFFCCC9C0)),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 80, height: 10,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0DDD6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text('Coming soon',
+                style: GoogleFonts.dmMono(
+                  fontSize: 9,
+                  color: const Color(0xFFCCC9C0),
+                  letterSpacing: 0.4,
+                )),
+            ],
+          ),
+        ],
       ),
     );
-  }
-
-  void _navigateToGame(Map<String, dynamic> arena) {
-    if (_userId == null) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ArenaDetailScreen(
-          arena: arena,
-          userId: _userId!,
-          collegeId: _collegeId,
-        ),
-      ),
-    ).then((_) {
-      // Refresh stats when returning from game
-      _loadData();
-    });
   }
 }

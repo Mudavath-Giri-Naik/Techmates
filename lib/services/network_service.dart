@@ -78,10 +78,14 @@ class NetworkService {
         'p_viewer_id': viewerId,
       });
 
-      return (response as List)
+      final list = (response as List)
           .map((json) =>
               StudentNetworkModel.fromJson(json as Map<String, dynamic>))
           .toList();
+      if (list.isNotEmpty) {
+        debugPrint('✅ [NetworkService] getCollegeStudents: ${list.length} students, first year=${list.first.year} (${list.first.yearTabLabel})');
+      }
+      return list;
     } catch (e) {
       debugPrint('❌ [NetworkService] getCollegeStudents error: $e');
       rethrow;

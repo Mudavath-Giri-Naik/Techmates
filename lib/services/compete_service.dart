@@ -186,7 +186,7 @@ class CompeteService {
 
       final profiles = await _client
           .from('profiles')
-          .select('id, name, avatar_url')
+          .select('id, full_name, avatar_url')
           .inFilter('id', userIds)
           .timeout(kDefaultQueryTimeout);
 
@@ -234,7 +234,7 @@ class CompeteService {
 
       final profiles = await _client
           .from('profiles')
-          .select('id, name, avatar_url, college, branch, year')
+          .select('id, full_name, avatar_url, college, branch, year')
           .inFilter('id', userIds)
           .timeout(kDefaultQueryTimeout);
 

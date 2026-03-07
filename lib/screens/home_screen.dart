@@ -1285,209 +1285,69 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       child: SafeArea(
         bottom: false,
         child: Column(
-        children: [
-          // Category Chips + Filter
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-            ),
-            child: _isExploreSearching
-                ? Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _exploreSearchController,
-                          autofocus: true,
-                          onChanged: _handleSearch,
-                          decoration: InputDecoration(
-                            hintText: _getSearchHintForCategory(),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            filled: true,
-                            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.2),
-                            ),
-                            prefixIcon: Icon(Icons.search_rounded, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: _closeExploreSearch,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.outlineVariant,
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.close_rounded,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      // Filter Icon (fixed left)
-                      GestureDetector(
-                        onTap: _onOpenFilters,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: filterCount > 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: filterCount > 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.tune_rounded,
-                            size: 16,
-                            color: filterCount > 0 ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      // Chips (scroll between fixed filter and search)
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              ..._categories.map((category) {
-                                final isSelected = _selectedCategory == category;
-                                int? count = _categoryCounts[category];
-                                if (category == 'Internships' && isSelected) {
-                                  count = _eliteInternships.length;
-                                }
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: GestureDetector(
-                                    onTap: () => _onCategorySelected(category),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      curve: Curves.easeOut,
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.transparent,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E5E5),
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: Text.rich(
-                                        TextSpan(
-                                          children: [
-                                            TextSpan(
-                                              text: category,
-                                              style: TextStyle(
-                                                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
-                                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                                fontSize: 12.5,
-                                                letterSpacing: 0.1,
-                                              ),
-                                            ),
-                                            if (count != null)
-                                              TextSpan(
-                                                text: " ($count)",
-                                                style: TextStyle(
-                                                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.black,
-                                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                                  fontSize: 12.5,
-                                                  letterSpacing: 0.1,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      // Search Icon (fixed right)
-                      GestureDetector(
-                        onTap: _openExploreSearch,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: _searchQuery.trim().isNotEmpty ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: _searchQuery.trim().isNotEmpty ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.search_rounded,
-                            size: 16,
-                            color: _searchQuery.trim().isNotEmpty ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-          
-          // List Area (Internships has special layout)
-          // List Area (Internships has special layout)
-          Expanded(
-            child: _selectedCategory == 'Internships'
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Left Sidebar (Months + Static Label)
-                    Container(
-                      width: 42,
-                      color: Theme.of(context).colorScheme.surface,
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: _buildMonthChips(),
-                          ),
-                          _buildVerticalLabel(),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 4), 
-                    Expanded(
-                      child: _buildMainList(UserRoleService()),
-                    ),
-                  ],
-                )
-              : _buildMainList(UserRoleService()),
-          ), 
-        ],
-      ),
+          children: [
+            _buildSearchBar(),
+            Expanded(child: _buildPhotoGrid()),
+          ],
+        ),
       ),
     )); 
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      color: const Color(0xFFF0F2F5),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(children: [
+          const SizedBox(width: 12),
+          const Icon(Icons.search_rounded, size: 20, color: Color(0xFF8A8A8E)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(
+                hintText: 'Search',
+                hintStyle: TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF8A8A8E),
+                  fontWeight: FontWeight.w400,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 15, color: Color(0xFF111110)),
+              cursorColor: const Color(0xFF111110),
+            ),
+          ),
+          const SizedBox(width: 12),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildPhotoGrid() {
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      physics: const BouncingScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 1.5,  // hairline gap
+        mainAxisSpacing: 1.5,   // hairline gap
+        childAspectRatio: 1.0,  // perfect squares
+      ),
+      itemCount: 24, // enough to fill screen and show scrollability
+      itemBuilder: (context, index) {
+        return Container(
+          color: const Color(0xFFECEFF1), // the exact light blue-grey tile color from screenshot
+        );
+      },
+    );
   }
 
   Widget _buildMainList(UserRoleService roleService) {

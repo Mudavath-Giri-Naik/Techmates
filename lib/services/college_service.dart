@@ -128,10 +128,7 @@ class CollegeService {
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      if (collegeName != null && collegeName.isNotEmpty) {
-        data['college'] = collegeName;
-      }
-
+      // college column has been removed from profiles table
       await _client.from('profiles').update(data).eq('id', userId);
       debugPrint(
           '✅ [CollegeService] Saved college to profile: $collegeEmail (verified: ${collegeId != null})');

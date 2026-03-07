@@ -127,7 +127,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
 
     // Extract profile data from the join
     final profile = entry['profiles'] as Map<String, dynamic>?;
-    final name = profile?['name'] as String? ?? 'Unknown';
+    final name = (profile?['full_name'] ?? profile?['name']) as String? ?? 'Unknown';
     final avatarUrl = proxyUrl(profile?['avatar_url'] as String?);
 
     final isCurrentUser = userId == widget.userId;

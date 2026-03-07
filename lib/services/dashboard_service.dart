@@ -198,7 +198,7 @@ class DashboardService {
   // Logs Fetches (Preserving previous functionality)
   Future<List<Map<String, dynamic>>> fetchRoleLogs() async {
     try {
-       final response = await _client.from('user_role_logs').select('*, target:profiles!target_user(name, email), actor:profiles!changed_by(name, email)').order('created_at', ascending: false).limit(50);
+       final response = await _client.from('user_role_logs').select('*, target:profiles!target_user(full_name, email), actor:profiles!changed_by(full_name, email)').order('created_at', ascending: false).limit(50);
        return List<Map<String, dynamic>>.from(response);
     } catch (e) {
        return [];
@@ -207,7 +207,7 @@ class DashboardService {
 
    Future<List<Map<String, dynamic>>> fetchOpportunityLogs() async {
     try {
-       final response = await _client.from('opportunity_logs').select('*, opportunity:opportunities(title), actor:profiles!performed_by(name, email)').order('created_at', ascending: false).limit(50);
+       final response = await _client.from('opportunity_logs').select('*, opportunity:opportunities(title), actor:profiles!performed_by(full_name, email)').order('created_at', ascending: false).limit(50);
        return List<Map<String, dynamic>>.from(response);
     } catch (e) {
        return [];
@@ -315,7 +315,7 @@ class DashboardService {
       final userIds = rolesList.map((e) => e['user_id']).toList();
       final profilesResponse = await _client
           .from('profiles')
-          .select('id, name, email, is_active')
+          .select('id, full_name, email, is_active')
           .filter('id', 'in', userIds);
           
       print("🔍 [DEBUG] fetchUsers profiles fetched: ${(profilesResponse as List).length}");
@@ -330,7 +330,7 @@ class DashboardService {
         final uid = roleItem['user_id'];
         final profile = profilesMap[uid];
         
-        final name = profile?['name'] ?? 'Unknown';
+        final name = profile?['full_name'] ?? profile?['name'] ?? 'Unknown';
         final email = roleItem['email'] ?? profile?['email']; // user_roles has email usually
         final isActive = profile?['is_active'] ?? true;
         final role = roleItem['role'];

@@ -322,22 +322,38 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen>
   //  Submit & sign out
   // ─────────────────────────────────────────────────────────────────────────
 
+  int _getYearNumber(String yearText) {
+    switch (yearText) {
+      case 'First Year':
+        return 1;
+      case 'Second Year':
+        return 2;
+      case 'Third Year':
+        return 3;
+      case 'Fourth Year':
+      case 'Final Year':
+        return 4;
+      default:
+        return 1;
+    }
+  }
+
   Future<void> _submit() async {
     if (!_canSubmit || _submitting) return;
     setState(() => _submitting = true);
     try {
       final email  = _verifiedEmail!;
       final domain = email.split('@').last.toLowerCase();
+      
       await SupabaseClientManager.instance.from('profiles').upsert({
         'id': widget.userId,
         'name': _nameCtrl.text.trim(),
-        'college': _colName ?? domain,
         'college_email': email,
         'college_email_domain': domain,
         'college_id': _colId,
         'college_verified': true,
         'branch': _branch,
-        'year': _yearLabel,
+        'year': _getYearNumber(_yearLabel),
         'github_url':
             _githubCtrl.text.trim().isEmpty ? null : _githubCtrl.text.trim(),
         'linkedin_url':

@@ -159,19 +159,10 @@ class _InternshipCardState extends State<InternshipCard> {
         children: [
           Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Theme.of(context).colorScheme.surface,
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? const Color(0xFF141414) 
+                : const Color(0xFFFAFAFA),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: widget.isHighlighted ? _blue(context) : Theme.of(context).colorScheme.outlineVariant,
-              width: widget.isHighlighted ? 1.6 : 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

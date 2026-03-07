@@ -133,10 +133,10 @@ class _RoleLogsList extends StatelessWidget {
           itemCount: logs.length,
           itemBuilder: (context, index) {
             final log = logs[index];
-            final targetName = log['target']?['name'] ?? 'Unknown User';
+            final targetName = log['target']?['full_name'] ?? log['target']?['name'] ?? 'Unknown User';
             final oldRole = log['old_role'] ?? '';
             final newRole = log['new_role'] ?? '';
-            final actorName = log['actor']?['name'] ?? 'System';
+            final actorName = log['actor']?['full_name'] ?? log['actor']?['name'] ?? 'System';
             final timestamp = log['created_at'];
 
             return Container(
@@ -278,7 +278,7 @@ class _OpportunityLogsList extends StatelessWidget {
             final title = log['opportunity']?['title'] ?? 'Unknown Opportunity';
             final action = log['action'] ?? 'Unknown';
             final role = log['role'] ?? '';
-            final actorName = log['actor']?['name'] ?? 'Unknown';
+            final actorName = log['actor']?['full_name'] ?? log['actor']?['name'] ?? 'Unknown';
             final timestamp = log['created_at'];
 
             Color actionColor = const Color(0xFF1E88E5);

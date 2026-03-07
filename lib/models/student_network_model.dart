@@ -7,7 +7,7 @@ class StudentNetworkModel {
   final String id;
   final String? name;
   final String? branch;
-  final String? year;
+  final int? year;
   final String? avatarUrl;
   final String? college;
   final String? githubUrl;
@@ -41,11 +41,11 @@ class StudentNetworkModel {
   factory StudentNetworkModel.fromJson(Map<String, dynamic> json) {
     return StudentNetworkModel(
       id: json['id'] as String,
-      name: json['name'] as String?,
+      name: (json['full_name'] ?? json['name']) as String?,
       branch: json['branch'] as String?,
-      year: json['year'] as String?,
+      year: (json['year'] as num?)?.toInt(),
       avatarUrl: proxyUrl(json['avatar_url'] as String?),
-      college: json['college'] as String?,
+      college: (json['college_name'] ?? json['college']) as String?,
       githubUrl: json['github_url'] as String?,
       linkedinUrl: json['linkedin_url'] as String?,
       instagramUrl: json['instagram_url'] as String?,
@@ -61,30 +61,17 @@ class StudentNetworkModel {
 
   // ── Computed helpers ──────────────────────────────────────────────────
 
-  bool get isAlumni => year?.toLowerCase() == 'alumni';
+  bool get isAlumni => year == 0 || year == null;
 
   String get yearTabLabel {
-    if (year == null || year!.isEmpty) return 'Other';
-    final y = year!.trim().toLowerCase();
-
-    // Match numeric: '1', '2', '3', '4'
-    // Match ordinal: '1st', '2nd', '3rd', '4th'
-    // Match full: '1st year', '2nd year', etc.
-    // Match word: 'first', 'second', 'third', 'fourth'
-    if (y == '1' || y == '1st' || y == '1st year' || y == 'first' || y == 'first year') {
-      return '1st Year';
+    switch (year) {
+      case 1: return '1st Year';
+      case 2: return '2nd Year';
+      case 3: return '3rd Year';
+      case 4: return '4th Year';
+      case 0: return 'Alumni';
+      default: return 'Other';
     }
-    if (y == '2' || y == '2nd' || y == '2nd year' || y == 'second' || y == 'second year') {
-      return '2nd Year';
-    }
-    if (y == '3' || y == '3rd' || y == '3rd year' || y == 'third' || y == 'third year') {
-      return '3rd Year';
-    }
-    if (y == '4' || y == '4th' || y == '4th year' || y == 'fourth' || y == 'fourth year') {
-      return '4th Year';
-    }
-    if (y == 'alumni') return 'Alumni';
-    return 'Other';
   }
 
   String get displayName => name ?? 'Unknown';
