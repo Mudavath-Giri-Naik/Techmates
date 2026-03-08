@@ -1,21 +1,21 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../engine/symbol_generator.dart';
 
-/// M3-mapped symbol colours (used when phase >= 5 introduces colour variance).
-List<Color> kSymbolColorsForScheme(ColorScheme cs) => [
-      cs.error, // red
-      cs.primary, // blue
-      cs.tertiary, // green / teal
-      cs.secondary, // amber
-      cs.primary, // purple mapped to primary
-    ];
+const List<Color> _kSymbolPalette = [
+  Color(0xFFE46677),
+  Color(0xFF3478F6),
+  Color(0xFF12A594),
+  Color(0xFFF0A33B),
+  Color(0xFF8365F1),
+];
 
-/// Hero card displaying the current symbol — 280 × 280, M3 tonal surface,
-/// slide-in + feedback flash animations.
+/// Hero card displaying the current symbol.
 class SymbolCardWidget extends StatefulWidget {
   final GeneratedSymbol symbol;
-  final bool? lastAnswerCorrect; // null = no feedback yet
+  final bool? lastAnswerCorrect;
 
   const SymbolCardWidget({
     super.key,
@@ -38,28 +38,30 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
   void initState() {
     super.initState();
     _slideCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 120));
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
     _slideAnim = Tween<Offset>(
-      begin: const Offset(1.0, 0),
+      begin: const Offset(0.16, 0),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
     _slideCtrl.forward();
   }
 
   @override
   void didUpdateWidget(covariant SymbolCardWidget old) {
     super.didUpdateWidget(old);
-    // New symbol → slide in.
     if (widget.symbol != old.symbol) {
       _slideCtrl.forward(from: 0);
     }
-    // Feedback flash.
     if (widget.lastAnswerCorrect != null &&
         widget.lastAnswerCorrect != old.lastAnswerCorrect) {
       _flashing = true;
       _flashCorrect = widget.lastAnswerCorrect;
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) setState(() => _flashing = false);
+      Future.delayed(const Duration(milliseconds: 140), () {
+        if (mounted) {
+          setState(() => _flashing = false);
+        }
       });
     }
   }
@@ -72,67 +74,142 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final size = min(MediaQuery.sizeOf(context).width - 40, 334.0);
     final hasColour = widget.symbol.colorIndex >= 0;
-    final colors = kSymbolColorsForScheme(cs);
     final symbolColor = hasColour
-        ? colors[widget.symbol.colorIndex % colors.length]
-        : cs.onSurface;
+        ? _kSymbolPalette[widget.symbol.colorIndex % _kSymbolPalette.length]
+        : const Color(0xFF162033);
+    final isCodeSymbol =
+        RegExp(r'^[\{\}\[\]\(\)<>!=/%&|:#\-+]+$').hasMatch(widget.symbol.symbol);
+    final fontSize = _fontSizeFor(widget.symbol.symbol, size);
 
-    // Larger font for single/double-char symbols.
-    final isShort = widget.symbol.symbol.length <= 2;
-    final fontSize = isShort ? 112.0 : 72.0;
-
-    // Flash background
-    Color cardBg;
+    Color cardBg = const Color(0xFFFCFDFF);
+    Color borderColor = const Color(0xFFD7E0EC);
     if (_flashing && _flashCorrect != null) {
       cardBg = _flashCorrect!
-          ? cs.tertiaryContainer
-          : cs.errorContainer;
-    } else {
-      cardBg = isDark ? cs.surfaceContainer : cs.surfaceContainerLow;
+          ? const Color(0xFFF2FBF6)
+          : const Color(0xFFFFF3F4);
+      borderColor = _flashCorrect!
+          ? const Color(0xFFBFE4CD)
+          : const Color(0xFFF0C9CF);
+    } else if (hasColour) {
+      borderColor = symbolColor.withValues(alpha: 0.28);
     }
 
     return SlideTransition(
       position: _slideAnim,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 80),
-        width: 280,
-        height: 280,
+        duration: const Duration(milliseconds: 120),
+        width: size,
+        height: size,
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(
-            color: cs.outlineVariant
-                .withOpacity(isDark ? 0.3 : 0.6),
-            width: 1,
-          ),
-          boxShadow: isDark
-              ? null
-              : [
-                  BoxShadow(
-                    color: cs.shadow.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                  BoxShadow(
-                    color: cs.shadow.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+          border: Border.all(color: borderColor, width: 1.4),
         ),
-        child: Center(
-          child: Text(
-            widget.symbol.symbol,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w700,
-              color: symbolColor,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _TopTag(
+                  label: 'CURRENT SYMBOL',
+                  borderColor: borderColor,
+                ),
+                const Spacer(),
+                if (hasColour)
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: symbolColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: symbolColor.withValues(alpha: 0.35),
+                        width: 3,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          ),
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    widget.symbol.symbol,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                      letterSpacing: isCodeSymbol ? 2.8 : 0,
+                      color: symbolColor,
+                      fontFamily: isCodeSymbol ? 'monospace' : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6F8FC),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE1E7F0)),
+              ),
+              child: Text(
+                hasColour
+                    ? 'Compare both the symbol and the tone.'
+                    : 'Focus on the shape before you answer.',
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF66738A),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _fontSizeFor(String symbol, double cardSize) {
+    if (symbol.length <= 1) return cardSize * 0.42;
+    if (symbol.length == 2) return cardSize * 0.34;
+    return cardSize * 0.24;
+  }
+}
+
+class _TopTag extends StatelessWidget {
+  final String label;
+  final Color borderColor;
+
+  const _TopTag({
+    required this.label,
+    required this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F8FC),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: borderColor.withValues(alpha: 0.6)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1,
+          color: Color(0xFF64748B),
         ),
       ),
     );

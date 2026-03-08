@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../features/compete/games/memory/memory_notifier.dart';
+import '../../features/compete/games/memory/screens/memory_game_screen.dart';
 import '../../features/compete/games/speed_match/speed_match_notifier.dart';
 import '../../features/compete/games/speed_match/screens/speed_match_info_screen.dart';
 import '../../services/leaderboard_service.dart';
@@ -763,6 +765,16 @@ class _GamePickerSheet extends StatelessWidget {
           subtitle: 'Match the pattern fast',
           icon: Icons.bolt,
           screen: SpeedMatchInfoScreen(notifier: SpeedMatchNotifier()),
+        ),
+      ];
+    }
+    if (domainIndex == 1) {
+      return [
+        _GameItem(
+          title: 'Memory Arena',
+          subtitle: 'Memorize the highlighted grid',
+          icon: Icons.memory_rounded,
+          screen: MemoryGameScreen(notifier: MemoryNotifier()),
         ),
       ];
     }

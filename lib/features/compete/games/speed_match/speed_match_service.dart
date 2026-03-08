@@ -213,12 +213,12 @@ class SpeedMatchService {
 
   Future<void> insertMatchmakingQueue(int level, int elo) async {
     print('SPEED_MATCH: inserting into matchmaking_queue level=$level elo=$elo uid=$_uid');
-    await _sb.from('matchmaking_queue').insert({
+    await _sb.from('matchmaking_queue').upsert({
       'user_id': _uid,
       'game_type': 'speed_match',
       'user_level': level,
       'user_elo': elo,
-    });
+    }, onConflict: 'user_id, game_type');
     print('SPEED_MATCH: matchmaking queue insert done');
   }
 

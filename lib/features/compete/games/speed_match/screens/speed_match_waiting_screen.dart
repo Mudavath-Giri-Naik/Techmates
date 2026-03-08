@@ -23,6 +23,9 @@ class _SpeedMatchWaitingScreenState extends State<SpeedMatchWaitingScreen>
   SpeedMatchNotifier get _n => widget.notifier;
   Timer? _autoMatchTimer;
   int _autoMatchCountdown = 30;
+  Timer? _inviteTimer;
+  int _inviteCountdown = 120; // 2 minutes
+  static const int _inviteDuration = 120;
   late AnimationController _breathe;
 
   @override
@@ -34,12 +37,14 @@ class _SpeedMatchWaitingScreenState extends State<SpeedMatchWaitingScreen>
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
     if (_n.phase == SpeedMatchPhase.searching) _startAutoMatchTimer();
+    if (_n.phase == SpeedMatchPhase.waiting) _startInviteTimer();
   }
 
   @override
   void dispose() {
     _n.removeListener(_onNotify);
     _autoMatchTimer?.cancel();
+    _inviteTimer?.cancel();
     _breathe.dispose();
     super.dispose();
   }
@@ -50,6 +55,7 @@ class _SpeedMatchWaitingScreenState extends State<SpeedMatchWaitingScreen>
         _n.phase == SpeedMatchPhase.countdown) {
       HapticFeedback.mediumImpact();
       _autoMatchTimer?.cancel();
+      _inviteTimer?.cancel();
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (_) => SpeedMatchPregameScreen(notifier: _n),
       ));
@@ -85,6 +91,33 @@ class _SpeedMatchWaitingScreenState extends State<SpeedMatchWaitingScreen>
     });
   }
 
+  void _startInviteTimer() {
+    _inviteCountdown = _inviteDuration;
+    _inviteTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _inviteCountdown--);
+      if (_inviteCountdown <= 0) {
+        timer.cancel();
+        HapticFeedback.lightImpact();
+        _n.cancelDuel();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Invite code expired. Please create a new room.'),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      }
+    });
+  }
+
   void _cancel() {
     HapticFeedback.lightImpact();
     final isInvite = _n.phase == SpeedMatchPhase.waiting;
@@ -100,7 +133,12 @@ class _SpeedMatchWaitingScreenState extends State<SpeedMatchWaitingScreen>
   Widget build(BuildContext context) {
     final isInvite = _n.phase == SpeedMatchPhase.waiting;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _cancel();
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFFAFAFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFAFAFC),
@@ -207,6 +245,7 @@ class _SpeedMatchWaitingScreenState extends State<SpeedMatchWaitingScreen>
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -296,27 +335,75 @@ class _SpeedMatchWaitingScreenState extends State<SpeedMatchWaitingScreen>
 
         const SizedBox(height: 24),
 
-        // Waiting dot indicator
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.5,
-                color: const Color(0xFF8B5CF6).withOpacity(0.5),
+        // Timer + Waiting indicator
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFF3F4F6)),
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                width: 56,
+                height: 56,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: CircularProgressIndicator(
+                        value: _inviteCountdown / _inviteDuration,
+                        strokeWidth: 3,
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _inviteCountdown <= 30
+                              ? const Color(0xFFFCA5A5)
+                              : const Color(0xFFC4B5FD),
+                        ),
+                        strokeCap: StrokeCap.round,
+                      ),
+                    ),
+                    Text(
+                      '${_inviteCountdown ~/ 60}:${(_inviteCountdown % 60).toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: _inviteCountdown <= 30
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFF374151),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'Waiting for opponent to join…',
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFF9CA3AF),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: const Color(0xFF8B5CF6).withOpacity(0.5),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Waiting for opponent to join…',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

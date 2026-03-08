@@ -454,6 +454,21 @@ class SpeedMatchNotifier extends ChangeNotifier {
     _duelSession = DuelSession.fromMap(record);
     final duel = _duelSession!;
 
+    // ── Duel cancelled by opponent ──
+    if (duel.status == 'cancelled') {
+      print('SPEED_MATCH: ❌ duel was cancelled');
+      _removeRealtimeChannel();
+      _duelId = null;
+      _duelSession = null;
+      _inviteCode = null;
+      _opponentProfile = null;
+      _myReady = false;
+      _opponentReady = false;
+      _error = 'Match was cancelled';
+      _setPhase(SpeedMatchPhase.modeSelect);
+      return;
+    }
+
     // ── Opponent joined (for invite host) ──
     if (duel.player2Id != null &&
         duel.player2Id!.isNotEmpty &&
@@ -549,8 +564,8 @@ class SpeedMatchNotifier extends ChangeNotifier {
       _opponentLevel = 1;
     }
 
-    // Subscribe (only if not already subscribed to this duel)
-    if (_realtimeChannel == null && _duelId != null) {
+    // Always switch to duel-specific channel (replaces matchmaking channel)
+    if (_duelId != null) {
       _subscribeToUpdates(_duelId!);
     }
 

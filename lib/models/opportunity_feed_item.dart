@@ -31,8 +31,12 @@ class OpportunityFeedItem {
   final String? posterUsername;
   final String? posterAvatarUrl;
 
-  /// `student`, `admin`, `super_admin`, or null.
   final String? posterRole;
+
+  /// Added profile fields
+  final String? posterCollege;
+  final String? posterBranch;
+  final String? posterStudyYear;
 
   /// The apply / post links for the story viewer.
   final String? postLink;
@@ -59,6 +63,9 @@ class OpportunityFeedItem {
     this.posterUsername,
     this.posterAvatarUrl,
     this.posterRole,
+    this.posterCollege,
+    this.posterBranch,
+    this.posterStudyYear,
     this.postLink,
     this.applyLink,
   });

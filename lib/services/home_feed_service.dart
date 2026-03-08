@@ -28,7 +28,7 @@ class HomeFeedService {
       final response = await _client
           .from('opportunities')
           .select(
-            '*, internship_details(*), hackathon_details(*), event_details(*), profiles!opportunities_posted_by_fkey(id, full_name, username, avatar_url, role)',
+            '*, internship_details(*), hackathon_details(*), event_details(*), profiles!opportunities_posted_by_fkey(id, full_name, username, avatar_url, role, branch, year, college_id, colleges!profiles_college_id_fkey(short_name, name))',
           )
           .order('created_at', ascending: false)
           .range(from, to);
@@ -105,6 +105,13 @@ class HomeFeedService {
     final posterUsername = profileData?['username'] as String?;
     final posterAvatarUrl = proxyUrl(profileData?['avatar_url'] as String?);
     final posterRole = profileData?['role'] as String?;
+    
+    // Parse the nested college object if it exists
+    final collegeData = profileData?['colleges'] as Map<String, dynamic>?;
+    final posterCollege = collegeData?['short_name'] as String? ?? collegeData?['name'] as String?;
+    
+    final posterBranch = profileData?['branch'] as String?;
+    final posterStudyYear = profileData?['year']?.toString();
 
     // ── Created at ──
     final createdAt =
@@ -124,6 +131,9 @@ class HomeFeedService {
       posterUsername: posterUsername,
       posterAvatarUrl: posterAvatarUrl,
       posterRole: posterRole,
+      posterCollege: posterCollege,
+      posterBranch: posterBranch,
+      posterStudyYear: posterStudyYear,
       postLink: postLink,
       applyLink: applyLink,
     );

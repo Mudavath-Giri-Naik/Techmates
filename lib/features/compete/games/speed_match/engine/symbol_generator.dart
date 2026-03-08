@@ -35,17 +35,39 @@ class SymbolGenerator {
 
   /// Symbol pools per phase.
   static const Map<GamePhase, List<String>> symbolPools = {
-    GamePhase.basicShapes: ['○', '△', '□', '◇', '⬟'],
+    GamePhase.basicShapes: ['○', '△', '□', '◇', '☆'],
     GamePhase.rotatedShapes: ['△', '▽', '◁', '▷', '□', '◇'],
     GamePhase.csSymbols: [
-      '{}', '[]', '()', '<>', '=>', '->', '::', '//', '&&', '||', '!=', '==',
-      '++', '--',
+      '{}',
+      '[]',
+      '()',
+      '<>',
+      '=>',
+      '::',
+      '//',
+      '&&',
+      '||',
+      '!=',
+      '==',
+      '%%',
+      '#>',
     ],
     GamePhase.confusables: [
-      'O', '0', '|', 'l', 'I', 'rn', 'm', '[]', '[|', ',', '.', '1',
+      'O',
+      '0',
+      'I',
+      '1',
+      'l',
+      '|',
+      'rn',
+      'm',
+      'S',
+      '5',
+      'B',
+      '8',
     ],
-    GamePhase.colourShape: ['○', '△', '□', '◇', '⬟'],
-    GamePhase.ruleFlip: ['○', '△', '□', '◇', '⬟', '{}', '[]', '!=', '=='],
+    GamePhase.colourShape: ['○', '△', '□', '◇', '☆'],
+    GamePhase.ruleFlip: ['○', '△', '□', '◇', '{}', '[]', '!=', '==', '<>'],
   };
 
   static const int colorCount = 5; // red, blue, green, yellow, purple
@@ -63,7 +85,6 @@ class SymbolGenerator {
         phase == GamePhase.colourShape || phase == GamePhase.ruleFlip;
 
     if (previous == null) {
-      // First card — pick random.
       final sym = pool[_rng.nextInt(pool.length)];
       final col = useColour ? _rng.nextInt(colorCount) : -1;
       return GeneratedSymbol(sym, col);
@@ -72,14 +93,12 @@ class SymbolGenerator {
     final shouldMatch = _rng.nextDouble() < 0.40;
 
     if (shouldMatch) {
-      // Return same symbol (and colour if applicable).
       return GeneratedSymbol(
         previous.symbol,
         useColour ? previous.colorIndex : -1,
       );
     }
 
-    // Pick a different symbol.
     String sym;
     do {
       sym = pool[_rng.nextInt(pool.length)];
@@ -87,9 +106,7 @@ class SymbolGenerator {
 
     int col = -1;
     if (useColour) {
-      // Also randomise colour, but ensure at least one dimension differs.
       col = _rng.nextInt(colorCount);
-      // If symbol ended up same by re-roll, guarantee colour differs.
       if (sym == previous.symbol && col == previous.colorIndex) {
         col = (col + 1) % colorCount;
       }

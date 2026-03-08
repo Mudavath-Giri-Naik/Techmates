@@ -45,6 +45,28 @@ class _SpeedMatchPregameScreenState extends State<SpeedMatchPregameScreen>
 
   void _onNotify() {
     if (!mounted) return;
+    // Duel was cancelled — pop back with message
+    if (_n.phase == SpeedMatchPhase.modeSelect && !_countingDown) {
+      final errorMsg = _n.error;
+      if (errorMsg != null && errorMsg.isNotEmpty) {
+        Future.microtask(() {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMsg),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+            Navigator.of(context).pop();
+          }
+        });
+        return;
+      }
+      Navigator.of(context).pop();
+      return;
+    }
     if (_n.phase == SpeedMatchPhase.countdown && !_countingDown) {
       HapticFeedback.mediumImpact();
       _startCountdown();
@@ -86,15 +108,25 @@ class _SpeedMatchPregameScreenState extends State<SpeedMatchPregameScreen>
     final oppName = opp?['full_name'] as String? ?? 'Opponent';
     final myBranch = my?['branch'] as String? ?? '';
     final oppBranch = opp?['branch'] as String? ?? '';
-    final myYear = my?['year'] as String? ?? '';
-    final oppYear = opp?['year'] as String? ?? '';
+    final myYear = my?['year']?.toString() ?? '';
+    final oppYear = opp?['year']?.toString() ?? '';
     final myCollege = my?['colleges']?['short_name'] as String? ?? '';
     final oppCollege = opp?['colleges']?['short_name'] as String? ?? '';
     final myAvatar = my?['avatar_url'] as String?;
     final oppAvatar = opp?['avatar_url'] as String?;
     final lvl = _n.duelSession?.playerLevel ?? _n.userLevel.currentLevel;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          HapticFeedback.lightImpact();
+          _n.cancelAutoMatch(); // Clean queue if any
+          _n.cancelDuel();
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFFAFAFC),
       body: SafeArea(
         child: Padding(
@@ -298,6 +330,7 @@ class _SpeedMatchPregameScreenState extends State<SpeedMatchPregameScreen>
                 TextButton(
                   onPressed: () {
                     HapticFeedback.lightImpact();
+                    _n.cancelAutoMatch(); // Clean queue if any
                     _n.cancelDuel();
                     Navigator.of(context).pop();
                   },
@@ -313,6 +346,7 @@ class _SpeedMatchPregameScreenState extends State<SpeedMatchPregameScreen>
             ],
           ),
         ),
+      ),
       ),
     );
   }

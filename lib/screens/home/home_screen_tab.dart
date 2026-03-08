@@ -8,7 +8,8 @@ import '../../services/home_feed_service.dart';
 import '../../utils/time_ago.dart';
 
 import '../../widgets/hackathon_feed_card.dart';
-import '../../widgets/internship_feed_card.dart';
+import '../../widgets/internship_carousel_card.dart';
+import '../../models/internship_post.dart';
 import '../../widgets/event_feed_card.dart';
 import '../profile/profile_screen.dart'; // Ensure ProfileScreen is imported
 import '../../core/supabase_client.dart';
@@ -118,10 +119,6 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.add, size: 26, color: Colors.black),
-          onPressed: () {},
-        ),
         title: Text.rich(
           TextSpan(
             children: const [
@@ -140,11 +137,13 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
         actions: [
           IconButton(
             icon: const Icon(
-              Icons.favorite_border,
+              Icons.notifications_none,
               size: 26,
               color: Colors.black,
             ),
-            onPressed: () {},
+            onPressed: () {
+              // TODO: Navigate to notifications
+            },
           ),
         ],
       ),
@@ -161,19 +160,11 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
                     // ── Story Row ──
                     _buildStoryRow(),
 
-                    // ── Divider ──
-                    Divider(height: 1, thickness: 0.5, color: Colors.grey[300]),
-
                     // ── Feed list ──
-                    ListView.separated(
+                    ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _feedItems.length + (_isLoadingMore ? 1 : 0),
-                      separatorBuilder: (context, index) => Divider(
-                        height: 24,
-                        thickness: 0.5,
-                        color: Colors.grey[200],
-                      ),
                       itemBuilder: (context, index) {
                         if (index == _feedItems.length) {
                           return const Padding(
@@ -505,43 +496,10 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
 
   Widget _buildActionRow(OpportunityFeedItem item, String timeAgoText) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              _actionIcon(
-                const Icon(
-                  Icons.favorite_border,
-                  size: 22,
-                  color: Colors.black87,
-                ),
-                onTap: () {},
-              ),
-              const SizedBox(width: 14),
-              _actionIcon(
-                const Icon(
-                  Icons.chat_bubble_outline,
-                  size: 22,
-                  color: Colors.black87,
-                ),
-                onTap: () {},
-              ),
-              const SizedBox(width: 14),
-              _actionIcon(_sendIcon(), onTap: () {}),
-              const Spacer(),
-              _actionIcon(
-                const Icon(
-                  Icons.bookmark_border,
-                  size: 22,
-                  color: Colors.black87,
-                ),
-                onTap: () {},
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
           Text(
             timeAgoText.toUpperCase(),
             style: GoogleFonts.dmMono(
@@ -550,6 +508,24 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
               color: Colors.grey[400],
               fontWeight: FontWeight.w400,
             ),
+          ),
+          const Spacer(),
+          _actionIcon(
+            const Icon(
+              Icons.share_outlined,
+              size: 20,
+              color: Colors.black87,
+            ),
+            onTap: () {},
+          ),
+          const SizedBox(width: 8),
+          _actionIcon(
+            const Icon(
+              Icons.bookmark_border,
+              size: 22,
+              color: Colors.black87,
+            ),
+            onTap: () {},
           ),
         ],
       ),
@@ -564,20 +540,24 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
     );
   }
 
-  Widget _sendIcon() {
-    return Transform.rotate(
-      angle: -45 * math.pi / 180,
-      child: const Icon(Icons.send, size: 22, color: Colors.black87),
-    );
+  bool _hasActiveStory(String userId) {
+    return _eliteItems.any((item) {
+      if (item.posterUserId != userId) return false;
+      // Define active story rule — check if it's unwatched
+      if (_watchedStoryIds.contains(item.opportunityId)) return false;
+      return true;
+    });
   }
 
   Widget _buildPostHeader(OpportunityFeedItem item) {
     final displayName = item.posterName ?? item.posterUsername ?? 'TechMates';
     final role = item.posterRole;
+    
+    final bool hasStory = item.posterUserId != null && _hasActiveStory(item.posterUserId!);
 
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: item.type == OpportunityType.internship ? 0 : 12,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
         vertical: 10,
       ),
       child: Row(
@@ -585,41 +565,88 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
           // Poster avatar
           GestureDetector(
             onTap: () => _navigateToPoster(item),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.grey[300],
-              backgroundImage:
-                  item.posterAvatarUrl != null &&
-                      item.posterAvatarUrl!.isNotEmpty
-                  ? NetworkImage(item.posterAvatarUrl!)
+            child: Container(
+              padding: EdgeInsets.all(hasStory ? 2.5 : 0),
+              decoration: hasStory
+                  ? BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [
+                          Color(0xFF833AB4),
+                          Color(0xFFFD1D1D),
+                          Color(0xFFF56040),
+                          Color(0xFFFFDC80),
+                        ],
+                      ),
+                    )
                   : null,
-              child:
-                  item.posterAvatarUrl == null || item.posterAvatarUrl!.isEmpty
-                  ? Icon(Icons.person, size: 20, color: Colors.grey[600])
-                  : null,
+              child: Container(
+                padding: EdgeInsets.all(hasStory ? 2.0 : 0),
+                decoration: hasStory
+                    ? const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      )
+                    : null,
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey[300],
+                  backgroundImage:
+                      item.posterAvatarUrl != null &&
+                          item.posterAvatarUrl!.isNotEmpty
+                      ? NetworkImage(item.posterAvatarUrl!)
+                      : null,
+                  child:
+                      item.posterAvatarUrl == null || item.posterAvatarUrl!.isEmpty
+                      ? Icon(Icons.person, size: 20, color: Colors.grey[600])
+                      : null,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 8),
 
-          // Name + role badge
+          // Name + role badge + college details
           Expanded(
             child: GestureDetector(
               onTap: () => _navigateToPoster(item),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Flexible(
-                    child: Text(
-                      displayName,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          displayName,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      if (role == 'admin' || role == 'super_admin')
+                        _buildRoleBadge(role!),
+                    ],
                   ),
-                  if (role == 'admin' || role == 'super_admin') _buildRoleBadge(role!),
+                  if (item.posterCollege != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        _buildCollegeSubtitle(item),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -643,15 +670,53 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
     );
   }
 
+  String _shortBranch(String branch) {
+    if (branch.isEmpty) return branch;
+    final match = RegExp(r'\(([^)]+)\)').firstMatch(branch);
+    if (match != null) return match.group(1)!;
+    if (branch.length > 12) return branch.substring(0, 12);
+    return branch;
+  }
+
+  String _getOrdinalYear(String yearStr) {
+    if (yearStr == '1') return '1st year';
+    if (yearStr == '2') return '2nd year';
+    if (yearStr == '3') return '3rd year';
+    if (yearStr == '4') return '4th year';
+    if (yearStr == '5') return '5th year';
+    return '$yearStr year';
+  }
+
+  String _buildCollegeSubtitle(OpportunityFeedItem item) {
+    if (item.posterCollege == null) return '';
+    
+    final parts = <String>[item.posterCollege!];
+    
+    if (item.posterBranch != null && item.posterBranch!.isNotEmpty) {
+      parts.add(_shortBranch(item.posterBranch!));
+    }
+    
+    if (item.posterStudyYear != null && item.posterStudyYear!.isNotEmpty) {
+      parts.add(_getOrdinalYear(item.posterStudyYear!));
+    }
+
+    return parts.join(' • ');
+  }
+
   Widget _buildCardBody(OpportunityFeedItem item) {
     switch (item.type) {
       case OpportunityType.hackathon:
         return HackathonFeedCard(opportunity: item);
       case OpportunityType.internship:
-        return InternshipFeedCard(
-          opportunity: item,
-          useDarkTemplate: item.isElite,
-        );
+        if (item.internship != null) {
+          return InternshipCarouselCard(
+            post: InternshipPost.fromDetailsModel(
+              item.internship!,
+              posterLink: item.applyLink,
+            ),
+          );
+        }
+        return const SizedBox.shrink();
       case OpportunityType.event:
         return EventFeedCard(opportunity: item);
     }
@@ -850,35 +915,6 @@ class _EliteStoryViewerState extends State<_EliteStoryViewer>
                     ),
                     child: Column(
                       children: [
-                        // View Post button
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed:
-                                item.postLink != null && item.postLink!.isNotEmpty
-                                ? () => _openUrl(item.postLink)
-                                : null,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.black87,
-                              side: BorderSide(
-                                color:
-                                    item.postLink != null &&
-                                        item.postLink!.isNotEmpty
-                                    ? Colors.black87
-                                    : Colors.grey[400]!,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'View Post',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
                         // Apply Now button
                         SizedBox(
                           width: double.infinity,
@@ -921,10 +957,15 @@ class _EliteStoryViewerState extends State<_EliteStoryViewer>
       case OpportunityType.hackathon:
         return HackathonFeedCard(opportunity: item);
       case OpportunityType.internship:
-        return InternshipFeedCard(
-          opportunity: item,
-          useDarkTemplate: item.isElite,
-        );
+        if (item.internship != null) {
+          return InternshipCarouselCard(
+            post: InternshipPost.fromDetailsModel(
+              item.internship!,
+              posterLink: item.applyLink,
+            ),
+          );
+        }
+        return const SizedBox.shrink();
       case OpportunityType.event:
         return EventFeedCard(opportunity: item);
     }
