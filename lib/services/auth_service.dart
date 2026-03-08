@@ -36,22 +36,42 @@ class AuthService {
   Future<void> _onLoginSuccess(User user) async {
     try {
       final metadata = user.userMetadata ?? {};
+
+      // Fetch the real role from user_roles (source of truth)
+      String? realRole;
+      try {
+        final roleRow = await _client
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        realRole = roleRow?['role'] as String?;
+      } catch (_) {}
+
+      final upsertData = <String, dynamic>{
+        'id': user.id,
+        'email': user.email,
+        'full_name': metadata['full_name'] ?? metadata['name'] ?? '',
+        'avatar_url': metadata['avatar_url'] ??
+            metadata['picture'] ??
+            metadata['custom_avatar_url'],
+        'is_active': true,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // Only set role for brand-new users (no role row yet)
+      if (realRole != null) {
+        upsertData['role'] = realRole;
+      } else {
+        upsertData['role'] = 'student';
+      }
+
       await _client.from('profiles').upsert(
-        {
-          'id': user.id,
-          'email': user.email,
-          'name': metadata['full_name'] ?? metadata['name'] ?? '',
-          'avatar_url': metadata['avatar_url'] ??
-              metadata['picture'] ??
-              metadata['custom_avatar_url'],
-          'role': 'student',
-          'is_active': true,
-          'updated_at': DateTime.now().toIso8601String(),
-        },
+        upsertData,
         onConflict: 'id',
         ignoreDuplicates: false,
       );
-      debugPrint('[AUTH] Login profile upsert done');
+      debugPrint('[AUTH] Login profile upsert done (role=${upsertData['role']})');
     } catch (e) {
       debugPrint('[AUTH] Failed to sync profile on login: $e');
     }

@@ -1,45 +1,44 @@
 import 'package:flutter/material.dart';
 
-/// Multiplier badge: ×1, ×2, ×4, ×8 with colour + scale animation.
+/// Multiplier badge: ×1, ×2, ×4, ×8.
+///
+/// Uses M3 [primaryContainer] / [onPrimaryContainer] tokens.
+/// Minimal when ×1, prominent when multiplier > 1.
 class MultiplierBadgeWidget extends StatelessWidget {
   final int multiplier;
 
   const MultiplierBadgeWidget({super.key, required this.multiplier});
 
-  Color _color() {
-    switch (multiplier) {
-      case 2:
-        return const Color(0xFF2196F3); // blue
-      case 4:
-        return const Color(0xFFFFD700); // gold
-      case 8:
-        return const Color(0xFFFF5722); // orange-red
-      default:
-        return const Color(0xFF9E9E9E); // grey
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final color = _color();
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isBase = multiplier <= 1;
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 1.0, end: 1.0),
+    return AnimatedOpacity(
+      opacity: isBase ? 0.55 : 1.0,
       duration: const Duration(milliseconds: 200),
-      builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color, width: 1.5),
+          color: isBase
+              ? (isDark ? cs.surfaceContainer : cs.surfaceContainerLow)
+              : cs.primaryContainer,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isBase
+                ? cs.outlineVariant.withOpacity(isDark ? 0.25 : 0.5)
+                : cs.primary.withOpacity(0.3),
+            width: 1,
+          ),
         ),
         child: Text(
           '×$multiplier',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 13,
             fontWeight: FontWeight.w800,
-            color: color,
+            color: isBase ? cs.onSurfaceVariant : cs.onPrimaryContainer,
           ),
         ),
       ),
@@ -47,7 +46,7 @@ class MultiplierBadgeWidget extends StatelessWidget {
   }
 }
 
-/// Animated version that pops on multiplier change.
+/// Animated version that pops on multiplier change with elasticOut + flash.
 class AnimatedMultiplierBadge extends StatefulWidget {
   final int multiplier;
 
@@ -67,11 +66,10 @@ class _AnimatedMultiplierBadgeState extends State<AnimatedMultiplierBadge>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 200));
-    _scaleAnim = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.5), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.5, end: 1.0), weight: 50),
-    ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+        vsync: this, duration: const Duration(milliseconds: 350));
+    _scaleAnim = Tween<double>(begin: 1.0, end: 1.4).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut),
+    );
   }
 
   @override

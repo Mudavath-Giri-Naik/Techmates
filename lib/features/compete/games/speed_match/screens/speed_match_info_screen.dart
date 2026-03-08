@@ -40,11 +40,19 @@ class _SpeedMatchInfoScreenState extends State<SpeedMatchInfoScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final topPad = MediaQuery.of(context).padding.top;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
 
     if (_n.phase == SpeedMatchPhase.loadingInfo) {
       return Scaffold(
         backgroundColor: cs.surface,
-        body: const Center(child: CircularProgressIndicator.adaptive()),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: cs.primary,
+            strokeWidth: 2.5,
+          ),
+        ),
       );
     }
 
@@ -52,179 +60,198 @@ class _SpeedMatchInfoScreenState extends State<SpeedMatchInfoScreen> {
     final bestScore = _n.allTimeBest;
     final bestCards = _n.bestCorrectAnswers;
 
+    // M3 tonal surface for header
+    final headerBg = isDark
+        ? Color.alphaBlend(cs.primary.withOpacity(0.12), cs.surface)
+        : Color.alphaBlend(cs.primary.withOpacity(0.07), cs.surface);
+
     return Scaffold(
       backgroundColor: cs.surface,
       body: Column(
         children: [
-          // ── Dark Navy Header ──
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 8,
-              left: 16,
-              right: 16,
-              bottom: 24,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF1A2A4A), Color(0xFF0F1D33)],
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top bar
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.favorite_border,
-                          color: Colors.white70),
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(
-                    'Speed Match',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          // ── Header ──
+          _Header(
+            topPad: topPad,
+            headerBg: headerBg,
+            cs: cs,
+            theme: theme,
+            isDark: isDark,
+            onClose: () => Navigator.of(context).pop(),
           ),
 
           // ── Body ──
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
               children: [
-                // Domain tag
-                Text(
-                  'SPEED  >  INFORMATION PROCESSING',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF00B4D8),
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                // Domain chip
+                _DomainChip(cs: cs),
+                const SizedBox(height: 16),
+
+                // Description
                 Text(
                   'Train your Information Processing skills by quickly '
                   'determining whether the symbols match.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
-                    height: 1.5,
+                    height: 1.6,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   'Information Processing involves quickly perceiving, '
                   'analyzing, and responding to new information.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant.withOpacity(0.7),
-                    height: 1.4,
+                    color: cs.onSurfaceVariant.withOpacity(0.65),
+                    height: 1.5,
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // How to play button
+                // How to play
                 OutlinedButton.icon(
                   onPressed: () => HowToPlaySheet.show(context),
-                  icon: const Icon(Icons.help_outline, size: 18),
-                  label: const Text('HOW TO PLAY'),
+                  icon: Icon(Icons.help_outline_rounded,
+                      size: 17, color: cs.primary),
+                  label: Text(
+                    'HOW TO PLAY',
+                    style: TextStyle(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    side: BorderSide(
-                        color: cs.outlineVariant.withOpacity(0.4)),
+                        borderRadius: BorderRadius.circular(14)),
+                    side: BorderSide(color: cs.outlineVariant, width: 1),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-                // Stats
-                _statRow('Game LPI', '⚡ ${level.bestScoreAtLevel}', cs, theme),
-                _statRow('Best Score', '$bestScore', cs, theme),
-                _statRow(
-                    'Best Stat', '$bestCards Cards', cs, theme),
-                _statRow('Level', '${level.currentLevel}', cs, theme),
-                _statRow(
-                  'Total Plays',
-                  '${level.totalPlaysThisWeek} of 8',
-                  cs,
-                  theme,
+                // Stats card
+                _StatsCard(
+                  cs: cs,
+                  theme: theme,
+                  isDark: isDark,
+                  rows: [
+                    ('Game LPI', '⚡ ${level.bestScoreAtLevel}'),
+                    ('Best Score', '$bestScore'),
+                    ('Best Stat', '$bestCards Cards'),
+                    ('Level', '${level.currentLevel}'),
+                    ('Total Plays', '${level.totalPlaysThisWeek} of 8'),
+                  ],
                 ),
               ],
             ),
           ),
 
           // ── Bottom Bar ──
-          Container(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              bottom: MediaQuery.of(context).padding.bottom + 12,
-              top: 12,
-            ),
-            decoration: BoxDecoration(
-              color: cs.surface,
-              border: Border(
-                top: BorderSide(
-                    color: cs.outlineVariant.withOpacity(0.2)),
+          _BottomBar(
+            cs: cs,
+            isDark: isDark,
+            bottomPad: bottomPad,
+            onBack: () => Navigator.of(context).pop(),
+            onPlay: () {
+              _n.showModeSelect();
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => SpeedMatchModeScreen(notifier: _n),
+              ));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Sub-widgets
+// ─────────────────────────────────────────────
+
+class _Header extends StatelessWidget {
+  final double topPad;
+  final Color headerBg;
+  final ColorScheme cs;
+  final ThemeData theme;
+  final bool isDark;
+  final VoidCallback onClose;
+
+  const _Header({
+    required this.topPad,
+    required this.headerBg,
+    required this.cs,
+    required this.theme,
+    required this.isDark,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        top: topPad + 4,
+        left: 4,
+        right: 4,
+        bottom: 20,
+      ),
+      decoration: BoxDecoration(
+        color: headerBg,
+        border: Border(
+          bottom: BorderSide(
+            color: cs.outlineVariant.withOpacity(isDark ? 0.25 : 0.45),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top action row
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.close_rounded,
+                    color: cs.onSurfaceVariant, size: 22),
+                onPressed: onClose,
+                tooltip: 'Close',
               ),
-            ),
+              const Spacer(),
+              IconButton(
+                icon: Icon(Icons.favorite_border_rounded,
+                    color: cs.onSurfaceVariant, size: 22),
+                onPressed: () {},
+                tooltip: 'Favourite',
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                TextButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icon(Icons.arrow_back,
-                      size: 16, color: const Color(0xFF00B4D8)),
-                  label: Text(
-                    'ALL GAMES',
-                    style: TextStyle(
-                      color: const Color(0xFF00B4D8),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: 140,
+                // Icon badge
+                Container(
+                  width: 48,
                   height: 48,
-                  child: FilledButton(
-                    onPressed: () {
-                      _n.showModeSelect();
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) =>
-                            SpeedMatchModeScreen(notifier: _n),
-                      ));
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFE85D2F),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)),
-                    ),
-                    child: const Text(
-                      'PLAY',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 16),
-                    ),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.bolt_rounded,
+                      color: cs.onPrimaryContainer, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  'Speed Match',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ],
@@ -234,26 +261,174 @@ class _SpeedMatchInfoScreenState extends State<SpeedMatchInfoScreen> {
       ),
     );
   }
+}
 
-  Widget _statRow(
-      String label, String value, ColorScheme cs, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+class _DomainChip extends StatelessWidget {
+  final ColorScheme cs;
+
+  const _DomainChip({required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: cs.secondaryContainer,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            'SPEED  ›  INFORMATION PROCESSING',
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: cs.onSecondaryContainer,
+              letterSpacing: 0.8,
             ),
           ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: cs.onSurface,
+        ),
+      ],
+    );
+  }
+}
+
+class _StatsCard extends StatelessWidget {
+  final ColorScheme cs;
+  final ThemeData theme;
+  final bool isDark;
+  final List<(String, String)> rows;
+
+  const _StatsCard({
+    required this.cs,
+    required this.theme,
+    required this.isDark,
+    required this.rows,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainer : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: cs.outlineVariant.withOpacity(isDark ? 0.3 : 0.55),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < rows.length; i++) ...[
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      rows[i].$1,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    rows[i].$2,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (i < rows.length - 1)
+              Divider(
+                height: 1,
+                indent: 18,
+                endIndent: 18,
+                color: cs.outlineVariant.withOpacity(isDark ? 0.25 : 0.45),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomBar extends StatelessWidget {
+  final ColorScheme cs;
+  final bool isDark;
+  final double bottomPad;
+  final VoidCallback onBack;
+  final VoidCallback onPlay;
+
+  const _BottomBar({
+    required this.cs,
+    required this.isDark,
+    required this.bottomPad,
+    required this.onBack,
+    required this.onPlay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        bottom: bottomPad + 16,
+        top: 12,
+      ),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(
+          top: BorderSide(
+            color: cs.outlineVariant.withOpacity(isDark ? 0.2 : 0.35),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          TextButton.icon(
+            onPressed: onBack,
+            icon: Icon(Icons.apps_rounded, size: 17, color: cs.primary),
+            label: Text(
+              'ALL GAMES',
+              style: TextStyle(
+                color: cs.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                letterSpacing: 0.5,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            ),
+          ),
+          const Spacer(),
+          FilledButton(
+            onPressed: onPlay,
+            style: FilledButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+              minimumSize: const Size(130, 48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'PLAY',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
         ],

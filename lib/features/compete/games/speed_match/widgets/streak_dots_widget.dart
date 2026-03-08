@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Four dots showing progress toward the next multiplier tier.
+/// Six dots showing streak progress toward the next multiplier tier.
 ///
-/// Filled = teal, empty = grey.
+/// Filled dots glow with [cs.primary]. Empty dots use [cs.surfaceContainerHighest].
 class StreakDotsWidget extends StatelessWidget {
   final int filledCount;
   final int totalDots;
@@ -10,31 +10,47 @@ class StreakDotsWidget extends StatelessWidget {
   const StreakDotsWidget({
     super.key,
     required this.filledCount,
-    this.totalDots = 4,
+    this.totalDots = 6,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(totalDots, (i) {
         final filled = i < filledCount;
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: filled
-                  ? const Color(0xFF00B4D8)
-                  : Colors.grey.withOpacity(0.35),
-              border: Border.all(
-                color: filled
-                    ? const Color(0xFF00B4D8)
-                    : Colors.grey.withOpacity(0.5),
-                width: 1.5,
+          padding: const EdgeInsets.symmetric(horizontal: 3),
+          child: AnimatedScale(
+            scale: filled ? 1.25 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutBack,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: filled ? cs.primary : cs.surfaceContainerHighest,
+                border: Border.all(
+                  color: filled
+                      ? cs.primary
+                      : cs.outlineVariant
+                          .withOpacity(isDark ? 0.25 : 0.5),
+                  width: 1,
+                ),
+                boxShadow: filled
+                    ? [
+                        BoxShadow(
+                          color: cs.primary.withOpacity(0.4),
+                          blurRadius: 6,
+                          spreadRadius: 0,
+                        ),
+                      ]
+                    : null,
               ),
             ),
           ),

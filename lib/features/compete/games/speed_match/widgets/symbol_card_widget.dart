@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../engine/symbol_generator.dart';
 
-/// Colour palette for symbol cards (phase 5+).
-const List<Color> kSymbolColors = [
-  Colors.red,
-  Colors.blue,
-  Colors.green,
-  Colors.yellow,
-  Colors.purple,
-];
+/// M3-mapped symbol colours (used when phase >= 5 introduces colour variance).
+List<Color> kSymbolColorsForScheme(ColorScheme cs) => [
+      cs.error, // red
+      cs.primary, // blue
+      cs.tertiary, // green / teal
+      cs.secondary, // amber
+      cs.primary, // purple mapped to primary
+    ];
 
-/// White card showing a large symbol with slide / flash / shake animations.
+/// Hero card displaying the current symbol — 280 × 280, M3 tonal surface,
+/// slide-in + feedback flash animations.
 class SymbolCardWidget extends StatefulWidget {
   final GeneratedSymbol symbol;
   final bool? lastAnswerCorrect; // null = no feedback yet
@@ -30,7 +31,8 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _slideCtrl;
   late Animation<Offset> _slideAnim;
-  Color? _flashColor;
+  bool _flashing = false;
+  bool? _flashCorrect;
 
   @override
   void initState() {
@@ -54,11 +56,10 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
     // Feedback flash.
     if (widget.lastAnswerCorrect != null &&
         widget.lastAnswerCorrect != old.lastAnswerCorrect) {
-      _flashColor = widget.lastAnswerCorrect!
-          ? Colors.green.withOpacity(0.35)
-          : Colors.red.withOpacity(0.35);
+      _flashing = true;
+      _flashCorrect = widget.lastAnswerCorrect;
       Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) setState(() => _flashColor = null);
+        if (mounted) setState(() => _flashing = false);
       });
     }
   }
@@ -71,31 +72,57 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
 
   @override
   Widget build(BuildContext context) {
-    final hasColour = widget.symbol.colorIndex >= 0;
-    final symbolColor = hasColour
-        ? kSymbolColors[widget.symbol.colorIndex % kSymbolColors.length]
-        : Colors.black87;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Use larger font for shapes, slightly smaller for CS symbols.
+    final hasColour = widget.symbol.colorIndex >= 0;
+    final colors = kSymbolColorsForScheme(cs);
+    final symbolColor = hasColour
+        ? colors[widget.symbol.colorIndex % colors.length]
+        : cs.onSurface;
+
+    // Larger font for single/double-char symbols.
     final isShort = widget.symbol.symbol.length <= 2;
-    final fontSize = isShort ? 96.0 : 64.0;
+    final fontSize = isShort ? 112.0 : 72.0;
+
+    // Flash background
+    Color cardBg;
+    if (_flashing && _flashCorrect != null) {
+      cardBg = _flashCorrect!
+          ? cs.tertiaryContainer
+          : cs.errorContainer;
+    } else {
+      cardBg = isDark ? cs.surfaceContainer : cs.surfaceContainerLow;
+    }
 
     return SlideTransition(
       position: _slideAnim,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 80),
-        width: 220,
-        height: 220,
+        width: 280,
+        height: 280,
         decoration: BoxDecoration(
-          color: _flashColor ?? Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          color: cardBg,
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(
+            color: cs.outlineVariant
+                .withOpacity(isDark ? 0.3 : 0.6),
+            width: 1,
+          ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: cs.shadow.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: cs.shadow.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Center(
           child: Text(

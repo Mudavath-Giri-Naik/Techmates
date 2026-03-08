@@ -25,6 +25,12 @@ class _RanksScreenState extends State<RanksScreen> {
   String? _classroomId, _departmentId, _collegeId;
   String? _userId;
 
+  // Context labels
+  String? _collegeName;
+  String? _departmentName;
+  String? _branch;
+  int? _year;
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +45,8 @@ class _RanksScreenState extends State<RanksScreen> {
       final profile = await ProfileService().fetchProfile(user.id);
       if (profile != null && mounted) {
         _collegeId = profile.collegeId;
+        _branch = profile.branch;
+        _year = profile.year;
 
         // Get classroom_id and department_id from the leaderboard view
         // since UserProfile model doesn't expose them.
@@ -56,6 +64,9 @@ class _RanksScreenState extends State<RanksScreen> {
           debugPrint('❌ [RanksScreen] fetch ids: $e');
         }
 
+        // Fetch context names
+        await _fetchContextNames();
+
         if (mounted) {
           setState(() {});
           _loadLeaderboard();
@@ -64,6 +75,49 @@ class _RanksScreenState extends State<RanksScreen> {
     } catch (e) {
       debugPrint('❌ [RanksScreen] loadProfile: $e');
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _fetchContextNames() async {
+    try {
+      // College name
+      if (_collegeId != null) {
+        final col = await Supabase.instance.client
+            .from('colleges')
+            .select('name')
+            .eq('id', _collegeId!)
+            .maybeSingle();
+        _collegeName = col?['name'] as String?;
+      }
+      // Department name
+      if (_departmentId != null) {
+        final dep = await Supabase.instance.client
+            .from('departments')
+            .select('name')
+            .eq('id', _departmentId!)
+            .maybeSingle();
+        _departmentName = dep?['name'] as String?;
+      }
+    } catch (e) {
+      debugPrint('❌ [RanksScreen] fetchContextNames: $e');
+    }
+  }
+
+  /// Returns the context label for the current tab.
+  String? get _contextLabel {
+    switch (_tabIndex) {
+      case 0: // Class
+        if (_branch != null) {
+          final yearSuffix = _year != null ? ' · Year $_year' : '';
+          return '$_branch$yearSuffix';
+        }
+        return null;
+      case 1: // Dept
+        return _departmentName;
+      case 2: // College
+        return _collegeName;
+      default:
+        return null;
     }
   }
 
@@ -86,11 +140,14 @@ class _RanksScreenState extends State<RanksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.dark.surface : AppColors.light.surface;
     final inkPrimary = isDark ? AppColors.dark.inkPrimary : AppColors.light.inkPrimary;
     final inkMid = isDark ? AppColors.dark.inkMid : AppColors.light.inkMid;
     final inkFaint = isDark ? AppColors.dark.inkFaint : AppColors.light.inkFaint;
+
+    final contextLabel = _contextLabel;
 
     return Scaffold(
       backgroundColor: isDark ? surface : Colors.white,
@@ -125,7 +182,41 @@ class _RanksScreenState extends State<RanksScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            // Context label
+            if (contextLabel != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Row(
+                    key: ValueKey(contextLabel),
+                    children: [
+                      Icon(
+                        _tabIndex == 2
+                            ? Icons.school_outlined
+                            : _tabIndex == 1
+                                ? Icons.domain_outlined
+                                : Icons.class_outlined,
+                        size: 14,
+                        color: cs.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          contextLabel,
+                          style: AppTextStyles.bodySmall(color: cs.primary).copyWith(
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 10),
             // List
             Expanded(
               child: _loading

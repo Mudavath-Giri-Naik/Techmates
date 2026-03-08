@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../features/compete/games/speed_match/speed_match_notifier.dart';
@@ -27,6 +28,11 @@ class _CompeteScreenState extends State<CompeteScreen> {
   final _auth = AuthService();
   final _profileService = ProfileService();
 
+  // Context labels
+  String? _branch;
+  int? _year;
+  String? _collegeName;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +59,22 @@ class _CompeteScreenState extends State<CompeteScreen> {
     final collegeId = profile.collegeId;
     final branch = profile.branch ?? '';
     final year = profile.year ?? 1;
+
+    // Store for context labels
+    _branch = profile.branch;
+    _year = profile.year;
+
+    // Fetch college name if not yet loaded
+    if (_collegeName == null && collegeId != null && collegeId.isNotEmpty) {
+      try {
+        final col = await Supabase.instance.client
+            .from('colleges')
+            .select('name')
+            .eq('id', collegeId)
+            .maybeSingle();
+        _collegeName = col?['name'] as String?;
+      } catch (_) {}
+    }
 
     if (collegeId == null || collegeId.isEmpty) {
       debugPrint('[Compete] ❌ collegeId is null/empty — cannot load leaderboard');
@@ -165,20 +187,72 @@ class _CompeteScreenState extends State<CompeteScreen> {
     );
   }
 
+  /// Context label for the current scope.
+  String? get _contextLabel {
+    if (_selectedScope == 'class' && _branch != null) {
+      final ySuffix = _year != null ? ' · Year $_year' : '';
+      return '$_branch$ySuffix';
+    }
+    if (_selectedScope == 'college' && _collegeName != null) {
+      return _collegeName;
+    }
+    return null;
+  }
+
   Widget _buildTopNav() {
+    final ctx = _contextLabel;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
-      child: Container(
-        height: 38,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: chipBg,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(children: [
-          _scopeTab('Class',   'class'),
-          _scopeTab('College', 'college'),
-        ]),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+      child: Column(
+        children: [
+          Container(
+            height: 38,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(children: [
+              _scopeTab('Class',   'class'),
+              _scopeTab('College', 'college'),
+            ]),
+          ),
+          if (ctx != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Row(
+                  key: ValueKey(ctx),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _selectedScope == 'college'
+                          ? Icons.school_outlined
+                          : Icons.class_outlined,
+                      size: 13,
+                      color: teal,
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        ctx,
+                        style: GoogleFonts.syne(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: teal,
+                          letterSpacing: 0.1,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -386,31 +460,29 @@ class _CompeteScreenState extends State<CompeteScreen> {
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                   decoration: BoxDecoration(
-                    color: d['bg'] as Color,
+                    color: isSelected ? d['bg'] as Color : chipBg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: d['border'] as Color,
-                      width: 1.5,
+                      color: isSelected ? d['border'] as Color : border,
+                      width: isSelected ? 1.5 : 1,
                     ),
                     boxShadow: isSelected
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0,2))]
+                      ? [BoxShadow(color: (d['fg'] as Color).withOpacity(0.18), blurRadius: 10, offset: const Offset(0,2))]
                       : [],
                   ),
-                  child: Opacity(
-                    opacity: isSelected ? 1.0 : 0.42,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(d['icon'] as IconData, size: 13, color: d['fg'] as Color),
-                        const SizedBox(width: 6),
-                        Text(d['label'] as String,
-                          style: GoogleFonts.syne(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: d['fg'] as Color,
-                          )),
-                      ],
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(d['icon'] as IconData, size: 13,
+                        color: isSelected ? d['fg'] as Color : inkSubtle),
+                      const SizedBox(width: 6),
+                      Text(d['label'] as String,
+                        style: GoogleFonts.syne(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? d['fg'] as Color : inkSubtle,
+                        )),
+                    ],
                   ),
                 ),
               );
