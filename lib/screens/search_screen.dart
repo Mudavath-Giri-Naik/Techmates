@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/supabase_client.dart';
-import '../models/user_profile.dart';
-import '../services/college_service.dart';
+import '../models/leaderboard_entry.dart';
+import '../services/leaderboard_service.dart';
 import 'profile/profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -15,170 +14,113 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
-  
-  List<UserProfile> _users = [];
-  List<Map<String, dynamic>> _colleges = [];
-  bool _isLoading = true;
-  bool _isSearching = false;
-  String _searchQuery = '';
-  Timer? _debounce;
+  bool _isInitLoading = true;
+  bool _isLoading = false;
 
-  // When a college is selected, show its students
-  Map<String, dynamic>? _selectedCollege;
-  List<UserProfile> _collegeStudents = [];
-  bool _isLoadingCollegeStudents = false;
-  
-  final CollegeService _collegeService = CollegeService();
-  
+  List<Map<String, dynamic>> _colleges = [];
+  String? _selectedCollegeId;
+  String _selectedBranch = 'All';
+  int _selectedYear = 0; // 0 means 'All'
+
+  final List<String> _branches = [
+    'All', 'CSE', 'CSM', 'CSD', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'
+  ];
+  final List<int> _years = [0, 1, 2, 3, 4]; // 0 represents 'All'
+
+  List<LeaderboardEntry> _entries = [];
+
   @override
   void initState() {
     super.initState();
-    _fetchNewMembers();
+    _initData();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _searchFocus.dispose();
-    _debounce?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _fetchNewMembers() async {
-    setState(() {
-      _isLoading = true;
-      _isSearching = false;
-      _colleges = [];
-      _selectedCollege = null;
-    });
-
+  Future<void> _initData() async {
     try {
+      // Fetch colleges
       final response = await SupabaseClientManager.instance
-          .from('profiles')
-          .select()
-          .order('created_at', ascending: false)
-          .limit(15);
-          
-      final List<UserProfile> users = (response as List)
-          .map((json) => UserProfile.fromJson(json))
-          .toList();
-          
+          .from('colleges')
+          .select('id, name, code')
+          .order('name');
+      final colleges = List<Map<String, dynamic>>.from(response);
+
+      // Fetch user profile for defaults
+      final user = SupabaseClientManager.instance.auth.currentUser;
+      Map<String, dynamic>? profileRes;
+      
+      if (user != null) {
+        profileRes = await SupabaseClientManager.instance
+            .from('profiles')
+            .select('college_id, branch, year')
+            .eq('id', user.id)
+            .maybeSingle();
+      }
+
       if (mounted) {
         setState(() {
-          _users = users;
+          _colleges = colleges;
+
+          // Defaults
+          if (colleges.isNotEmpty) {
+            _selectedCollegeId = profileRes?['college_id'] as String?;
+            if (_selectedCollegeId == null || !colleges.any((c) => c['id'] == _selectedCollegeId)) {
+              _selectedCollegeId = colleges.first['id'] as String;
+            }
+          }
+
+          final branch = profileRes?['branch'] as String?;
+          if (branch != null && _branches.contains(branch.toUpperCase())) {
+            _selectedBranch = branch.toUpperCase();
+          }
+
+          final year = profileRes?['year'] as int?;
+          if (year != null && _years.contains(year)) {
+            _selectedYear = year;
+          }
+
+          _isInitLoading = false;
+        });
+
+        _fetchClassLeaderboard();
+      }
+    } catch (e) {
+      debugPrint('Error init data: $e');
+      if (mounted) {
+        setState(() => _isInitLoading = false);
+      }
+    }
+  }
+
+  Future<void> _fetchClassLeaderboard() async {
+    if (_selectedCollegeId == null) return;
+
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    try {
+      final user = SupabaseClientManager.instance.auth.currentUser;
+      final entries = await LeaderboardService().fetchClassLeaderboard(
+        collegeId: _selectedCollegeId!,
+        branch: _selectedBranch,
+        year: _selectedYear,
+        currentUserId: user?.id ?? '',
+      );
+
+      if (mounted) {
+        setState(() {
+          _entries = entries;
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("❌ [SearchScreen] Error fetching new members: $e");
+      debugPrint('Error fetch leaderboard: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
 
-  void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        _searchQuery = query.trim();
-        _selectedCollege = null;
-        _collegeStudents = [];
-      });
-      
-      if (_searchQuery.isEmpty) {
-        _fetchNewMembers();
-      } else {
-        _performSearch(_searchQuery);
-      }
-    });
-  }
-
-  Future<void> _performSearch(String query) async {
-    if (query.isEmpty) return;
-    
-    setState(() {
-      _isLoading = true;
-      _isSearching = true;
-    });
-
-    try {
-      // Search students and colleges in parallel
-      final results = await Future.wait([
-        SupabaseClientManager.instance
-            .from('profiles')
-            .select()
-            .ilike('full_name', '%$query%')
-            .order('created_at', ascending: false)
-            .limit(20),
-        _collegeService.searchColleges(query),
-      ]);
-          
-      final List<UserProfile> searchResults = (results[0] as List)
-          .map((json) => UserProfile.fromJson(json as Map<String, dynamic>))
-          .toList();
-      
-      final List<Map<String, dynamic>> collegeResults =
-          results[1] as List<Map<String, dynamic>>;
-          
-      if (mounted) {
-        setState(() {
-          _users = searchResults;
-          _colleges = collegeResults;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("❌ [SearchScreen] Error searching: $e");
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _users = [];
-          _colleges = [];
-        });
-      }
-    }
-  }
-
-  Future<void> _onCollegeTap(Map<String, dynamic> college) async {
-    final collegeId = college['id'] as String?;
-    if (collegeId == null) return;
-
-    setState(() {
-      _selectedCollege = college;
-      _isLoadingCollegeStudents = true;
-      _collegeStudents = [];
-    });
-
-    try {
-      final response = await SupabaseClientManager.instance
-          .from('profiles')
-          .select()
-          .eq('college_id', collegeId)
-          .order('full_name', ascending: true)
-          .limit(50);
-
-      final List<UserProfile> students = (response as List)
-          .map((json) => UserProfile.fromJson(json))
-          .toList();
-
-      if (mounted) {
-        setState(() {
-          _collegeStudents = students;
-          _isLoadingCollegeStudents = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("❌ [SearchScreen] Error fetching college students: $e");
-      if (mounted) {
-        setState(() => _isLoadingCollegeStudents = false);
-      }
-    }
-  }
-  
   void _navigateToProfile(String userId) {
     if (userId.isEmpty) return;
     Navigator.push(
@@ -189,576 +131,432 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  /// Format year as ordinal: 1 → "1st year", 2 → "2nd year", etc.
-  String _formatYear(int? year) {
-    if (year == null) return '';
-    switch (year) {
-      case 1: return '1st year';
-      case 2: return '2nd year';
-      case 3: return '3rd year';
-      default: return '${year}th year';
-    }
-  }
-
-  /// Format branch to short form: extract parenthesized abbreviation or keep as-is
-  String _formatBranch(String? branch) {
-    if (branch == null || branch.isEmpty) return '';
-    // If branch already looks like an abbreviation (short, uppercase-ish), keep it
-    final match = RegExp(r'\(([^)]+)\)').firstMatch(branch);
-    if (match != null) return match.group(1)!;
-    return branch;
+  String _formatYear(int y) {
+    if (y == 0) return 'All Years';
+    if (y == 1) return '1st Year';
+    if (y == 2) return '2nd Year';
+    if (y == 3) return '3rd Year';
+    return '${y}th Year';
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: const Color(0xFFF5F5F0), // Warm off-white
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header & Search Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: _isInitLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF111111)))
+            : Column(
                 children: [
-                  Text(
-                    'Search',
-                    style: GoogleFonts.syne(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Search Input
-                  Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: isDark ? cs.surfaceContainerHighest : Colors.grey[100],
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? cs.outlineVariant.withValues(alpha: 0.3) : Colors.grey[300]!,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.search_rounded,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          size: 22,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocus,
-                            onChanged: _onSearchChanged,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 15,
-                              color: cs.onSurface,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Search students or colleges...',
-                              hintStyle: GoogleFonts.plusJakartaSans(
-                                color: isDark ? Colors.grey[500] : Colors.grey[400],
-                                fontSize: 15,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              isDense: true,
-                            ),
-                          ),
-                        ),
-                        if (_searchController.text.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20),
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
-                            onPressed: () {
-                              _searchController.clear();
-                              _onSearchChanged('');
-                              _searchFocus.unfocus();
-                            },
-                          ),
-                      ],
-                    ),
+                  _buildFiltersRow(),
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF111111)))
+                        : _buildLeaderboardView(),
                   ),
                 ],
               ),
-            ),
-            
-            // Results
+      ),
+    );
+  }
+
+  Widget _buildFiltersRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(flex: 7, child: _buildSelectorPill(label: _getCollegeLabel(), onTap: _showCollegePicker)),
+          const SizedBox(width: 8),
+          Expanded(flex: 5, child: _buildSelectorPill(label: _selectedBranch, onTap: _showBranchPicker)),
+          const SizedBox(width: 8),
+          Expanded(flex: 6, child: _buildSelectorPill(label: _formatYear(_selectedYear), onTap: _showYearPicker)),
+        ],
+      ),
+    );
+  }
+
+  String _getCollegeLabel() {
+    if (_selectedCollegeId == null) return 'College';
+    final c = _colleges.firstWhere((x) => x['id'] == _selectedCollegeId, orElse: () => {});
+    if (c.isEmpty) return 'College';
+    final code = c['code'] as String?;
+    return (code != null && code.isNotEmpty) ? code.toUpperCase() : c['name'] as String;
+  }
+
+  Widget _buildSelectorPill({required String label, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8E8EC), width: 1.0),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
             Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : _selectedCollege != null
-                  ? _buildCollegeStudentsView(cs, isDark)
-                  : _buildSearchResults(cs, isDark),
+              child: Text(
+                label,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF111111)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
+            const SizedBox(width: 2),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF444444)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchResults(ColorScheme cs, bool isDark) {
-    final hasColleges = _colleges.isNotEmpty && _isSearching;
-    final hasUsers = _users.isNotEmpty;
-
-    if (!hasColleges && !hasUsers) {
-      return _buildEmptyState(cs, isDark);
-    }
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        // College results section
-        if (hasColleges) ...[
-          _buildSectionTitle('Colleges', Icons.school_rounded, cs, isDark),
-          const SizedBox(height: 8),
-          ..._colleges.map((college) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _buildCollegeCard(college, cs, isDark),
-          )),
-          const SizedBox(height: 16),
-        ],
-
-        // Student results section
-        _buildSectionTitle(
-          _isSearching ? 'Students' : 'Newest Techmates',
-          Icons.people_rounded,
-          cs,
-          isDark,
-        ),
-        const SizedBox(height: 8),
-        if (hasUsers)
-          ...List.generate(_users.length, (index) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _buildUserCard(_users[index], cs, isDark),
-          ))
-        else if (_isSearching)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                'No students found',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  color: isDark ? Colors.grey[500] : Colors.grey[600],
-                ),
+  void _showCollegePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE8E8EC), borderRadius: BorderRadius.circular(2))),
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('Select College', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF111111))),
               ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildCollegeStudentsView(ColorScheme cs, bool isDark) {
-    final collegeName = _selectedCollege!['name'] as String? ?? 'College';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Back to results bar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                _selectedCollege = null;
-                _collegeStudents = [];
-              });
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isDark ? cs.surfaceContainerLow : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark ? cs.outlineVariant.withValues(alpha: 0.2) : Colors.grey[200]!,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.arrow_back_rounded, size: 18,
-                    color: cs.primary),
-                  const SizedBox(width: 8),
-                  Icon(Icons.school_rounded, size: 18, color: cs.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      collegeName,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurface,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${_collegeStudents.length} students',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: cs.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Students list
-        Expanded(
-          child: _isLoadingCollegeStudents
-            ? const Center(child: CircularProgressIndicator())
-            : _collegeStudents.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.people_outline_rounded, size: 56,
-                        color: isDark ? Colors.grey[700] : Colors.grey[300]),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No students found at this college',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.grey[500] : Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
-                  itemCount: _collegeStudents.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 10),
+                  itemCount: _colleges.length,
                   itemBuilder: (context, index) {
-                    return _buildUserCard(_collegeStudents[index], cs, isDark);
+                    final c = _colleges[index];
+                    final isSelected = c['id'] == _selectedCollegeId;
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                      title: Text(c['name'] as String, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, fontSize: 15, color: isSelected ? const Color(0xFF111111) : const Color(0xFF444444))),
+                      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF111111)) : null,
+                      onTap: () {
+                        setState(() => _selectedCollegeId = c['id'] as String);
+                        Navigator.pop(context);
+                        _fetchClassLeaderboard();
+                      },
+                    );
                   },
                 ),
-        ),
-      ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon, ColorScheme cs, bool isDark) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: isDark ? Colors.grey[400] : Colors.grey[600]),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.grey[300] : Colors.grey[800],
-            letterSpacing: 0.2,
+  void _showBranchPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE8E8EC), borderRadius: BorderRadius.circular(2))),
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('Select Branch', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF111111))),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _branches.length,
+                  itemBuilder: (context, index) {
+                    final b = _branches[index];
+                    final isSelected = b == _selectedBranch;
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                      title: Text(b, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, fontSize: 15, color: isSelected ? const Color(0xFF111111) : const Color(0xFF444444))),
+                      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF111111)) : null,
+                      onTap: () {
+                        setState(() => _selectedBranch = b);
+                        Navigator.pop(context);
+                        _fetchClassLeaderboard();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showYearPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE8E8EC), borderRadius: BorderRadius.circular(2))),
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('Select Year', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF111111))),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _years.length,
+                  itemBuilder: (context, index) {
+                    final y = _years[index];
+                    final isSelected = y == _selectedYear;
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                      title: Text(_formatYear(y), style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, fontSize: 15, color: isSelected ? const Color(0xFF111111) : const Color(0xFF444444))),
+                      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF111111)) : null,
+                      onTap: () {
+                        setState(() => _selectedYear = y);
+                        Navigator.pop(context);
+                        _fetchClassLeaderboard();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLeaderboardView() {
+    if (_entries.isEmpty) {
+      return const Center(
+        child: Text(
+          'No students found matching your filters.',
+          style: TextStyle(fontSize: 14, color: Color(0xFF666666), fontWeight: FontWeight.w500),
+        ),
+      );
+    }
+
+    final top1 = _entries.isNotEmpty ? _entries[0] : null;
+    final top2 = _entries.length > 1 ? _entries[1] : null;
+    final top3 = _entries.length > 2 ? _entries[2] : null;
+    final gridEntries = _entries.length > 3 ? _entries.sublist(3) : <LeaderboardEntry>[];
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 24, bottom: 12),
+            child: _buildPodium(top1, top2, top3),
           ),
         ),
+        if (gridEntries.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                childAspectRatio: 0.70, // Clean layout ratio
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 24,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _buildGridUser(gridEntries[index]),
+                childCount: gridEntries.length,
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildEmptyState(ColorScheme cs, bool isDark) {
-    return Center(
+  Widget _buildPodium(LeaderboardEntry? top1, LeaderboardEntry? top2, LeaderboardEntry? top3) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(child: _buildPodiumUser(top2, 2, 64)), // soft sizes
+          const SizedBox(width: 8),
+          Expanded(child: _buildPodiumUser(top1, 1, 80)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildPodiumUser(top3, 3, 64)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPodiumUser(LeaderboardEntry? entry, int rank, double avatarSize) {
+    if (entry == null) return const SizedBox.shrink();
+
+    final isFirst = rank == 1;
+
+    return GestureDetector(
+      onTap: () => _navigateToProfile(entry.userId),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _isSearching ? Icons.search_off_rounded : Icons.people_alt_outlined,
-            size: 64,
-            color: isDark ? Colors.grey[800] : Colors.grey[300],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _isSearching ? 'No results found' : 'No members found',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.grey[500] : Colors.grey[600],
+          // Avatar
+          Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE8E8EC), width: 1.5),
+              color: Colors.white,
+            ),
+            child: ClipOval(
+              child: entry.avatarUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: entry.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => const Icon(Icons.person, color: Color(0xFFCCCCCC)),
+                    )
+                  : const Icon(Icons.person, color: Color(0xFFCCCCCC)),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            _isSearching ? "Try a different name or college" : "Check back later for new members",
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: isDark ? Colors.grey[600] : Colors.grey[500],
+          const SizedBox(height: 10),
+          // Pill
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE8E8EC), width: 1.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x05000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                )
+              ],
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Text(
+                    entry.fullName,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF222222)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Text(
+                  '${entry.brainScore} pts',
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10, color: Color(0xFF888888)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 10),
+          // Rank text
+          Text(
+            '#$rank',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF555555)),
+          ),
+          if (isFirst) const SizedBox(height: 24), // push Rank 1 up
         ],
       ),
     );
   }
 
-  Widget _buildCollegeCard(Map<String, dynamic> college, ColorScheme cs, bool isDark) {
-    final name = college['name'] as String? ?? 'Unknown College';
-    final code = college['code'] as String?;
-
-    return InkWell(
-      onTap: () => _onCollegeTap(college),
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? cs.surfaceContainerLow : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDark
-                ? cs.primary.withValues(alpha: 0.2)
-                : cs.primary.withValues(alpha: 0.15),
+  Widget _buildGridUser(LeaderboardEntry entry) {
+    return GestureDetector(
+      onTap: () => _navigateToProfile(entry.userId),
+      child: Column(
+        children: [
+          // Avatar
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE8E8EC), width: 1.2),
+              color: Colors.white,
+            ),
+            child: ClipOval(
+              child: entry.avatarUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: entry.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => const Icon(Icons.person, color: Color(0xFFCCCCCC)),
+                    )
+                  : const Icon(Icons.person, color: Color(0xFFCCCCCC)),
+            ),
           ),
-          boxShadow: isDark ? null : [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            // College Icon
-            Container(
-              width: 44,
-              height: 44,
+          const SizedBox(height: 8),
+          // Pill
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
               decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.school_rounded,
-                color: cs.primary,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            
-            // College details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (code != null && code.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      code,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            
-            // Tap indicator
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.08),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'View',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: cs.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  Icon(Icons.chevron_right_rounded, size: 16, color: cs.primary),
+                border: Border.all(color: const Color(0xFFE8E8EC), width: 1.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x05000000),
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  )
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserCard(UserProfile user, ColorScheme cs, bool isDark) {
-    final avatarChar = (user.name != null && user.name!.isNotEmpty) ? user.name![0].toUpperCase() : '?';
-    final branch = _formatBranch(user.branch);
-    final year = _formatYear(user.year);
-    final subtitle = [
-      if (branch.isNotEmpty) branch,
-      if (year.isNotEmpty) year,
-    ].join(' · ');
-    
-    return InkWell(
-      onTap: () => _navigateToProfile(user.id),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? cs.surfaceContainerLow : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? cs.outlineVariant.withValues(alpha: 0.2) : Colors.grey[200]!,
-          ),
-          boxShadow: isDark ? null : [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            // Avatar
-            GestureDetector(
-              onTap: () => _navigateToProfile(user.id),
-              child: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      cs.primary,
-                      cs.primary.withAlpha(200),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: ClipOval(
-                  child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: user.avatarUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Center(
-                            child: Text(
-                              avatarChar,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Center(
-                            child: Text(
-                              avatarChar,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Center(
-                          child: Text(
-                            avatarChar,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            
-            // Details
-            Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    (user.name == null || user.name!.isEmpty) ? 'Unknown Techmate' : user.name!,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Text(
+                      entry.fullName,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Color(0xFF222222)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${entry.brainScore} pts',
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 9, color: Color(0xFF888888)),
+                    textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.school_outlined,
-                          size: 14,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            subtitle,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
-            
-            // Next Icon
-            Icon(
-              Icons.chevron_right_rounded,
-              color: isDark ? Colors.grey[600] : Colors.grey[400],
-              size: 24,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -91,7 +91,8 @@ class _SpeedMatchModeScreenState extends State<SpeedMatchModeScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
-        child: _showDuelOptions ? _buildDuelOptions(cs, theme) : _buildMainOptions(cs, theme),
+        // [CHANGED] Always show main options (Solo + Duel). Duel sub-menu removed from frontend.
+        child: _buildMainOptions(cs, theme),
       ),
     );
   }
@@ -112,9 +113,10 @@ class _SpeedMatchModeScreenState extends State<SpeedMatchModeScreen> {
         _optionCard(
           icon: Icons.sports_martial_arts,
           title: 'DUEL',
-          subtitle: 'Challenge another player — ELO is on the line',
+          subtitle: 'Auto-match with another player — ELO is on the line',
           color: const Color(0xFFE85D2F),
-          onTap: () => setState(() => _showDuelOptions = true),
+          // [CHANGED] Go directly to auto-match instead of showing sub-options
+          onTap: () => _n.startAutoMatch(),
           cs: cs,
           theme: theme,
         ),
@@ -122,6 +124,9 @@ class _SpeedMatchModeScreenState extends State<SpeedMatchModeScreen> {
     );
   }
 
+  // [HIDDEN FROM FRONTEND] Duel sub-options — code kept for future use
+  // Challenge a Friend and Join a Game are not displayed but logic is preserved.
+  /*
   Widget _buildDuelOptions(ColorScheme cs, ThemeData theme) {
     return Column(
       children: [
@@ -163,6 +168,7 @@ class _SpeedMatchModeScreenState extends State<SpeedMatchModeScreen> {
       ],
     );
   }
+  */
 
   Widget _optionCard({
     required IconData icon,

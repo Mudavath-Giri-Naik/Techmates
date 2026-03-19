@@ -18,6 +18,7 @@ class LeaderboardService {
 
   /// Fetch class leaderboard: all profiles with same college + branch + year.
   /// Includes users who haven't played yet (brain_score = 0).
+  /// If branch is 'All' or year is 0, it skips that filter.
   Future<List<LeaderboardEntry>> fetchClassLeaderboard({
     required String collegeId,
     required String branch,
@@ -27,12 +28,20 @@ class LeaderboardService {
     debugPrint('[Leaderboard] fetchClassLeaderboard: college=$collegeId branch=$branch year=$year');
 
     // Query from profiles so ALL users appear, even those without a brain_score
-    final response = await _client
+    var query = _client
         .from('profiles')
         .select('id, full_name, username, avatar_url, streak_days, user_brain_score(brain_score)')
-        .eq('college_id', collegeId)
-        .eq('branch', branch)
-        .eq('year', year);
+        .eq('college_id', collegeId);
+
+    if (branch != 'All') {
+      // Techmates branch names are sometimes uppercase or mixed, ilike makes it safer
+      query = query.ilike('branch', branch);
+    }
+    if (year != 0) {
+      query = query.eq('year', year);
+    }
+
+    final response = await query;
 
     debugPrint('[Leaderboard] fetchClassLeaderboard rows=${(response as List).length}');
 
