@@ -157,13 +157,14 @@ class _FollowListScreenState extends State<FollowListScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildErrorState()
-              : RefreshIndicator(
-                  onRefresh: _fetchList,
-                  child: Column(
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? _buildErrorState()
+                : RefreshIndicator(
+                    onRefresh: _fetchList,
+                    child: Column(
                     children: [
                       // Search bar
                       Padding(
@@ -215,7 +216,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
                     ],
                   ),
                 ),
-    );
+    ));
   }
 
   Widget _buildUserRow(FollowUserItem user) {

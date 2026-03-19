@@ -1,6 +1,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../services/auth_service.dart';
 
@@ -70,14 +71,14 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   
   // Categories
   final List<String> _categories = [
-    'Hackathons',
     'Internships',
+    'Hackathons',
     'Events',
     'Apply Later',
     'Applied',
   ];
   
-  String _selectedCategory = 'Hackathons';
+  String _selectedCategory = 'Internships';
   
   // Data - now generic
   List<dynamic> _originalItems = []; 
@@ -437,10 +438,33 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _loadData({bool forceRefresh = false}) async {
     final bool isStatusTab = _selectedCategory == 'Applied' || _selectedCategory == 'Apply Later';
     
+    // Check if the store already has data for the selected category.
+    // If so, skip the loading spinner and show data instantly.
+    bool hasStoreData = false;
+    if (!isStatusTab && !forceRefresh) {
+      final store = OpportunityStore.instance;
+      if (_selectedCategory == 'Internships') {
+        hasStoreData = store.internships.value.isNotEmpty;
+      } else if (_selectedCategory == 'Hackathons') {
+        hasStoreData = store.hackathons.value.isNotEmpty;
+      } else if (_selectedCategory == 'Events') {
+        hasStoreData = store.events.value.isNotEmpty;
+      }
+    }
+
     setState(() {
-      _isLoading = true;
+      // Only show loading spinner if we have NO cached data to show.
+      if (!hasStoreData) {
+        _isLoading = true;
+      }
       _errorMessage = null;
     });
+
+    // If store data exists, apply it immediately (no spinner).
+    if (hasStoreData && !forceRefresh) {
+      await _updateFromStore();
+      return;
+    }
 
     try {
       final statusService = StatusService();
@@ -712,7 +736,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   // Navigation History Stack
-  final List<String> _navigationStack = ['Hackathons'];
+  final List<String> _navigationStack = ['Internships'];
 
   void _onCategorySelected(String category) {
     if (_selectedCategory == category) return;
@@ -791,18 +815,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
 
-    // Auto-scroll to selected month after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_monthChipScrollController.hasClients) {
-        // If 0 (All) is selected, scroll to top. Else scroll to month.
-        final targetOffset = _selectedMonth == 0 ? 0.0 : ((_selectedMonth - 1) * 40.0) + 30; // added offset for "All" chip
-        _monthChipScrollController.animateTo(
-          targetOffset.clamp(0.0, _monthChipScrollController.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+
 
     final defaultBg = isDark ? cs.surfaceContainerHighest : cs.surfaceContainerHighest;
     final defaultBorder = isDark ? cs.outlineVariant.withValues(alpha: 0.5) : const Color(0xFFE5E7EB);
@@ -887,6 +900,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               );
             }),
+            const SizedBox(height: 12),
+            _buildVerticalLabel(),
           ],
         ),
       ),
@@ -903,7 +918,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Container(
       width: 36,
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(24),
@@ -921,14 +936,14 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Text(
               "Internship Calendar 2026",
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w600,
                 color: cs.onSurfaceVariant,
-                letterSpacing: 0.8,
+                letterSpacing: 0.3,
               ),
             ),
-            const SizedBox(width: 6),
-            Icon(Icons.verified_rounded, size: 13, color: Colors.blue.shade600),
+            const SizedBox(width: 4),
+            Icon(Icons.verified_rounded, size: 12, color: Colors.blue.shade600),
           ],
         ),
       ),
@@ -1140,8 +1155,61 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
     
     if (confirm == true) {
-      await _adminService.deleteOpportunity(id);
-      if (mounted) await _onRefresh();
+      // ── Optimistic UI removal ──
+      // Save the item in case we need to restore on failure.
+      final removedOriginal = _originalItems.where((item) {
+        if (item is InternshipDetailsModel) return item.opportunityId == id;
+        if (item is HackathonDetailsModel) return item.opportunityId == id;
+        if (item is EventDetailsModel) return item.opportunityId == id;
+        return false;
+      }).toList();
+
+      // Remove from UI lists immediately.
+      setState(() {
+        _originalItems.removeWhere((item) {
+          if (item is InternshipDetailsModel) return item.opportunityId == id;
+          if (item is HackathonDetailsModel) return item.opportunityId == id;
+          if (item is EventDetailsModel) return item.opportunityId == id;
+          return false;
+        });
+        _filteredItems.removeWhere((item) {
+          if (item is InternshipDetailsModel) return item.opportunityId == id;
+          if (item is HackathonDetailsModel) return item.opportunityId == id;
+          if (item is EventDetailsModel) return item.opportunityId == id;
+          return false;
+        });
+      });
+
+      // Also remove from OpportunityStore so switching chips
+      // doesn't bring the item back.
+      final store = OpportunityStore.instance;
+      store.internships.value = store.internships.value
+          .where((e) => e.opportunityId != id).toList();
+      store.hackathons.value = store.hackathons.value
+          .where((e) => e.opportunityId != id).toList();
+      store.events.value = store.events.value
+          .where((e) => e.opportunityId != id).toList();
+
+      // ── Background DB delete ──
+      try {
+        await _adminService.deleteOpportunity(id);
+      } catch (e) {
+        // Restore the item on failure.
+        if (mounted) {
+          setState(() {
+            _originalItems.addAll(removedOriginal);
+            _applyFilters();
+          });
+          // Re-fetch store to restore consistent state.
+          OpportunityStore.instance.fetchAll(forceRefresh: true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to delete: $e"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -1260,34 +1328,135 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _handleBackNavigation();
       },
       child: MainLayout(
-      title: "Techmates",
-      showAppBar: false,
-      floatingActionButton: roleService.canEdit ? FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreateOpportunityScreen()),
-          );
-          if (result == true) {
-             _onRefresh();
-          }
-        },
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.primary,
-        elevation: 8,
-        highlightElevation: 10,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+      titleWidget: Text.rich(
+        TextSpan(
+          children: const [
+            TextSpan(
+              text: 'Tech',
+              style: TextStyle(color: Colors.red),
+            ),
+            TextSpan(
+              text: 'mates',
+              style: TextStyle(color: Colors.black),
+            ),
+          ],
+          style: GoogleFonts.pacifico(fontSize: 28),
         ),
-        child: Icon(Icons.add_rounded, size: 30, color: Theme.of(context).colorScheme.primary),
-      ) : null,
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_none,
+            size: 26,
+            color: Colors.black,
+          ),
+          onPressed: () {
+            // TODO: Navigate to notifications
+          },
+        ),
+      ],
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _buildSearchBar(),
-            Expanded(child: _buildPhotoGrid()),
+            // Category Chips
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.1))),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                     // Filter Icon
+                     Padding(
+                       padding: const EdgeInsets.only(right: 8.0),
+                       child: GestureDetector(
+                         onTap: _onOpenFilters,
+                         child: Container(
+                           padding: const EdgeInsets.all(6),
+                           decoration: BoxDecoration(
+                             shape: BoxShape.circle,
+                             border: Border.all(color: Colors.grey.shade300),
+                           ),
+                           child: Stack(
+                             clipBehavior: Clip.none,
+                             children: [
+                               Icon(Icons.tune, size: 16, color: Colors.grey.shade700),
+                               if (filterCount > 0)
+                                 Positioned(
+                                   right: -2,
+                                   top: -2,
+                                   child: Container(
+                                     padding: const EdgeInsets.all(2),
+                                     decoration: const BoxDecoration(
+                                       color: Colors.red,
+                                       shape: BoxShape.circle,
+                                     ),
+                                     constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+                                   ),
+                                 ),
+                             ],
+                           ),
+                         ),
+                       ),
+                     ),
+                     // Chips
+                     ..._categories.map((category) {
+                    final isSelected = _selectedCategory == category;
+                    final count = _categoryCounts[category];
+                    final label = count != null ? "$category ($count)" : category;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(label),
+                        selected: isSelected,
+                        onSelected: (_) => _onCategorySelected(category),
+                        selectedColor: Theme.of(context).colorScheme.surface,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        side: BorderSide(
+                          color: isSelected ? Colors.blue : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.blue : Colors.grey.shade600,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: 13,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        elevation: 0,
+                        pressElevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                        visualDensity: VisualDensity.compact,
+                        showCheckmark: false,
+                      ),
+                    );
+                  }).toList(),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Main Content Area
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_selectedCategory == 'Internships')
+                     Padding(
+                       padding: const EdgeInsets.only(left: 8, top: 8),
+                       child: _buildMonthChips(),
+                     ),
+                  Expanded(child: _buildMainList(roleService)),
+                ],
+              ),
+            ),
           ],
         ),
       ),

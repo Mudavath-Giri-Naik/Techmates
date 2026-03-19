@@ -16,33 +16,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         foregroundColor: Colors.black,
         elevation: 0,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.notifications_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No notifications yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.notifications_outlined,
+                size: 64,
+                color: Colors.grey[400],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You\'ll see notifications here when they arrive',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
+              const SizedBox(height: 16),
+              Text(
+                'No notifications yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'You\'ll see notifications here when they arrive',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

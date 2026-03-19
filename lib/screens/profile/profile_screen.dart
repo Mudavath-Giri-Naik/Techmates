@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -13,6 +15,7 @@ import '../../services/devcard/devcard_service.dart';
 import '../../services/user_role_service.dart';
 import '../../models/user_profile.dart';
 import '../../models/devcard/devcard_model.dart';
+import '../../utils/proxy_url.dart';
 
 import '../edit_profile_screen.dart';
 import '../devcard/devcard_screen.dart';
@@ -66,6 +69,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with TickerProviderStateMixin {
   final AuthService _authService = AuthService();
+  StreamSubscription<AuthState>? _authStateSub;
 
   UserProfile? _profile;
   DevCardModel? _devCard;
@@ -102,11 +106,19 @@ class _ProfileScreenState extends State<ProfileScreen>
       vsync: this,
       duration: const Duration(milliseconds: 2400),
     )..repeat(reverse: true);
+    _authStateSub = _authService.authStateChanges.listen((_) {
+      if (!mounted || widget.userId != null) return;
+      final currentUser = _authService.user ?? Supabase.instance.client.auth.currentUser;
+      if (currentUser != null && (_profile == null || _hasError)) {
+        _loadData();
+      }
+    });
     _loadData();
   }
 
   @override
   void dispose() {
+    _authStateSub?.cancel();
     _rankGlowController.dispose();
     super.dispose();
   }
@@ -119,8 +131,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
 
     try {
-      final userId = _targetUserId;
-      if (userId.isEmpty) throw Exception("User ID could not be determined");
+      final userId = await _resolveTargetUserId();
+      if (userId == null || userId.isEmpty) {
+        throw Exception("User ID could not be determined");
+      }
 
       final futures = <Future>[
         ProfileService().fetchProfile(userId),
@@ -169,6 +183,39 @@ class _ProfileScreenState extends State<ProfileScreen>
         });
       }
     }
+  }
+
+  Future<String?> _resolveTargetUserId() async {
+    if (widget.userId != null && widget.userId!.isNotEmpty) {
+      return widget.userId;
+    }
+
+    for (var attempt = 0; attempt < 8; attempt++) {
+      final currentUser =
+          _authService.user ?? Supabase.instance.client.auth.currentUser;
+      if (currentUser != null) {
+        return currentUser.id;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+
+    return null;
+  }
+
+  String? _resolvedAvatarUrl(UserProfile profile) {
+    if (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty) {
+      return profile.avatarUrl;
+    }
+
+    if (!_isCurrentUser) return null;
+
+    final metadata = _authService.user?.userMetadata;
+    return proxyUrl(
+      (metadata?['custom_avatar_url'] ??
+              metadata?['avatar_url'] ??
+              metadata?['picture'])
+          as String?,
+    );
   }
 
   Future<void> _fetchFollowCounts(String userId) async {
@@ -230,10 +277,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                scrolledUnderElevation: 0,
              )
           : null,
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        color: cs.primary,
-        child: CustomScrollView(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _loadData,
+          color: cs.primary,
+          child: CustomScrollView(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
@@ -301,7 +349,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -309,6 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildHeroHeader(UserProfile profile, ColorScheme cs, bool hasAppBar) {
+    final avatarUrl = _resolvedAvatarUrl(profile);
     return Padding(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -341,10 +390,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         child: SizedBox(
                           width: 82,
                           height: 94,
-                          child: profile.avatarUrl != null &&
-                                  profile.avatarUrl!.isNotEmpty
+                          child: avatarUrl != null && avatarUrl.isNotEmpty
                               ? CachedNetworkImage(
-                                  imageUrl: profile.avatarUrl!,
+                                  imageUrl: avatarUrl,
                                   fit: BoxFit.cover,
                                   placeholder: (_, __) => Container(
                                     color: cs.surfaceContainerLow,

@@ -46,6 +46,16 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
+
+    // Check session cache synchronously — if data exists, show it
+    // immediately without any loading spinner.
+    final cached = _feedService.cachedFeed;
+    if (cached != null && cached.isNotEmpty) {
+      _feedItems = cached;
+      _isLoading = false;
+      _hasMore = cached.length == _pageSize;
+    }
+
     _loadFeed();
   }
 
@@ -134,18 +144,7 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
             style: GoogleFonts.pacifico(fontSize: 28),
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_none,
-              size: 26,
-              color: Colors.black,
-            ),
-            onPressed: () {
-              // TODO: Navigate to notifications
-            },
-          ),
-        ],
+        actions: const [],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -186,6 +185,7 @@ class _HomeScreenTabState extends State<HomeScreenTab> {
     final items = await _feedService.fetchHomeFeed(
       page: 0,
       pageSize: _pageSize,
+      forceRefresh: true,
     );
     if (mounted) {
       setState(() {

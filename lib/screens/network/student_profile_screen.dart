@@ -30,15 +30,16 @@ class StudentProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: _HeaderCard(student: student),
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _HeaderCard(student: student),
             ),
           ),
           SliverToBoxAdapter(
@@ -92,7 +93,7 @@ class StudentProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

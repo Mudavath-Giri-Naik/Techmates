@@ -3,7 +3,31 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../models/opportunity_feed_item.dart';
-import 'internship_feed_card.dart'; // To reuse GridPainter
+import 'internship_feed_card.dart';
+
+// ─── Grid background painter ─────────────────────────────────────────────────
+class GridPainter extends CustomPainter {
+  final Color lineColor;
+  final double spacing;
+  const GridPainter({required this.lineColor, this.spacing = 32});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 0.7;
+    for (double x = 0; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(GridPainter old) =>
+      old.lineColor != lineColor || old.spacing != spacing;
+}
 
 class DashedLinePainter extends CustomPainter {
   final Color color;
@@ -125,14 +149,15 @@ class _EventFeedCardState extends State<EventFeedCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: _useDark ? darkBg : lightBg,
-        borderRadius: BorderRadius.zero,
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: IntrinsicHeight(
+    return AspectRatio(
+      aspectRatio: 1.0, // 1:1 square (1080×1080)
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _useDark ? darkBg : lightBg,
+          borderRadius: BorderRadius.zero,
+        ),
+        clipBehavior: Clip.hardEdge,
         child: Stack(
           children: [
             // Grid painter behind everything
@@ -164,7 +189,7 @@ class _EventFeedCardState extends State<EventFeedCard> {
 
   Widget _buildLeft() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
+      padding: const EdgeInsets.fromLTRB(22, 22, 18, 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -172,20 +197,20 @@ class _EventFeedCardState extends State<EventFeedCard> {
           Row(
             children: [
               Container(
-                width: 7,
-                height: 7,
+                width: 8,
+                height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _useDark ? darkAccent : lightAccent,
                 ),
               ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   _orgName.toUpperCase(),
                   style: GoogleFonts.dmMono(
-                    fontSize: 9,
-                    letterSpacing: 1.8,
+                    fontSize: 11,
+                    letterSpacing: 2.0,
                     color: _useDark ? darkAccent : lightAccent,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -193,30 +218,37 @@ class _EventFeedCardState extends State<EventFeedCard> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
-          // 2. Big title
-          Text(
-            _formatEventTitle(_title),
-            style: GoogleFonts.bebasNeue(
-              fontSize: 44,
-              letterSpacing: 1.5,
-              height: 0.92,
-              color: _useDark ? darkText : lightText,
+          // 2. Big title — use Expanded + FittedBox for responsive sizing
+          Expanded(
+            flex: 5,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.topLeft,
+              child: Text(
+                _formatEventTitle(_title),
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 56,
+                  letterSpacing: 1.5,
+                  height: 0.92,
+                  color: _useDark ? darkText : lightText,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
 
           // 3. Subtitle
           Text(
             widget.opportunity.event?.source ?? 'Event',
             style: GoogleFonts.cormorantGaramond(
-              fontSize: 14,
+              fontSize: 16,
               fontStyle: FontStyle.italic,
               color: _useDark ? darkMuted : const Color(0xFF888888),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // 4. Thin divider
           Container(
@@ -225,32 +257,39 @@ class _EventFeedCardState extends State<EventFeedCard> {
                 ? Colors.white.withOpacity(0.1)
                 : Colors.black.withOpacity(0.1),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
           // 5. Meta grid (2x2)
-          Row(
-            children: [
-              Expanded(
-                child: _metaBlock(
-                  'EVENT DATE',
-                  _formatDateRange(_startDate, _endDate),
+          Expanded(
+            flex: 4,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _metaBlock(
+                        'EVENT DATE',
+                        _formatDateRange(_startDate, _endDate),
+                      ),
+                    ),
+                    Expanded(child: _metaBlock('DEADLINE', _formatDate(_deadline))),
+                  ],
                 ),
-              ),
-              Expanded(child: _metaBlock('DEADLINE', _formatDate(_deadline))),
-            ],
+                Row(
+                  children: [
+                    Expanded(child: _metaBlock('LOCATION', _location)),
+                    Expanded(child: _metaBlock('OPEN TO', _eligibility)),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _metaBlock('LOCATION', _location)),
-              Expanded(child: _metaBlock('OPEN TO', _eligibility)),
-            ],
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // 6. Entry badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
               border: Border.all(
                 color: _useDark ? darkAccent : lightAccent,
@@ -262,7 +301,7 @@ class _EventFeedCardState extends State<EventFeedCard> {
             child: Text(
               _isFree ? 'FREE ENTRY' : 'PAID',
               style: GoogleFonts.dmMono(
-                fontSize: 9,
+                fontSize: 10,
                 letterSpacing: 1.4,
                 fontWeight: FontWeight.w500,
                 color: _useDark ? const Color(0xFF111110) : lightAccent,
@@ -281,16 +320,16 @@ class _EventFeedCardState extends State<EventFeedCard> {
         Text(
           label,
           style: GoogleFonts.dmMono(
-            fontSize: 7.5,
+            fontSize: 9,
             letterSpacing: 1.6,
             color: _useDark ? darkMuted : lightMuted,
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         Text(
           value,
           style: GoogleFonts.cormorantGaramond(
-            fontSize: 14,
+            fontSize: 16,
             fontStyle: FontStyle.italic,
             fontWeight: FontWeight.w600,
             color: _useDark ? darkAccent : lightAccent,
@@ -317,15 +356,15 @@ class _EventFeedCardState extends State<EventFeedCard> {
 
   Widget _buildRight() {
     return Container(
-      width: 108,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      width: 120,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
       decoration: BoxDecoration(
         color: _useDark ? darkRight : lightRight,
         borderRadius: BorderRadius.zero,
       ),
       child: Stack(
         children: [
-          // Grid painter on right panel (opposite opacity)
+          // Grid painter on right panel
           Positioned.fill(
             child: CustomPaint(
               painter: GridPainter(
@@ -342,7 +381,7 @@ class _EventFeedCardState extends State<EventFeedCard> {
               Text(
                 'NO. ${_serialNum()}',
                 style: GoogleFonts.dmMono(
-                  fontSize: 9,
+                  fontSize: 10,
                   letterSpacing: 1.5,
                   color: (_useDark ? Colors.black : Colors.white).withOpacity(
                     0.4,
@@ -360,7 +399,7 @@ class _EventFeedCardState extends State<EventFeedCard> {
                       child: Text(
                         _daysLeft.toString(),
                         style: GoogleFonts.bebasNeue(
-                          fontSize: 44,
+                          fontSize: 56,
                           height: 1,
                           color: _useDark ? darkRightText : lightRightText,
                         ),
@@ -371,7 +410,7 @@ class _EventFeedCardState extends State<EventFeedCard> {
                     'DAYS\nLEFT',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.dmMono(
-                      fontSize: 8,
+                      fontSize: 9,
                       letterSpacing: 1.5,
                       height: 1.4,
                       color: (_useDark ? Colors.black : Colors.white)
@@ -396,7 +435,7 @@ class _EventFeedCardState extends State<EventFeedCard> {
                 },
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: (_useDark ? Colors.black : Colors.white)
@@ -412,7 +451,7 @@ class _EventFeedCardState extends State<EventFeedCard> {
                     'APPLY',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.dmMono(
-                      fontSize: 10,
+                      fontSize: 12,
                       letterSpacing: 1.5,
                       color: _useDark ? darkRightText : lightRightText,
                     ),
@@ -449,18 +488,17 @@ class _EventFeedCardState extends State<EventFeedCard> {
   }
 
   Widget _buildBarTicks(int daysLeft) {
-    // Max reference = 30 days. Fill proportionally.
     int filled = (daysLeft / 30 * 5).round().clamp(0, 5);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(5, (i) {
-        final heights = [16.0, 20.0, 24.0, 18.0, 22.0];
+        final heights = [20.0, 24.0, 28.0, 22.0, 26.0];
         final isFilled = i < filled;
         return Container(
-          width: 3,
+          width: 4,
           height: heights[i],
-          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
           decoration: BoxDecoration(
             color: isFilled
                 ? (_useDark
@@ -481,10 +519,10 @@ class _EventFeedCardState extends State<EventFeedCard> {
         ? const Color(0xFFC8A96E).withOpacity(0.25)
         : const Color(0xFF0D4A42).withOpacity(0.2);
     return [
-      _star(top: 18, right: 125, size: 14, color: color),
-      _star(top: 52, left: 18, size: 9, color: color),
-      _star(bottom: 22, left: 75, size: 11, color: color),
-      _star(bottom: 28, right: 130, size: 9, color: color),
+      _star(top: 22, right: 140, size: 16, color: color),
+      _star(top: 60, left: 22, size: 11, color: color),
+      _star(bottom: 28, left: 90, size: 13, color: color),
+      _star(bottom: 34, right: 145, size: 11, color: color),
     ];
   }
 

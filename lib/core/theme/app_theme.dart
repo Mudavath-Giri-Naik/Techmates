@@ -13,7 +13,7 @@ class AppTheme {
         brightness: Brightness.light,
         fontFamily: GoogleFonts.inter().fontFamily,
         scaffoldBackgroundColor: Colors.white,
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: const Color(0xFFFAFBFC),
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -72,7 +72,7 @@ class AppTheme {
         brightness: Brightness.dark,
         fontFamily: GoogleFonts.inter().fontFamily,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: const Color(0xFF1E293B),
           elevation: 0,
           shape: RoundedRectangleBorder(

@@ -10,6 +10,9 @@ class Opportunity {
   final DateTime updatedAt;
   final int? typeSerialNo; // New field
   final String? source;
+  final String? posterName;
+  final String? posterAvatarUrl;
+  final String? posterUsername;
   
   // Storage for details of other types
   final Map<String, dynamic> extraDetails;
@@ -26,6 +29,9 @@ class Opportunity {
     required this.updatedAt,
     this.typeSerialNo,
     this.source,
+    this.posterName,
+    this.posterAvatarUrl,
+    this.posterUsername,
     this.extraDetails = const {},
   });
 
@@ -82,6 +88,12 @@ class Opportunity {
       parsedUpdatedAt = DateTime.tryParse(json['updated_at'])?.toLocal();
     }
 
+    // Parse Poster Profile
+    Map<String, dynamic>? profileData = json['postedProfile'] as Map<String, dynamic>?;
+    if (profileData == null || (profileData['full_name'] == null && profileData['username'] == null)) {
+      profileData = json['createdProfile'] as Map<String, dynamic>?;
+    }
+
     return Opportunity(
       id: json['id'].toString(),
       type: json['type'] ?? 'event',
@@ -94,6 +106,9 @@ class Opportunity {
       createdAt: parsedCreatedAt ?? DateTime.now(),
       updatedAt: parsedUpdatedAt ?? parsedCreatedAt ?? DateTime.now(),
       typeSerialNo: int.tryParse(json['type_serial_no']?.toString() ?? '') ?? (json['type_serial_no'] is int ? json['type_serial_no'] : null),
+      posterName: profileData?['full_name'] as String?,
+      posterAvatarUrl: profileData?['avatar_url'] as String?,
+      posterUsername: profileData?['username'] as String?,
       extraDetails: detailMap,
     );
   }

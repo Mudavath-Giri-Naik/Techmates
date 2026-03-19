@@ -128,17 +128,19 @@ class _OpportunityDetailScreenState extends State<OpportunityDetailScreen> {
       appBar: AppBar(
         title: Text(_capitalize(widget.type)),
       ),
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(_errorMessage!),
-                ))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: _buildCard(_item),
-                ),
+      body: SafeArea(
+        child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+                ? Center(child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(_errorMessage!),
+                  ))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildCard(_item),
+                  ),
+      ),
     );
   }
 

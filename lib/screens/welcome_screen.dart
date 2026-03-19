@@ -180,33 +180,35 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
     return Scaffold(
       backgroundColor: bg,
-      body: AnimatedBuilder(
-        animation: Listenable.merge([
-          _revealCtrl, _celebrationCtrl, _orbitCtrl,
-          _pulseCtrl, _unlockCtrl, _diagramCtrl, _radarCtrl,
-        ]),
-        builder: (ctx, _) => Stack(children: [
-          if (_dataLoaded) _buildRoleScreen(),
-          if (!_dataLoaded)
-            const Center(
-              child: SizedBox(
-                width: 24, height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            _revealCtrl, _celebrationCtrl, _orbitCtrl,
+            _pulseCtrl, _unlockCtrl, _diagramCtrl, _radarCtrl,
+          ]),
+          builder: (ctx, _) => Stack(children: [
+            if (_dataLoaded) _buildRoleScreen(),
+            if (!_dataLoaded)
+              const Center(
+                child: SizedBox(
+                  width: 24, height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
-            ),
-          // Celebration overlay
-          if (_dataLoaded)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _CelebrationPainter(
-                    progress: _celebrationCtrl.value,
-                    roleKey: _roleKey,
+            // Celebration overlay
+            if (_dataLoaded)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _CelebrationPainter(
+                      progress: _celebrationCtrl.value,
+                      roleKey: _roleKey,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ]),
+          ]),
+        ),
       ),
     );
   }

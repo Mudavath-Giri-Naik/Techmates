@@ -34,8 +34,9 @@ class _ArenaGameScreenState extends State<ArenaGameScreen> {
     if (_submitting) {
       return Scaffold(
         backgroundColor: cs.surface,
-        body: Center(
-          child: Column(
+        body: SafeArea(
+          child: Center(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const CircularProgressIndicator.adaptive(),
@@ -47,14 +48,16 @@ class _ArenaGameScreenState extends State<ArenaGameScreen> {
             ],
           ),
         ),
+        ),
       );
     }
 
     if (_submitError != null) {
       return Scaffold(
         backgroundColor: cs.surface,
-        body: Center(
-          child: Padding(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -73,6 +76,7 @@ class _ArenaGameScreenState extends State<ArenaGameScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ),
       );
@@ -96,7 +100,7 @@ class _ArenaGameScreenState extends State<ArenaGameScreen> {
           onPressed: () => _showExitDialog(context, cs),
         ),
       ),
-      body: _buildGameWidget(),
+      body: SafeArea(child: _buildGameWidget()),
     );
   }
 

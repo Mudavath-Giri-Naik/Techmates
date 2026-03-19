@@ -4,43 +4,59 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../models/opportunity_feed_item.dart';
 
-// ─── Fixed card dimensions ───────────────────────────────────────────────────
-// All 3 slides are rendered inside the SAME SizedBox, so height is always
-// identical. No measurement / _slideHeights / OverflowBox needed.
+// ─── Fixed card height ────────────────────────────────────────────────────────
 const double _kCardHeight = 480.0;
 
-// ─── Grid background painter ─────────────────────────────────────────────────
-class GridPainter extends CustomPainter {
-  final Color lineColor;
-  final double spacing;
-  const GridPainter({required this.lineColor, this.spacing = 32});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 0.7;
-    for (double x = 0; x < size.width; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(GridPainter old) =>
-      old.lineColor != lineColor || old.spacing != spacing;
-}
-
-// ─── Tag data class ──────────────────────────────────────────────────────────
+// ─── Tag data class ───────────────────────────────────────────────────────────
 class _Tag {
   final String label;
-  final Color bg, border, text;
-  const _Tag(this.label, this.bg, this.border, this.text);
+  const _Tag(this.label);
 }
 
-// ─── Main widget ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// DESIGN LANGUAGE
+// ─────────────────────────────────────────────────────────────────────────────
+// Aesthetic: formal document / ledger register
+// - 3px top accent bar is the ONLY color element
+// - Zero border radius throughout
+// - IBM Plex Mono for all labels and metadata
+// - Bitter for display title
+// - Strict horizontal rules as separators
+// - No shadows, no gradients, no filled tiles
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _C {
+  // Background
+  static Color bg(bool light) =>
+      light ? const Color(0xFFFFFFFF) : const Color(0xFF0C0C0B);
+
+  // Primary text
+  static Color ink(bool light) =>
+      light ? const Color(0xFF0A0A09) : const Color(0xFFEDECE8);
+
+  // Secondary / muted
+  static Color sub(bool light) =>
+      light ? const Color(0xFF6B6B67) : const Color(0xFF5A5A56);
+
+  // Hairline borders & rules
+  static Color rule(bool light) =>
+      light ? const Color(0xFFD8D8D4) : const Color(0xFF242422);
+
+  // Accent — the single color used sparingly
+  static const Color accent = Color(0xFF1A6BFF);
+
+  // Accent text (for highlighted values)
+  static Color accentText(bool light) =>
+      light ? const Color(0xFF1A6BFF) : const Color(0xFF5B8FFF);
+
+  // Inverse for CTA
+  static Color ctaBg(bool light) =>
+      light ? const Color(0xFF0A0A09) : const Color(0xFFEDECE8);
+  static Color ctaFg(bool light) =>
+      light ? const Color(0xFFFFFFFF) : const Color(0xFF0A0A09);
+}
+
+// ─── Main widget ──────────────────────────────────────────────────────────────
 class InternshipFeedCard extends StatefulWidget {
   final OpportunityFeedItem opportunity;
   final bool useDarkTemplate;
@@ -59,7 +75,6 @@ class _InternshipFeedCardState extends State<InternshipFeedCard> {
   final PageController _pc = PageController();
   int _currentSlide = 0;
 
-  // ── Derived getters ──────────────────────────────────────────────────────
   OpportunityFeedItem get _opp => widget.opportunity;
   String get _orgName => _opp.internship?.company ?? 'Organisation';
   String get _title => _opp.title;
@@ -72,7 +87,7 @@ class _InternshipFeedCardState extends State<InternshipFeedCard> {
 
   String get _deadlineFormatted {
     final dl = _opp.internship?.deadline;
-    return dl == null ? '—' : DateFormat('dd MMM, yyyy').format(dl);
+    return dl == null ? '—' : DateFormat('dd MMM yyyy').format(dl);
   }
 
   int get _daysLeft {
@@ -88,14 +103,10 @@ class _InternshipFeedCardState extends State<InternshipFeedCard> {
       !widget.useDarkTemplate ||
       Theme.of(context).brightness == Brightness.light;
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
   void _goTo(int page) {
     setState(() => _currentSlide = page);
-    _pc.animateToPage(
-      page,
-      duration: const Duration(milliseconds: 380),
-      curve: Curves.easeInOut,
-    );
+    _pc.animateToPage(page,
+        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   Future<void> _launchApply() async {
@@ -110,7 +121,6 @@ class _InternshipFeedCardState extends State<InternshipFeedCard> {
     super.dispose();
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -130,7 +140,61 @@ class _InternshipFeedCardState extends State<InternshipFeedCard> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SLIDE 1 — COVER  (fully structured column, no Positioned overlaps)
+// SHARED: accent top bar + card shell
+// ─────────────────────────────────────────────────────────────────────────────
+class _CardShell extends StatelessWidget {
+  final bool light;
+  final Widget child;
+
+  const _CardShell({required this.light, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _C.bg(light),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 3px accent top bar
+          Container(height: 3, color: _C.accent),
+          // Content
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: horizontal rule
+// ─────────────────────────────────────────────────────────────────────────────
+class _Rule extends StatelessWidget {
+  final bool light;
+  const _Rule({required this.light});
+
+  @override
+  Widget build(BuildContext context) =>
+      Container(height: 1, color: _C.rule(light));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: mono label style
+// ─────────────────────────────────────────────────────────────────────────────
+TextStyle _monoLabel(bool light) => GoogleFonts.ibmPlexMono(
+      fontSize: 9,
+      letterSpacing: 1.6,
+      fontWeight: FontWeight.w500,
+      color: _C.sub(light),
+    );
+
+TextStyle _monoValue(bool light) => GoogleFonts.ibmPlexMono(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: _C.ink(light),
+    );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SLIDE 1 — COVER
 // ─────────────────────────────────────────────────────────────────────────────
 class _CoverSlide extends StatelessWidget {
   final _InternshipFeedCardState card;
@@ -139,248 +203,194 @@ class _CoverSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool light = card._isLight;
-    final Color bg = light ? const Color(0xFFF5F3EE) : const Color(0xFF111110);
-    final Color subtle = light
-        ? Colors.black.withOpacity(0.08)
-        : Colors.white.withOpacity(0.08);
-    final Color labelColor = light
-        ? const Color(0xFF999999)
-        : Colors.white.withOpacity(0.38);
-
-    // ── Title split: first half | italic middle word | second half ──
-    final words = card._title.split(' ').where((w) => w.isNotEmpty).toList();
-    String titleFirst = '', titleItalic = '', titleLast = '';
-    if (words.length >= 3) {
-      final mid = words.length ~/ 2;
-      titleFirst = words.sublist(0, mid).join(' ');
-      titleItalic = words[mid];
-      titleLast = words.sublist(mid + 1).join(' ');
-    } else if (words.length == 2) {
-      titleFirst = words[0];
-      titleItalic = words[1];
-    } else {
-      titleFirst = words.join(' ');
-    }
     final double titleSize =
-        card._title.length > 35 ? 24 : card._title.length > 22 ? 30 : 36;
+        card._title.length > 38 ? 20 : card._title.length > 24 ? 25 : 30;
 
-    return Container(
-      color: bg,
-      child: Stack(
-        children: [
-          // ── Grid background ──
-          Positioned.fill(
-            child: CustomPaint(
-              painter: GridPainter(
-                lineColor: light
-                    ? Colors.black.withOpacity(0.045)
-                    : Colors.white.withOpacity(0.04),
-              ),
-            ),
-          ),
+    return _CardShell(
+      light: light,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
 
-          // ── Full-height structured column ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // ── Header: org name | slide counter ─────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-
-                // ── ROW 1: Org chip  +  elite badge ──────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _OrgChip(name: card._orgName, light: light),
-                    if (card._opp.isElite) _EliteBadge(light: light),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // ── ROW 2: TYPE label + year ──────────────────────────────
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: subtle,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'INTERNSHIP',
-                        style: GoogleFonts.spaceMono(
-                          fontSize: 8,
-                          letterSpacing: 1.8,
-                          color: labelColor,
-                        ),
-                      ),
+                      width: 6,
+                      height: 6,
+                      color: _C.accent,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '· ${DateTime.now().year}',
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 8,
+                      card._orgName.toUpperCase(),
+                      style: GoogleFonts.ibmPlexMono(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: 1.4,
-                        color: labelColor,
+                        color: _C.ink(light),
                       ),
                     ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // ── ROW 3: Big title ──────────────────────────────────────
-                RichText(
-                  text: TextSpan(children: [
-                    if (titleFirst.isNotEmpty)
-                      TextSpan(
-                        text: '$titleFirst\n',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: titleSize,
-                          fontWeight: FontWeight.w900,
-                          height: 1.08,
-                          color: light
-                              ? const Color(0xFF111110)
-                              : Colors.white,
-                        ),
-                      ),
-                    if (titleItalic.isNotEmpty)
-                      TextSpan(
-                        text: '$titleItalic ',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: titleSize,
-                          fontWeight: FontWeight.w900,
-                          fontStyle: FontStyle.italic,
-                          height: 1.08,
-                          color: const Color(0xFFC8A96E),
-                        ),
-                      ),
-                    if (titleLast.isNotEmpty)
-                      TextSpan(
-                        text: titleLast,
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: titleSize,
-                          fontWeight: FontWeight.w900,
-                          height: 1.08,
-                          color: light
-                              ? const Color(0xFF111110)
-                              : Colors.white,
-                        ),
-                      ),
-                  ]),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ── ROW 4: Stipend + Duration stat tiles ──────────────────
-                Row(
-                  children: [
-                    _StatTile(
-                      label: 'STIPEND',
-                      value: card._stipend,
-                      light: light,
-                      accent: true,
-                    ),
-                    const SizedBox(width: 10),
-                    _StatTile(
-                      label: 'DURATION',
-                      value: card._duration,
-                      light: light,
-                      accent: false,
-                    ),
-                  ],
-                ),
-
-                const Spacer(),
-
-                // ── ROW 5: Divider ────────────────────────────────────────
-                Divider(height: 1, color: subtle),
-
-                const SizedBox(height: 14),
-
-                // ── ROW 6: Deadline  +  Days left pill  +  Next arrow ─────
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Deadline block
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'DEADLINE',
-                            style: GoogleFonts.spaceMono(
-                              fontSize: 8,
-                              letterSpacing: 1.2,
-                              color: labelColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            card._deadlineFormatted,
-                            style: GoogleFonts.syne(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: light
-                                  ? const Color(0xFF111110)
-                                  : Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Days left pill
-                    _DaysLeftPill(days: card._daysLeft, light: light),
-
-                    const SizedBox(width: 10),
-
-                    // Next slide arrow
-                    GestureDetector(
-                      onTap: () => card._goTo(1),
-                      child: Container(
-                        width: 44,
-                        height: 44,
+                    if (card._opp.isElite) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: light
-                              ? const Color(0xFF111110)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.18),
-                              blurRadius: 14,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                          border:
+                              Border.all(color: _C.rule(light), width: 1),
                         ),
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          color: light
-                              ? Colors.white
-                              : const Color(0xFF111110),
-                          size: 18,
+                        child: Text(
+                          'ELITE',
+                          style: GoogleFonts.ibmPlexMono(
+                            fontSize: 7.5,
+                            letterSpacing: 1.4,
+                            color: _C.sub(light),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
+                ),
+                Text(
+                  '01 / 03',
+                  style: _monoLabel(light),
                 ),
               ],
             ),
-          ),
-        ],
+
+            const SizedBox(height: 14),
+            _Rule(light: light),
+            const SizedBox(height: 14),
+
+            // ── Type + year ───────────────────────────────────────────────
+            Text(
+              'INTERNSHIP  ·  ${DateTime.now().year}',
+              style: _monoLabel(light),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ── Title ─────────────────────────────────────────────────────
+            Text(
+              card._title,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.bitter(
+                fontSize: titleSize,
+                fontWeight: FontWeight.w700,
+                height: 1.15,
+                color: _C.ink(light),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+            _Rule(light: light),
+            const SizedBox(height: 14),
+
+            // ── Stats: two-column register ────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: _RegisterCell(
+                    label: 'STIPEND',
+                    value: card._stipend,
+                    light: light,
+                    accent: true,
+                  ),
+                ),
+                Container(width: 1, height: 40, color: _C.rule(light)),
+                Expanded(
+                  child: _RegisterCell(
+                    label: 'DURATION',
+                    value: card._duration,
+                    light: light,
+                    accent: false,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+            _Rule(light: light),
+
+            const Spacer(),
+
+            // ── Footer: deadline | days left | next ───────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Deadline
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('DEADLINE', style: _monoLabel(light)),
+                      const SizedBox(height: 4),
+                      Text(card._deadlineFormatted, style: _monoValue(light)),
+                    ],
+                  ),
+                ),
+
+                // Days left block
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${card._daysLeft}',
+                      style: GoogleFonts.bitter(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                        color: _C.accentText(light),
+                      ),
+                    ),
+                    Text(
+                      'DAYS LEFT',
+                      style: GoogleFonts.ibmPlexMono(
+                        fontSize: 7.5,
+                        letterSpacing: 1.2,
+                        color: _C.sub(light),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(width: 14),
+
+                // Next arrow
+                GestureDetector(
+                  onTap: () => card._goTo(1),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    color: _C.ctaBg(light),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      color: _C.ctaFg(light),
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Inline stat tile used only on cover slide ─────────────────────────────────
-class _StatTile extends StatelessWidget {
+// ── Register cell (two-col stat) ──────────────────────────────────────────────
+class _RegisterCell extends StatelessWidget {
   final String label, value;
   final bool light, accent;
-  const _StatTile({
+  const _RegisterCell({
     required this.label,
     required this.value,
     required this.light,
@@ -389,54 +399,22 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color valueFg = accent
-        ? (light ? const Color(0xFF0D9488) : const Color(0xFF34D399))
-        : (light ? const Color(0xFF111110) : Colors.white);
-    final Color tileBg = accent
-        ? (light
-            ? const Color(0xFFF0FDF9)
-            : const Color(0xFF34D399).withOpacity(0.08))
-        : (light ? Colors.white : Colors.white.withOpacity(0.06));
-    final Color tileBorder = accent
-        ? (light
-            ? const Color(0xFFB2F5EA)
-            : const Color(0xFF34D399).withOpacity(0.2))
-        : (light
-            ? Colors.black.withOpacity(0.08)
-            : Colors.white.withOpacity(0.1));
-
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
-          color: tileBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: tileBorder, width: 1.2),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: GoogleFonts.spaceMono(
-                fontSize: 7.5,
-                letterSpacing: 1.1,
-                color: light
-                    ? const Color(0xFFAAAAAA)
-                    : Colors.white.withOpacity(0.35),
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: _monoLabel(light)),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.ibmPlexMono(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: accent ? _C.accentText(light) : _C.ink(light),
             ),
-            const SizedBox(height: 5),
-            Text(
-              value,
-              style: GoogleFonts.syne(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: valueFg,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -452,128 +430,140 @@ class _DetailsSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool light = card._isLight;
-    final Color bg = light ? Colors.white : const Color(0xFF1A1A18);
-    final Color divider = light
-        ? Colors.black.withOpacity(0.07)
-        : Colors.white.withOpacity(0.07);
 
-    return Container(
-      color: bg,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: GridPainter(
-                lineColor: light
-                    ? Colors.black.withOpacity(0.05)
-                    : Colors.white.withOpacity(0.04),
+    return _CardShell(
+      light: light,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            // ── Header ────────────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _BackBtn(onTap: () => card._goTo(0), light: light),
+                Text('02 / 03', style: _monoLabel(light)),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+            _Rule(light: light),
+            const SizedBox(height: 12),
+
+            Text('OPPORTUNITY DETAILS', style: _monoLabel(light)),
+
+            const SizedBox(height: 12),
+            _Rule(light: light),
+
+            // ── Detail rows ───────────────────────────────────────────────
+            Expanded(
+              child: Column(
+                children: [
+                  _LedgerRow(
+                    icon: Icons.location_on_outlined,
+                    label: 'LOCATION',
+                    value: card._opp.internship?.location ?? '—',
+                    light: light,
+                    accent: false,
+                  ),
+                  _Rule(light: light),
+                  _LedgerRow(
+                    icon: Icons.access_time_outlined,
+                    label: 'TYPE / DURATION',
+                    value:
+                        '${card._opp.internship?.empType ?? 'Role'}  ·  ${card._duration}',
+                    light: light,
+                    accent: false,
+                  ),
+                  _Rule(light: light),
+                  _LedgerRow(
+                    icon: Icons.group_outlined,
+                    label: 'ELIGIBILITY',
+                    value: card._opp.internship?.eligibility ?? 'All',
+                    light: light,
+                    accent: false,
+                  ),
+                  _Rule(light: light),
+                  _LedgerRow(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: 'STIPEND',
+                    value: card._stipend,
+                    light: light,
+                    accent: true,
+                  ),
+                  _Rule(light: light),
+                ],
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+            const SizedBox(height: 14),
+
+            // ── Actions ───────────────────────────────────────────────────
+            Row(
               children: [
-                // ── Header row ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _BackButton(onTap: () => card._goTo(0), light: light),
-                    _SlideLabel(label: '02 / 03', light: light),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                Text(
-                  'OPPORTUNITY DETAILS',
-                  style: GoogleFonts.spaceMono(
-                    fontSize: 8,
-                    letterSpacing: 2.0,
-                    color: light
-                        ? const Color(0xFF999999)
-                        : Colors.white.withOpacity(0.35),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // ── Detail rows ──
                 Expanded(
-                  child: Column(
-                    children: [
-                      _DetailRow(
-                        icon: Icons.location_on_outlined,
-                        label: 'LOCATION',
-                        value: card._opp.internship?.location ?? '—',
-                        light: light,
-                        highlight: false,
-                      ),
-                      Divider(height: 1, color: divider),
-                      _DetailRow(
-                        icon: Icons.access_time_rounded,
-                        label: 'TYPE / DURATION',
-                        value:
-                            '${card._opp.internship?.empType ?? 'Role'} · ${card._duration}',
-                        light: light,
-                        highlight: false,
-                      ),
-                      Divider(height: 1, color: divider),
-                      _DetailRow(
-                        icon: Icons.people_outline_rounded,
-                        label: 'ELIGIBILITY',
-                        value: card._opp.internship?.eligibility ?? 'All',
-                        light: light,
-                        highlight: false,
-                      ),
-                      Divider(height: 1, color: divider),
-                      _DetailRow(
-                        icon: Icons.monetization_on_outlined,
-                        label: 'STIPEND',
-                        value: card._stipend,
-                        light: light,
-                        highlight: true,
-                      ),
-                    ],
+                  child: _StrokeBtn(
+                    label: 'About →',
+                    onTap: () => card._goTo(2),
+                    light: light,
                   ),
                 ),
-
-                // ── Action buttons ──
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => card._goTo(2),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: light
-                                ? const Color(0xFF111110)
-                                : Colors.white.withOpacity(0.15),
-                            width: 1.4,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text(
-                          'About →',
-                          style: GoogleFonts.syne(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: light
-                                ? const Color(0xFF111110)
-                                : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(child: _ApplyButton(onTap: card._launchApply, light: light)),
-                  ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _SolidBtn(
+                    label: 'Apply Now',
+                    onTap: card._launchApply,
+                    light: light,
+                  ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Ledger row ────────────────────────────────────────────────────────────────
+class _LedgerRow extends StatelessWidget {
+  final IconData icon;
+  final String label, value;
+  final bool light, accent;
+
+  const _LedgerRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.light,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: _C.sub(light)),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 110,
+            child: Text(label, style: _monoLabel(light)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.ibmPlexMono(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: accent ? _C.accentText(light) : _C.ink(light),
+              ),
             ),
           ),
         ],
@@ -589,174 +579,134 @@ class _AboutSlide extends StatelessWidget {
   final _InternshipFeedCardState card;
   const _AboutSlide({required this.card});
 
-  List<_Tag> _buildTags(bool light) {
+  List<_Tag> _buildTags() {
     final tags = <_Tag>[];
-    final teal = light ? const Color(0xFF0D9488) : const Color(0xFF34D399);
-    final tealBg = light
-        ? const Color(0xFFF0FDF9)
-        : const Color(0xFF34D399).withOpacity(0.1);
-    final tealBorder = light
-        ? const Color(0xFF99F6E4)
-        : const Color(0xFF34D399).withOpacity(0.25);
-    final defaultBorder = light
-        ? Colors.black.withOpacity(0.15)
-        : Colors.white.withOpacity(0.2);
-    final defaultText = light ? const Color(0xFF111110) : Colors.white;
-
-    // Type chip (dark pill)
-    tags.add(_Tag(
-      card._opp.internship?.empType ?? 'Internship',
-      light ? const Color(0xFF111110) : Colors.white,
-      Colors.transparent,
-      light ? Colors.white : const Color(0xFF111110),
-    ));
-
+    final empType = card._opp.internship?.empType ?? '';
+    if (empType.isNotEmpty) tags.add(_Tag(empType.toUpperCase()));
     final loc = card._opp.internship?.location ?? '';
-    if (loc.isNotEmpty) tags.add(_Tag(loc, tealBg, tealBorder, teal));
-
+    if (loc.isNotEmpty) tags.add(_Tag(loc.toUpperCase()));
     if ((card._opp.internship?.stipend ?? 0) > 0)
-      tags.add(_Tag(card._stipend, tealBg, tealBorder, teal));
-
-    if (card._duration.isNotEmpty)
-      tags.add(_Tag(card._duration, Colors.transparent, defaultBorder, defaultText));
-
+      tags.add(_Tag(card._stipend));
+    if (card._duration.isNotEmpty) tags.add(_Tag(card._duration));
     final elig = card._opp.internship?.eligibility ?? '';
-    if (elig.isNotEmpty) {
-      final short = elig.split(' ').take(2).join(' ');
-      tags.add(_Tag(short, Colors.transparent, defaultBorder, defaultText));
-    }
-
-    if (card._opp.isElite)
-      tags.add(_Tag('Elite ★', const Color(0xFFC8A96E), Colors.transparent, const Color(0xFF111110)));
-
+    if (elig.isNotEmpty)
+      tags.add(_Tag(elig.split(' ').take(3).join(' ').toUpperCase()));
+    if (card._opp.isElite) tags.add(_Tag('ELITE'));
     return tags;
   }
 
   @override
   Widget build(BuildContext context) {
     final bool light = card._isLight;
-    final Color bg = light ? const Color(0xFFF5F3EE) : const Color(0xFF111110);
     final desc = card._opp.internship?.description ??
         card._opp.internship?.eligibility ??
         'Open opportunity for students.';
-    final tags = _buildTags(light);
+    final tags = _buildTags();
 
-    return Container(
-      color: bg,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: GridPainter(
-                lineColor: light
-                    ? Colors.black.withOpacity(0.05)
-                    : Colors.white.withOpacity(0.04),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return _CardShell(
+      light: light,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            // ── Header ────────────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // ── Header row ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                _BackBtn(onTap: () => card._goTo(1), light: light),
+                Text(
+                  'ABOUT THE ROLE',
+                  style: GoogleFonts.ibmPlexMono(
+                    fontSize: 9,
+                    letterSpacing: 1.8,
+                    fontWeight: FontWeight.w600,
+                    color: _C.ink(light),
+                  ),
+                ),
+                Text('03 / 03', style: _monoLabel(light)),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+            _Rule(light: light),
+            const SizedBox(height: 16),
+
+            // ── Description ───────────────────────────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _BackButton(onTap: () => card._goTo(1), light: light),
                     Text(
-                      'About the role',
-                      style: GoogleFonts.playfairDisplay(
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic,
-                        color: light
-                            ? const Color(0xFF111110)
-                            : Colors.white,
+                      desc,
+                      style: GoogleFonts.bitter(
+                        fontSize: 14,
+                        height: 1.7,
+                        color: _C.ink(light),
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                    _SlideLabel(label: '03 / 03', light: light),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // ── Quote mark ──
-                Text(
-                  '"',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 56,
-                    height: 0.8,
-                    color: light
-                        ? Colors.black.withOpacity(0.07)
-                        : Colors.white.withOpacity(0.07),
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                // ── Description — scrollable if too long ──
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          desc,
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 17,
-                            fontStyle: FontStyle.italic,
-                            height: 1.5,
-                            color: light
-                                ? const Color(0xFF333333)
-                                : Colors.white.withOpacity(0.75),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: tags
-                              .map((t) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 13, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: t.bg,
-                                      border:
-                                          Border.all(color: t.border, width: 1.4),
-                                      borderRadius: BorderRadius.circular(100),
-                                    ),
-                                    child: Text(
-                                      t.label,
-                                      style: GoogleFonts.syne(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: t.text,
-                                      ),
-                                    ),
-                                  ))
-                              .toList(),
-                        ),
-                      ],
+                    const SizedBox(height: 20),
+                    // Tags as compact mono tokens
+                    Wrap(
+                      spacing: 0,
+                      runSpacing: 8,
+                      children: tags.asMap().entries.map((entry) {
+                        final isLast = entry.key == tags.length - 1;
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              entry.value.label,
+                              style: GoogleFonts.ibmPlexMono(
+                                fontSize: 10,
+                                letterSpacing: 0.8,
+                                fontWeight: FontWeight.w500,
+                                color: _C.sub(light),
+                              ),
+                            ),
+                            if (!isLast)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8),
+                                child: Text(
+                                  '/',
+                                  style: GoogleFonts.ibmPlexMono(
+                                    fontSize: 10,
+                                    color: _C.rule(light),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }).toList(),
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Bottom row: dot indicator + apply button ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _DotIndicator(
-                        current: card._currentSlide, light: light),
-                    _ApplyButton(onTap: card._launchApply, light: light),
                   ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+            _Rule(light: light),
+            const SizedBox(height: 14),
+
+            // ── Bottom row: dots + apply ───────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _SegmentDots(current: card._currentSlide, light: light),
+                _SolidBtn(
+                  label: 'Apply Now',
+                  onTap: card._launchApply,
+                  light: light,
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -766,117 +716,26 @@ class _AboutSlide extends StatelessWidget {
 // SHARED SMALL WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _OrgChip extends StatelessWidget {
-  final String name;
+class _BackBtn extends StatelessWidget {
+  final VoidCallback onTap;
   final bool light;
-  const _OrgChip({required this.name, required this.light});
+  const _BackBtn({required this.onTap, required this.light});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
-      decoration: BoxDecoration(
-        color: light ? Colors.white : Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: Colors.black.withOpacity(0.1)),
-        boxShadow: light
-            ? [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4)]
-            : [],
-      ),
+    return GestureDetector(
+      onTap: onTap,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 20,
-            height: 20,
-            decoration: const BoxDecoration(
-                color: Colors.black, shape: BoxShape.circle),
-            child: const Icon(Icons.school, size: 11, color: Colors.white),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            name,
-            style: GoogleFonts.syne(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: light ? Colors.black : Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EliteBadge extends StatelessWidget {
-  final bool light;
-  const _EliteBadge({required this.light});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: light ? const Color(0xFF111110) : const Color(0xFFDC2626),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.star, size: 9, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(
-            'ELITE',
-            style: GoogleFonts.spaceMono(
-                fontSize: 8, letterSpacing: 1.4, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DaysLeftPill extends StatelessWidget {
-  final int days;
-  final bool light;
-  const _DaysLeftPill({required this.days, required this.light});
-
-  @override
-  Widget build(BuildContext context) {
-    final teal = light ? const Color(0xFF0D9488) : const Color(0xFF34D399);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      margin: const EdgeInsets.only(right: 10),
-      decoration: BoxDecoration(
-        color: light
-            ? const Color(0xFFF0FDF9)
-            : const Color(0xFF34D399).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: light
-              ? const Color(0xFF99F6E4)
-              : const Color(0xFF34D399).withOpacity(0.25),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            '$days',
-            style: GoogleFonts.playfairDisplay(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: teal,
-              height: 1,
-            ),
-          ),
+          Icon(Icons.arrow_back, size: 13, color: _C.sub(light)),
           const SizedBox(width: 5),
           Text(
-            'DAYS\nLEFT',
-            style: GoogleFonts.spaceMono(
-              fontSize: 7,
-              letterSpacing: 0.8,
-              color: teal,
-              height: 1.3,
+            'BACK',
+            style: GoogleFonts.ibmPlexMono(
+              fontSize: 9,
+              letterSpacing: 1.4,
+              color: _C.sub(light),
             ),
           ),
         ],
@@ -885,153 +744,81 @@ class _DaysLeftPill extends StatelessWidget {
   }
 }
 
-
-
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  final bool light, highlight;
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.light,
-    required this.highlight,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 13),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: light
-                  ? const Color(0xFFF5F3EE)
-                  : Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon,
-                size: 14,
-                color: light
-                    ? const Color(0xFF666666)
-                    : Colors.white.withOpacity(0.4)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.spaceMono(
-                    fontSize: 8,
-                    letterSpacing: 1.1,
-                    color: light
-                        ? const Color(0xFFBBBBBB)
-                        : Colors.white.withOpacity(0.25),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.syne(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: highlight
-                        ? (light
-                            ? const Color(0xFF0D9488)
-                            : const Color(0xFF34D399))
-                        : (light ? const Color(0xFF111110) : Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
+class _StrokeBtn extends StatelessWidget {
+  final String label;
   final VoidCallback onTap;
   final bool light;
-  const _BackButton({required this.onTap, required this.light});
+  const _StrokeBtn({
+    required this.label,
+    required this.onTap,
+    required this.light,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: light
-              ? const Color(0xFFF5F3EE)
-              : Colors.white.withOpacity(0.08),
-          shape: BoxShape.circle,
+          border: Border.all(color: _C.rule(light), width: 1),
         ),
-        child: Icon(Icons.arrow_back,
-            size: 16, color: light ? Colors.black : Colors.white),
+        child: Text(
+          label,
+          style: GoogleFonts.ibmPlexMono(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: _C.ink(light),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _SlideLabel extends StatelessWidget {
+class _SolidBtn extends StatelessWidget {
   final String label;
-  final bool light;
-  const _SlideLabel({required this.label, required this.light});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: GoogleFonts.spaceMono(
-        fontSize: 9,
-        color:
-            light ? const Color(0xFFAAAAAA) : Colors.white.withOpacity(0.35),
-      ),
-    );
-  }
-}
-
-class _ApplyButton extends StatelessWidget {
   final Future<void> Function() onTap;
   final bool light;
-  const _ApplyButton({required this.onTap, required this.light});
+  const _SolidBtn({
+    required this.label,
+    required this.onTap,
+    required this.light,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor:
-            light ? const Color(0xFF111110) : const Color(0xFFC8A96E),
-        foregroundColor:
-            light ? Colors.white : const Color(0xFF111110),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 18),
-        elevation: 0,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        color: _C.ctaBg(light),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.ibmPlexMono(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: _C.ctaFg(light),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.north_east, size: 12, color: _C.ctaFg(light)),
+          ],
+        ),
       ),
-      icon: Text(
-        'Apply Now',
-        style: GoogleFonts.syne(fontSize: 13, fontWeight: FontWeight.w700),
-      ),
-      label: const Icon(Icons.north_east, size: 14),
     );
   }
 }
 
-class _DotIndicator extends StatelessWidget {
+class _SegmentDots extends StatelessWidget {
   final int current;
   final bool light;
-  const _DotIndicator({required this.current, required this.light});
+  const _SegmentDots({required this.current, required this.light});
 
   @override
   Widget build(BuildContext context) {
@@ -1039,19 +826,12 @@ class _DotIndicator extends StatelessWidget {
       children: List.generate(3, (i) {
         final active = i == current;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.only(right: 6),
-          width: active ? 16 : 5,
-          height: 5,
-          decoration: BoxDecoration(
-            color: active
-                ? (light ? const Color(0xFF111110) : Colors.white)
-                : (light
-                    ? Colors.black.withOpacity(0.15)
-                    : Colors.white.withOpacity(0.15)),
-            borderRadius: BorderRadius.circular(3),
-          ),
+          margin: const EdgeInsets.only(right: 4),
+          width: active ? 20 : 6,
+          height: 2,
+          color: active ? _C.accent : _C.rule(light),
         );
       }),
     );

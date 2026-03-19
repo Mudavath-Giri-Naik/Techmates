@@ -174,100 +174,102 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.translucent,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _bookmarks.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _bookmarks.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.bookmark_border, size: 64, color: Theme.of(context).colorScheme.outlineVariant),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No bookmarks yet",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Save opportunities to view them here later",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
                       children: [
-                        Icon(Icons.bookmark_border, size: 64, color: Theme.of(context).colorScheme.outlineVariant),
-                        const SizedBox(height: 16),
-                        Text(
-                          "No bookmarks yet",
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
+                        // Search Bar
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: TextField(
+                            onChanged: (val) {
+                              setState(() {
+                                _searchQuery = val;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              hintText: "Search bookmarks...",
+                              prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1),
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Save opportunities to view them here later",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
+                        
+                        // List
+                        Expanded(
+                          child: filtered.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.search_off, size: 48, color: Theme.of(context).colorScheme.outlineVariant),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        "No matches found",
+                                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16), // Bottom padding handled by card margin
+                                  itemCount: filtered.length,
+                                  itemBuilder: (context, index) {
+                                    final item = filtered[index];
+                                    return UnifiedBookmarkCard(
+                                      item: item,
+                                      onRemove: _loadBookmarks,
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
-                  )
-                : Column(
-                    children: [
-                      // Search Bar
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: TextField(
-                          onChanged: (val) {
-                            setState(() {
-                              _searchQuery = val;
-                            });
-                          },
-                          decoration: InputDecoration(
-                            hintText: "Search bookmarks...",
-                            prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
-                            filled: true,
-                            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1),
-                            ),
-                          ),
-                        ),
-                      ),
-                      
-                      // List
-                      Expanded(
-                        child: filtered.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.search_off, size: 48, color: Theme.of(context).colorScheme.outlineVariant),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      "No matches found",
-                                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16), // Bottom padding handled by card margin
-                                itemCount: filtered.length,
-                                itemBuilder: (context, index) {
-                                  final item = filtered[index];
-                                  return UnifiedBookmarkCard(
-                                    item: item,
-                                    onRemove: _loadBookmarks,
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
+        ),
       ),
     );
   }

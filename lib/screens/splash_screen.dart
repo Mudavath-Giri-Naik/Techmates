@@ -252,7 +252,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
+      body: SafeArea(
+        child: Stack(
         children: [
           AnimatedBuilder(
             animation: _gridController,
@@ -394,7 +395,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

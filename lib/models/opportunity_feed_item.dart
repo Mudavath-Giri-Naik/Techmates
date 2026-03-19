@@ -69,4 +69,67 @@ class OpportunityFeedItem {
     this.postLink,
     this.applyLink,
   });
+
+  /// Serialize to JSON for local caching.
+  Map<String, dynamic> toJson() {
+    return {
+      'opportunityId': opportunityId,
+      'type': type.name,
+      'hackathon': hackathon?.toJson(),
+      'internship': internship?.toJson(),
+      'event': event?.toJson(),
+      'isElite': isElite,
+      'createdAt': createdAt.toIso8601String(),
+      'posterUserId': posterUserId,
+      'posterName': posterName,
+      'posterUsername': posterUsername,
+      'posterAvatarUrl': posterAvatarUrl,
+      'posterRole': posterRole,
+      'posterCollege': posterCollege,
+      'posterBranch': posterBranch,
+      'posterStudyYear': posterStudyYear,
+      'postLink': postLink,
+      'applyLink': applyLink,
+    };
+  }
+
+  /// Deserialize from cached JSON.
+  factory OpportunityFeedItem.fromJson(Map<String, dynamic> json) {
+    final typeStr = json['type'] as String? ?? 'hackathon';
+    final type = OpportunityType.values.firstWhere(
+      (e) => e.name == typeStr,
+      orElse: () => OpportunityType.hackathon,
+    );
+
+    return OpportunityFeedItem(
+      opportunityId: json['opportunityId'] as String? ?? '',
+      type: type,
+      hackathon: json['hackathon'] != null
+          ? HackathonDetailsModel.fromJson(
+              json['hackathon'] as Map<String, dynamic>)
+          : null,
+      internship: json['internship'] != null
+          ? InternshipDetailsModel.fromJson(
+              json['internship'] as Map<String, dynamic>)
+          : null,
+      event: json['event'] != null
+          ? EventDetailsModel.fromJson(
+              json['event'] as Map<String, dynamic>)
+          : null,
+      isElite: json['isElite'] as bool? ?? false,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')
+              ?.toLocal() ??
+          DateTime.now(),
+      posterUserId: json['posterUserId'] as String?,
+      posterName: json['posterName'] as String?,
+      posterUsername: json['posterUsername'] as String?,
+      posterAvatarUrl: json['posterAvatarUrl'] as String?,
+      posterRole: json['posterRole'] as String?,
+      posterCollege: json['posterCollege'] as String?,
+      posterBranch: json['posterBranch'] as String?,
+      posterStudyYear: json['posterStudyYear'] as String?,
+      postLink: json['postLink'] as String?,
+      applyLink: json['applyLink'] as String?,
+    );
+  }
 }

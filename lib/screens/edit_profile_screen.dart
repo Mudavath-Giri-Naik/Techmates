@@ -152,11 +152,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
         ],
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _isEditMode 
-          ? _buildEditMode()
-          : _buildViewMode(),
+      body: SafeArea(
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : _isEditMode 
+            ? _buildEditMode()
+            : _buildViewMode(),
+      ),
     );
   }
 

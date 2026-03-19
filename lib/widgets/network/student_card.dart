@@ -190,7 +190,7 @@ class _StudentCardState extends State<StudentCard> {
                               const SizedBox(width: 2),
                               Text(
                                 '${_student.githubScore}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   color: colorScheme.onSurface,

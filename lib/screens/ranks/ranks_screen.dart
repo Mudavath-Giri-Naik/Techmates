@@ -125,12 +125,18 @@ class _RanksScreenState extends State<RanksScreen> {
     setState(() => _loading = true);
     List<LeaderboardEntry> list = [];
     try {
-      if (_tabIndex == 0 && _classroomId != null) {
-        list = await _service.fetchClassLeaderboard(_classroomId!);
-      } else if (_tabIndex == 1 && _departmentId != null) {
-        list = await _service.fetchDeptLeaderboard(_departmentId!);
-      } else if (_tabIndex == 2 && _collegeId != null) {
-        list = await _service.fetchCollegeLeaderboard(_collegeId!);
+      if (_tabIndex == 0 && _collegeId != null && _branch != null && _year != null && _userId != null) {
+        list = await _service.fetchClassLeaderboard(
+          collegeId: _collegeId!,
+          branch: _branch!,
+          year: _year!,
+          currentUserId: _userId!,
+        );
+      } else if (_tabIndex == 1 && _collegeId != null && _userId != null && _branch != null) {
+        final colList = await _service.fetchCollegeLeaderboard(collegeId: _collegeId!, currentUserId: _userId!);
+        list = colList.where((e) => e.branch == _branch).toList();
+      } else if (_tabIndex == 2 && _collegeId != null && _userId != null) {
+        list = await _service.fetchCollegeLeaderboard(collegeId: _collegeId!, currentUserId: _userId!);
       }
     } catch (e) {
       debugPrint('❌ [RanksScreen] loadLeaderboard: $e');
@@ -246,11 +252,7 @@ class _RanksScreenState extends State<RanksScreen> {
     final inkPrimary = isDark ? AppColors.dark.inkPrimary : AppColors.light.inkPrimary;
     final inkFaint = isDark ? AppColors.dark.inkFaint : AppColors.light.inkFaint;
 
-    final rank = _tabIndex == 0
-        ? e.classRank
-        : _tabIndex == 1
-            ? e.deptRank
-            : e.collegeRank;
+    final rank = e.rank;
     final isMe = e.userId == _userId;
 
     return Container(
@@ -300,7 +302,7 @@ class _RanksScreenState extends State<RanksScreen> {
                   children: [
                     Flexible(
                       child: Text(
-                        e.firstName,
+                        e.fullName,
                         style: AppTextStyles.bodyMedium(color: inkPrimary),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -318,11 +320,11 @@ class _RanksScreenState extends State<RanksScreen> {
                     ],
                   ],
                 ),
-                if (e.streakDays > 0 || e.topDomainKey != null)
+                if (e.streakDays > 0 || e.topDomain != null)
                   Text(
                     [
                       if (e.streakDays > 0) '${e.streakDays}d streak',
-                      if (e.topDomainKey != null) '${e.topDomainKey} ${e.topDomainScore ?? ''}',
+                      if (e.topDomain != null) e.topDomain,
                     ].join(' · '),
                     style: AppTextStyles.bodySmall(color: inkFaint),
                   ),

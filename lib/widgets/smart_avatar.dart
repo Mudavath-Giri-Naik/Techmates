@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -29,9 +30,11 @@ class _SmartAvatarState extends State<SmartAvatar> {
   final AvatarService _avatarService = AvatarService();
   final ProfileService _profileService = ProfileService();
   final SupabaseClient _client = SupabaseClientManager.instance;
+  StreamSubscription<AuthState>? _authSub;
   
   String? _profileAvatarUrl;
   bool _isLoadingProfile = true;
+  bool _hasTriedFetch = false;
   
   bool _isUploading = false;
   File? _localPreview; // For instant preview before upload finishes
@@ -39,7 +42,18 @@ class _SmartAvatarState extends State<SmartAvatar> {
   @override
   void initState() {
     super.initState();
+    _authSub = _auth.authStateChanges.listen((_) {
+      if (!mounted) return;
+      setState(() => _hasTriedFetch = false);
+      _fetchLatestProfile();
+    });
     _fetchLatestProfile();
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchLatestProfile() async {
@@ -65,6 +79,12 @@ class _SmartAvatarState extends State<SmartAvatar> {
         final user = _auth.user;
         if (user == null) return _buildPlaceholder();
 
+        // If user is now available but we haven't successfully fetched yet, retry
+        if (_profileAvatarUrl == null && !_hasTriedFetch) {
+          _hasTriedFetch = true;
+          Future.microtask(() => _fetchLatestProfile());
+        }
+
         final metadata = user.userMetadata ?? {};
         final String? metadataCustomUrl = proxyUrl(metadata['custom_avatar_url'] as String?);
         final String? providerUrl = proxyUrl((metadata['avatar_url'] ?? metadata['picture']) as String?);
@@ -86,8 +106,8 @@ class _SmartAvatarState extends State<SmartAvatar> {
                 height: widget.size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                  color: Colors.grey.shade100,
+                  border: Border.all(color: Colors.grey.shade300, width: 1.5),
                 ),
                 child: ClipOval(
                   child: _buildAvatarContent(displayUrl),
@@ -174,13 +194,12 @@ class _SmartAvatarState extends State<SmartAvatar> {
   }
 
   Widget _buildPlaceholder() {
-    return Image.asset(
-      'assets/images/default_avatar.png',
-      fit: BoxFit.cover,
+    return Container(
       width: widget.size,
       height: widget.size,
-      errorBuilder: (_, __, ___) => Center(
-        child: Icon(Icons.person, size: widget.size * 0.5, color: Colors.grey.shade400),
+      color: Colors.grey.shade100,
+      child: Center(
+        child: Icon(Icons.person_rounded, size: widget.size * 0.55, color: Colors.grey.shade500),
       ),
     );
   }

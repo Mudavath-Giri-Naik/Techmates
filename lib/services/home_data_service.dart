@@ -225,7 +225,7 @@ class HomeDataService {
     try {
       final response = await _client
           .from('opportunities')
-          .select('*, internship_details(*), hackathon_details(*), event_details(*)')
+          .select('*, internship_details(*), hackathon_details(*), event_details(*), postedProfile:profiles!opportunities_posted_by_fkey(full_name, avatar_url, username), createdProfile:profiles!opportunities_created_by_fkey(full_name, avatar_url, username)')
           .order('created_at', ascending: false)
           .limit(4)
           .timeout(const Duration(seconds: 5));

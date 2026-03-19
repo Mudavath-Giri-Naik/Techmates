@@ -69,89 +69,91 @@ class ResultScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-        children: [
-          // ── Performance ──
-          _sectionLabel('Performance', cs, theme),
-          const SizedBox(height: 12),
-          _MetricBreakdownCard(
-            metrics: [
-              _getScoreBreakdown(),
-              _getAccuracyBreakdown(),
-              _getLevelBreakdown(),
-            ],
-            cs: cs,
-            theme: theme,
-            isDark: isDark,
-          ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+          children: [
+            // ── Performance ──
+            _sectionLabel('Performance', cs, theme),
+            const SizedBox(height: 12),
+            _MetricBreakdownCard(
+              metrics: [
+                _getScoreBreakdown(),
+                _getAccuracyBreakdown(),
+                _getLevelBreakdown(),
+              ],
+              cs: cs,
+              theme: theme,
+              isDark: isDark,
+            ),
 
-          _divider(cs),
+            _divider(cs),
 
-          // ── Arena Rating ──
-          _sectionLabel('Arena Rating', cs, theme),
-          const SizedBox(height: 12),
-          _MetricBreakdownCard(
-            metrics: [
-              _getRatingBreakdown(arenaRating),
-              _getPercentileBreakdown(arenaPercentile),
-              _getBestBreakdown(bestScore),
-            ],
-            cs: cs,
-            theme: theme,
-            isDark: isDark,
-          ),
+            // ── Arena Rating ──
+            _sectionLabel('Arena Rating', cs, theme),
+            const SizedBox(height: 12),
+            _MetricBreakdownCard(
+              metrics: [
+                _getRatingBreakdown(arenaRating),
+                _getPercentileBreakdown(arenaPercentile),
+                _getBestBreakdown(bestScore),
+              ],
+              cs: cs,
+              theme: theme,
+              isDark: isDark,
+            ),
 
-          _divider(cs),
+            _divider(cs),
 
-          // ── Campus Standing ──
-          _sectionLabel('Campus Standing', cs, theme),
-          const SizedBox(height: 12),
-          _MetricBreakdownCard(
-            metrics: [
-              _getRankBreakdown(campusRankStr),
-              _getTpiBreakdown(finalTpi),
-              _getGamesBreakdown(totalSessions),
-            ],
-            cs: cs,
-            theme: theme,
-            isDark: isDark,
-          ),
+            // ── Campus Standing ──
+            _sectionLabel('Campus Standing', cs, theme),
+            const SizedBox(height: 12),
+            _MetricBreakdownCard(
+              metrics: [
+                _getRankBreakdown(campusRankStr),
+                _getTpiBreakdown(finalTpi),
+                _getGamesBreakdown(totalSessions),
+              ],
+              cs: cs,
+              theme: theme,
+              isDark: isDark,
+            ),
 
-          const SizedBox(height: 28),
+            const SizedBox(height: 28),
 
-          // ── Leaderboard ──
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showLeaderboard(context),
-              icon: const Icon(Icons.leaderboard_outlined, size: 18),
-              label: const Text('View Leaderboard'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                side: BorderSide(color: cs.outline.withOpacity(0.3)),
+            // ── Leaderboard ──
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showLeaderboard(context),
+                icon: const Icon(Icons.leaderboard_outlined, size: 18),
+                label: const Text('View Leaderboard'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  side: BorderSide(color: cs.outline.withOpacity(0.3)),
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // ── Back ──
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+            // ── Back ──
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Back to Arenas'),
               ),
-              child: const Text('Back to Arenas'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

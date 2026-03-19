@@ -6,11 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/hackathon_details_model.dart';
 import '../models/opportunity_feed_item.dart';
 
-/// Redesigned hackathon feed card — single dark-surfaced panel.
-///
-/// Always dark (#0C0C0C) background in both themes so the card pops.
-/// Features a pulsing status dot, three stat cells, tag cloud, and a
-/// high-contrast accentYellow CTA button.
+/// Professional Hackathon Feed Card — 1:1 square ratio (1080×1080 design)
 class HackathonFeedCard extends StatefulWidget {
   final OpportunityFeedItem opportunity;
   final int rank;
@@ -28,11 +24,75 @@ class HackathonFeedCard extends StatefulWidget {
 class _HackathonFeedCardState extends State<HackathonFeedCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseCtrl;
-  bool _isSaved = false;
 
-  // ── Color tokens — resolved per theme ──
-  static const _accentHighlight = Color(0xFF3B82F6);
-  static const _accentBlue = Color(0xFF3B82F6);
+  // ── Palette ───────────────────────────────────────────────────
+  static const _teal        = Color(0xFF14B8A6);
+  static const _tealSurface = Color(0xFFE6F7F5);
+
+  static const _cardBg      = Color(0xFFFAFAF9);
+  static const _sectionBg   = Color(0xFFF2F1EE);
+  static const _textPrimary = Color(0xFF111827);
+  static const _textSub     = Color(0xFF6B7280);
+  static const _textMuted   = Color(0xFF9CA3AF);
+
+  // ── Data helpers ──────────────────────────────────────────────
+  HackathonDetailsModel get _h => widget.opportunity.hackathon!;
+
+  String get _orgName {
+    final c = _h.company.trim();
+    if (c.isNotEmpty) return c;
+    return widget.opportunity.posterName ??
+        widget.opportunity.posterUsername ??
+        'TechMates';
+  }
+
+  String get _location {
+    final l = _h.location.trim();
+    return l.isNotEmpty ? l : 'Worldwide / Remote';
+  }
+
+  String get _prize {
+    final p = _h.prizes.trim();
+    return p.isNotEmpty ? p : '';
+  }
+
+  int get _daysLeft {
+    final now   = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final end   = DateTime(_h.deadline.year, _h.deadline.month, _h.deadline.day);
+    final diff  = end.difference(today).inDays;
+    return diff > 0 ? diff : 0;
+  }
+
+  bool get _isOpen => _daysLeft > 0;
+
+  String get _applyLink =>
+      widget.opportunity.applyLink ??
+      widget.opportunity.postLink ??
+      _h.link;
+
+  String get _deadlineLabel => DateFormat('dd MMM yyyy').format(_h.deadline);
+
+  String get _postedAgo {
+    final diff = DateTime.now().difference(widget.opportunity.createdAt);
+    if (diff.inDays == 0) return 'Today';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7)  return '${diff.inDays}d ago';
+    return DateFormat('dd MMM').format(widget.opportunity.createdAt);
+  }
+
+  List<String> get _chips {
+    final t = <String>[];
+    if (_h.teamSize.isNotEmpty && _h.teamSize != 'N/A') t.add(_h.teamSize);
+    if (_h.rounds > 0) t.add('${_h.rounds} Rounds');
+    if (_h.eligibility.isNotEmpty) t.add(_h.eligibility);
+    return t;
+  }
+
+  String get _initials =>
+      _orgName.trim().split(RegExp(r'\s+')).take(2)
+          .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+          .join();
 
   @override
   void initState() {
@@ -49,392 +109,226 @@ class _HackathonFeedCardState extends State<HackathonFeedCard>
     super.dispose();
   }
 
-  // ── Helpers ──
-
-  HackathonDetailsModel get _h => widget.opportunity.hackathon!;
-
-  // ── Theme-resolved tokens ──
-  late bool _isDark;
-  Color get _cardBg => _isDark ? const Color(0xFF0C0C0C) : const Color(0xFFF5F2EB);
-  Color get _surfaceCell => _isDark ? const Color(0xFF141414) : const Color(0xFFEDE9E0);
-  Color get _divider => _isDark ? const Color(0xFF1E1E1E) : const Color(0xFFDDD9D0);
-  Color get _dividerSubtle => _isDark ? const Color(0xFF1A1A1A) : const Color(0xFFE5E1D8);
-  Color get _onCard => _isDark ? const Color(0xFFF5F2EB) : const Color(0xFF111110);
-  Color get _mutedText => _isDark ? const Color(0xFF555555) : const Color(0xFF888888);
-  Color get _subtleText => _isDark ? const Color(0xFF333333) : const Color(0xFFAAAAAA);
-  Color get _tagFillBg => _isDark ? const Color(0xFF1A1A1A) : const Color(0xFFE8E4DB);
-  Color get _tagFillText => _isDark ? const Color(0xFFAAAAAA) : const Color(0xFF555555);
-  Color get _tagOutlineColor => _isDark ? const Color(0xFF2A2A2A) : const Color(0xFFCCC8BF);
-  Color get _topBarBg => _isDark ? const Color(0xFF111110) : const Color(0xFFEDE9E0);
-  Color get _logoBorder => _isDark ? const Color(0xFF2E2E2E) : const Color(0xFFCCC8BF);
-  Color get _prizeBorder => _isDark ? const Color(0xFF252525) : const Color(0xFFCCC8BF);
-  Color get _bookmarkBorder => _isDark ? const Color(0xFF252525) : const Color(0xFFCCC8BF);
-  Color get _statusDot => _isDark ? const Color(0xFF3B82F6) : const Color(0xFF3B82F6);
-  Color get _statusPillBg => _isDark ? const Color(0x143B82F6) : const Color(0x143B82F6);
-  Color get _statusPillBorder => _isDark ? const Color(0x333B82F6) : const Color(0x333B82F6);
-  Color get _categoryLabel => _isDark ? const Color(0xFF444444) : const Color(0xFF999999);
-  Color get _closedBtnBg => _isDark ? const Color(0xFF1A1A1A) : const Color(0xFFE8E4DB);
-  Color get _closedBtnText => _isDark ? const Color(0xFF444444) : const Color(0xFF999999);
-  Color get _applyBtnBg => const Color(0xFF3B82F6);
-  Color get _applyBtnText => const Color(0xFFFFFFFF);
-
-  String get _orgName {
-    final c = _h.company.trim();
-    if (c.isNotEmpty) return c;
-    return widget.opportunity.posterName ??
-        widget.opportunity.posterUsername ??
-        'TechMates';
-  }
-
-  String get _location {
-    final loc = _h.location.trim();
-    return loc.isNotEmpty ? loc : 'Remote';
-  }
-
-  String get _prize {
-    final p = _h.prizes.trim();
-    return p.isNotEmpty ? p : '';
-  }
-
-  int get _daysLeft {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final d = DateTime(_h.deadline.year, _h.deadline.month, _h.deadline.day);
-    final diff = d.difference(today).inDays;
-    return diff > 0 ? diff : 0;
-  }
-
-  bool get _isOpen => _daysLeft > 0;
-
-  String get _applyLink =>
-      widget.opportunity.applyLink ??
-      widget.opportunity.postLink ??
-      _h.link;
-
-  String get _postedAgo {
-    final diff = DateTime.now().difference(widget.opportunity.createdAt);
-    if (diff.inHours < 24) {
-      return '${diff.inHours} hrs ago';
-    }
-    return DateFormat('MMM d, yyyy').format(widget.opportunity.createdAt);
-  }
-
-  List<String> get _tags {
-    // Hackathon model has no tags list, but build from available fields
-    final t = <String>[];
-    if (_h.teamSize.isNotEmpty && _h.teamSize != 'N/A') {
-      t.add('Team: ${_h.teamSize}');
-    }
-    if (_h.rounds > 0) t.add('${_h.rounds} Rounds');
-    if (_h.eligibility.isNotEmpty) t.add(_h.eligibility);
-    return t;
-  }
-
-  /// Extract year from title or deadline for accent rendering.
-  ({String mainTitle, String? year}) get _splitTitle {
-    final words = _h.title.split(' ');
-    final lastWord = words.isNotEmpty ? words.last : '';
-    if (RegExp(r'^\d{4}$').hasMatch(lastWord)) {
-      return (
-        mainTitle: words.sublist(0, words.length - 1).join(' '),
-        year: lastWord,
-      );
-    }
-    return (mainTitle: _h.title, year: _h.deadline.year.toString());
-  }
+  // ══════════════════════════════════════════════════════════════
+  // BUILD — fully flexible layout, no fixed heights that can overflow
+  // ══════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
-    final hackathon = widget.opportunity.hackathon;
-    if (hackathon == null) return const SizedBox.shrink();
+    if (widget.opportunity.hackathon == null) return const SizedBox.shrink();
 
-    _isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return ClipRect(
-      child: Container(
-        width: double.infinity,
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          color: _cardBg,
-          boxShadow: _isDark
-              ? []
-              : const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 24,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-        ),
+    return AspectRatio(
+      aspectRatio: 1.0,
+      child: ColoredBox(
+        color: _cardBg,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeroSection(),
-            _buildStatsRow(),
-            if (_tags.isNotEmpty) _buildTagsRow(),
-            _buildBottomActions(),
+            // Header — flex 3
+            Expanded(flex: 3, child: _buildHeader()),
+            // Title — flex 4
+            Expanded(flex: 4, child: _buildTitleBlock()),
+            // Info grid — flex 5
+            Expanded(flex: 5, child: _buildInfoGrid()),
+            // Chips — flex 2 (only when present)
+            if (_chips.isNotEmpty)
+              Expanded(flex: 2, child: _buildChips()),
+            // Footer — flex 3
+            Expanded(flex: 3, child: _buildFooter()),
           ],
         ),
       ),
     );
   }
 
-  // Top bar was removed.
-
   // ══════════════════════════════════════════════════════════════
-  // HERO SECTION
+  // HEADER  —  avatar · org · posted · prize badge
   // ══════════════════════════════════════════════════════════════
 
-  Widget _buildHeroSection() {
-    final titleParts = _splitTitle;
-    final prize = _prize;
-
+  Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── Organiser + Prize row ──
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Organiser block
-              Expanded(
-                child: Row(
-                  children: [
-                    // Logo box
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: _surfaceCell,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: _logoBorder,
-                          width: 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _orgName.length >= 2
-                              ? _orgName.substring(0, 2).toUpperCase()
-                              : _orgName.toUpperCase(),
-                          style: GoogleFonts.syne(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: _accentHighlight,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _orgName,
-                            style: GoogleFonts.syne(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                              color: _onCard,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            'ORGANISER',
-                            style: GoogleFonts.dmMono(
-                              fontSize: 9,
-                              letterSpacing: 1,
-                              color: _mutedText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+          // Square initials avatar
+          Container(
+            width: 44,
+            height: 44,
+            color: _tealSurface,
+            child: Center(
+              child: Text(
+                _initials,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: _teal,
+                  letterSpacing: 0.4,
                 ),
               ),
+            ),
+          ),
+          const SizedBox(width: 12),
 
-              // Prize tag
-              if (prize.isNotEmpty) ...[
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _surfaceCell,
-                    border: Border.all(
-                      color: _prizeBorder,
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(100),
+          // Org name + posted ago
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _orgName,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: _textPrimary,
+                    height: 1.2,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('🏆', style: TextStyle(fontSize: 11)),
-                      const SizedBox(width: 6),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 90),
-                        child: Text(
-                          prize,
-                          style: GoogleFonts.syne(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: _accentHighlight,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Posted $_postedAgo',
+                  style: GoogleFonts.ibmPlexMono(
+                    fontSize: 10,
+                    color: _textMuted,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ],
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // ── Category label ──
-          Text(
-            'GLOBAL COMPETITION',
-            style: GoogleFonts.dmMono(
-              fontSize: 9,
-              letterSpacing: 4,
-              color: _categoryLabel,
             ),
           ),
-          const SizedBox(height: 6),
 
-          // ── Hero title ──
-          RichText(
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: titleParts.mainTitle.toUpperCase(),
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 56,
-                    height: 0.92,
-                    letterSpacing: 0.5,
-                    color: _onCard,
-                  ),
-                ),
-                if (titleParts.year != null) ...[
-                  TextSpan(
-                    text: '\n${titleParts.year}',
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 56,
-                      height: 0.92,
-                      letterSpacing: 0.5,
-                      color: _accentHighlight,
+          // Prize badge
+          if (_prize.isNotEmpty) ...[
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              color: _tealSurface,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🏆', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 5),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 90),
+                    child: Text(
+                      _prize,
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _teal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+          ],
         ],
       ),
     );
   }
 
   // ══════════════════════════════════════════════════════════════
-  // STATS ROW
+  // TITLE BLOCK  —  category label · title
   // ══════════════════════════════════════════════════════════════
 
-  Widget _buildStatsRow() {
-    final deadlineStr = DateFormat('MMM dd').format(_h.deadline);
-
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.symmetric(
-          horizontal: BorderSide(color: _dividerSubtle, width: 1),
-        ),
+  Widget _buildTitleBlock() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'HACKATHON',
+            style: GoogleFonts.ibmPlexMono(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 3,
+              color: _teal,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Flexible(
+            child: Text(
+              _h.title,
+              style: GoogleFonts.outfit(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+                letterSpacing: -0.3,
+                color: _textPrimary,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
-      child: IntrinsicHeight(
-        child: Row(
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // INFO GRID  —  2×2, fully flexible
+  // ══════════════════════════════════════════════════════════════
+
+  Widget _buildInfoGrid() {
+    return ColoredBox(
+      color: _sectionBg,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Cell 1 — Deadline
             Expanded(
-              child: _statCell(
-                label: 'DEADLINE',
-                value: deadlineStr,
-                valueColor: _accentHighlight,
-                showRightBorder: true,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _infoCell(
+                      label: 'DEADLINE',
+                      value: _deadlineLabel,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _infoCell(
+                      label: 'DAYS LEFT',
+                      value: _isOpen ? '$_daysLeft days' : 'Ended',
+                      valueColor: _isOpen
+                          ? (_daysLeft <= 7
+                              ? const Color(0xFFD97706)
+                              : _textPrimary)
+                          : _textMuted,
+                    ),
+                  ),
+                ],
               ),
             ),
-            // Cell 2 — Status
+            const SizedBox(height: 6),
             Expanded(
-              child: _statCell(
-                label: 'STATUS',
-                value: _isOpen ? 'Open' : 'Closed',
-                valueColor: _accentBlue,
-                showRightBorder: true,
-                leading: _isOpen
-                    ? FadeTransition(
-                        opacity: _pulseCtrl,
-                        child: Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: _accentBlue,
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-            // Cell 3 — Days Left
-            Expanded(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DAYS LEFT',
-                      style: GoogleFonts.dmMono(
-                        fontSize: 8,
-                        letterSpacing: 3,
-                        color: _categoryLabel,
-                      ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _infoCell(
+                      label: 'LOCATION',
+                      value: _location,
                     ),
-                    const SizedBox(height: 5),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          _daysLeft.toString(),
-                          style: GoogleFonts.bebasNeue(
-                            fontSize: 22,
-                            height: 1,
-                            color: _accentHighlight,
-                          ),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          'DAYS',
-                          style: GoogleFonts.dmMono(
-                            fontSize: 8,
-                            letterSpacing: 2,
-                            color: _mutedText,
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _infoCell(
+                      label: 'TEAM SIZE',
+                      value: _h.teamSize.isNotEmpty && _h.teamSize != 'N/A'
+                          ? _h.teamSize
+                          : 'Open',
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -443,213 +337,189 @@ class _HackathonFeedCardState extends State<HackathonFeedCard>
     );
   }
 
-  Widget _statCell({
+  Widget _infoCell({
     required String label,
     required String value,
-    required Color valueColor,
-    bool showRightBorder = false,
-    Widget? leading,
+    Color? valueColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        border: showRightBorder
-            ? Border(right: BorderSide(color: _dividerSubtle, width: 1))
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.dmMono(
-              fontSize: 8,
-              letterSpacing: 3,
-              color: _categoryLabel,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.ibmPlexMono(
+            fontSize: 9,
+            letterSpacing: 1.5,
+            color: _textMuted,
           ),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              if (leading != null) ...[
-                leading,
-                const SizedBox(width: 5),
-              ],
-              Expanded(
-                child: Text(
-                  value,
-                  style: GoogleFonts.syne(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: valueColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? _textPrimary,
+            height: 1.2,
           ),
-        ],
-      ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 
   // ══════════════════════════════════════════════════════════════
-  // TAGS ROW
+  // CHIPS  —  flat section fill
   // ══════════════════════════════════════════════════════════════
 
-  Widget _buildTagsRow() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: _divider, width: 1)),
-      ),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: _tags.asMap().entries.map((entry) {
-          final isEven = entry.key.isEven;
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isEven ? _tagFillBg : Colors.transparent,
-              border: Border.all(color: _tagOutlineColor, width: 1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              entry.value.toUpperCase(),
-              style: GoogleFonts.dmMono(
-                fontSize: 9,
-                letterSpacing: 1.5,
-                color: isEven ? _tagFillText : _mutedText,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // BOTTOM ACTIONS
-  // ══════════════════════════════════════════════════════════════
-
-  Widget _buildBottomActions() {
+  Widget _buildChips() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      child: Column(
-        children: [
-          // ── Location row ──
-          Row(
-            children: [
-              Icon(
-                Icons.location_on_outlined,
-                size: 10,
-                color: _mutedText,
-              ),
-              const SizedBox(width: 5),
-              Expanded(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: _chips.map((chip) {
+            return ColoredBox(
+              color: _sectionBg,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: Text(
-                  '$_location · Worldwide',
-                  style: GoogleFonts.dmMono(
+                  chip,
+                  style: GoogleFonts.ibmPlexMono(
                     fontSize: 10,
-                    letterSpacing: 1,
-                    color: _mutedText,
+                    letterSpacing: 0.5,
+                    color: _textSub,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
 
-          // ── Apply Now button (full width) ──
-          _ApplyButton(
-            link: _applyLink,
-            isClosed: !_isOpen,
+  // ══════════════════════════════════════════════════════════════
+  // FOOTER  —  rank · status dot · CTA
+  // ══════════════════════════════════════════════════════════════
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: Row(
+        children: [
+          // Rank
+          Text(
+            '#${widget.rank}',
+            style: GoogleFonts.ibmPlexMono(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: _textMuted,
+            ),
           ),
+          const SizedBox(width: 12),
+
+          // Pulsing status dot + label
+          FadeTransition(
+            opacity: _isOpen ? _pulseCtrl : const AlwaysStoppedAnimation(1.0),
+            child: Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: _isOpen ? _teal : _textMuted,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            _isOpen ? 'Open' : 'Closed',
+            style: GoogleFonts.ibmPlexMono(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: _isOpen ? _teal : _textMuted,
+              letterSpacing: 0.3,
+            ),
+          ),
+
+          const Spacer(),
+
+          // CTA
+          _CTAButton(link: _applyLink, isClosed: !_isOpen),
         ],
       ),
     );
   }
 }
 
-/// Apply button with micro scale animation on press.
-class _ApplyButton extends StatefulWidget {
+// ══════════════════════════════════════════════════════════════════════════
+// CTA BUTTON
+// ══════════════════════════════════════════════════════════════════════════
+
+class _CTAButton extends StatefulWidget {
   final String link;
   final bool isClosed;
-  const _ApplyButton({required this.link, required this.isClosed});
+
+  const _CTAButton({required this.link, required this.isClosed});
 
   @override
-  State<_ApplyButton> createState() => _ApplyButtonState();
+  State<_CTAButton> createState() => _CTAButtonState();
 }
 
-class _ApplyButtonState extends State<_ApplyButton> {
+class _CTAButtonState extends State<_CTAButton> {
   double _scale = 1.0;
 
-  void _onTapDown(TapDownDetails _) {
-    setState(() => _scale = 0.97);
-  }
-
-  void _onTapUp(TapUpDetails _) {
-    setState(() => _scale = 1.0);
-  }
-
-  void _onTapCancel() {
-    setState(() => _scale = 1.0);
-  }
+  void _onTapDown(TapDownDetails _) => setState(() => _scale = 0.96);
+  void _onTapUp(TapUpDetails _)     => setState(() => _scale = 1.0);
+  void _onTapCancel()               => setState(() => _scale = 1.0);
 
   Future<void> _launch() async {
     if (widget.isClosed || widget.link.trim().isEmpty) return;
     final uri = Uri.tryParse(widget.link);
-    if (uri != null) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   @override
   Widget build(BuildContext context) {
+    const teal       = Color(0xFF14B8A6);
+    const closedBg   = Color(0xFFEEEDEB);
+    const closedText = Color(0xFF9CA3AF);
+
     return GestureDetector(
-      onTapDown: widget.isClosed ? null : _onTapDown,
-      onTapUp: widget.isClosed ? null : _onTapUp,
+      onTapDown:   widget.isClosed ? null : _onTapDown,
+      onTapUp:     widget.isClosed ? null : _onTapUp,
       onTapCancel: widget.isClosed ? null : _onTapCancel,
       onTap: _launch,
       child: AnimatedScale(
         scale: _scale,
-        duration: const Duration(milliseconds: 120),
+        duration: const Duration(milliseconds: 100),
         child: Container(
           height: 42,
-          decoration: BoxDecoration(
-            color: widget.isClosed
-                ? const Color(0xFF1A1A1A)
-                : const Color(0xFF3B82F6),
-            borderRadius: BorderRadius.circular(8),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          color: widget.isClosed ? closedBg : teal,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                widget.isClosed ? 'CLOSED' : 'APPLY NOW',
-                style: GoogleFonts.syne(
+                widget.isClosed ? 'Applications Closed' : 'Apply Now',
+                style: GoogleFonts.outfit(
                   fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                  color: widget.isClosed
-                      ? const Color(0xFF444444)
-                      : Colors.white,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                  color: widget.isClosed ? closedText : Colors.white,
                 ),
               ),
               if (!widget.isClosed) ...[
-                const SizedBox(width: 8),
-                Text(
-                  '↗',
-                  style: GoogleFonts.syne(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_outward_rounded,
+                  size: 14,
+                  color: Colors.white,
                 ),
               ],
             ],

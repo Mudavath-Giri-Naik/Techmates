@@ -125,10 +125,11 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
 
     return Scaffold(
 
-      body: RefreshIndicator(
-        onRefresh: _fetchStudents,
-        color: _blue,
-        child: CustomScrollView(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _fetchStudents,
+          color: _blue,
+          child: CustomScrollView(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
@@ -178,7 +179,7 @@ class _CollegeDashboardScreenState extends State<CollegeDashboardScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ═══════════════════════════════════════════════════════════════

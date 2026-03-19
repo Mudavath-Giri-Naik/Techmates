@@ -332,7 +332,7 @@ class _DevCardScreenState extends State<DevCardScreen> {
           ],
         ],
       ),
-      body: _buildBody(),
+      body: SafeArea(child: _buildBody()),
     );
   }
 

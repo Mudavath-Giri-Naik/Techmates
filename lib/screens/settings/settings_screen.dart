@@ -200,12 +200,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         centerTitle: false,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-              child: Column(
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Account Section ──
@@ -405,7 +406,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-    );
+    ));
   }
 
   // ═══════════════════════════════════════════════════════════════

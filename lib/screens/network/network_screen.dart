@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../services/network_service.dart';
+import '../../services/user_role_service.dart';
+import '../admin/create_opportunity_screen.dart';
 import 'college_dashboard_screen.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -209,8 +211,30 @@ class _NetworkScreenState extends State<NetworkScreen>
 
     final listColleges = _filteredColleges.where((c) => c.id != _myCollegeId).toList();
 
+    final roleService = UserRoleService();
+
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.white,
+      floatingActionButton: roleService.canEdit ? FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreateOpportunityScreen()),
+          );
+          if (result == true) {
+            _fetchData();
+          }
+        },
+        backgroundColor: cs.surface,
+        foregroundColor: cs.primary,
+        elevation: 8,
+        highlightElevation: 10,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+        ),
+        child: Icon(Icons.add_rounded, size: 30, color: cs.primary),
+      ) : null,
       body: Column(
         children: [
           _buildHeader(cs, isDark),

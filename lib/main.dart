@@ -33,12 +33,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
+  );
+
   // Make status bar icons dark on light backgrounds globally
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
     statusBarBrightness: Brightness.light,
-    systemNavigationBarColor: Colors.white,
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
@@ -297,10 +299,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarColor: Colors.transparent,
                 statusBarIconBrightness: Brightness.dark,
                 statusBarBrightness: Brightness.light,
-                systemNavigationBarColor: Colors.white,
                 systemNavigationBarIconBrightness: Brightness.dark,
               ),
             ),
@@ -331,10 +331,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               backgroundColor: Colors.black,
               surfaceTintColor: Colors.transparent,
               systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarColor: Colors.transparent,
                 statusBarIconBrightness: Brightness.light,
                 statusBarBrightness: Brightness.dark,
-                systemNavigationBarColor: Colors.black,
                 systemNavigationBarIconBrightness: Brightness.light,
               ),
             ),

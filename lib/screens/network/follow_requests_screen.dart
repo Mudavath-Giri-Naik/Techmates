@@ -166,15 +166,16 @@ class _FollowRequestsScreenState extends State<FollowRequestsScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildErrorState()
-              : _requests.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                      onRefresh: _fetchRequests,
-                      child: ListView.builder(
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? _buildErrorState()
+                : _requests.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: _fetchRequests,
+                        child: ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: _requests.length,
                         itemBuilder: (context, index) {
@@ -183,7 +184,7 @@ class _FollowRequestsScreenState extends State<FollowRequestsScreen> {
                         },
                       ),
                     ),
-    );
+    ));
   }
 
   Widget _buildRequestCard(FollowRequestModel request) {

@@ -192,7 +192,7 @@ class _MainLayoutState extends State<MainLayout> with SingleTickerProviderStateM
               ],
             )
           : null,
-      body: widget.child,
+      body: SafeArea(child: widget.child),
     );
   }
 }
