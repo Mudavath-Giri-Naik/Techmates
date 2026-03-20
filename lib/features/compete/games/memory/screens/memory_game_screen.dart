@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../../../widgets/compete/memory_game_widget.dart';
@@ -19,7 +17,6 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
   MemoryNotifier get _n => widget.notifier;
 
   bool _navigatedToScorecard = false;
-  bool _isLeavingScreen = false;
 
   @override
   void initState() {
@@ -38,34 +35,9 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
   }
 
   void _onNotify() {
-    if (!mounted) return;
-
-    final errorMessage = _n.error;
-    final isCancellation = errorMessage != null &&
-        errorMessage.toLowerCase().contains('cancel');
-
-    if (!_isLeavingScreen &&
-        _n.phase == MemoryPhase.modeSelect &&
-        _n.gameResult == null &&
-        isCancellation) {
-      final message = _n.takeError();
-      if (message != null && message.isNotEmpty) {
-        _isLeavingScreen = true;
-        Future.microtask(() {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          Navigator.of(context).pop();
-        });
-        return;
-      }
+    if (mounted) {
+      setState(() {});
     }
-
-    setState(() {});
   }
 
   Future<void> _handleGameComplete({
@@ -135,11 +107,9 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
     return shouldExit ?? false;
   }
 
-  void _exitGame() {
-    if (_isLeavingScreen) return;
-    _isLeavingScreen = true;
+  void _exitGame() async {
     if (_n.isDuel) {
-      unawaited(_n.cancelDuelFromGame());
+      await _n.cancelDuel();
     }
     if (mounted) {
       Navigator.of(context).pop();
