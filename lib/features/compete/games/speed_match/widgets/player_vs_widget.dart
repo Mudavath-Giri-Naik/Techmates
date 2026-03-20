@@ -19,165 +19,183 @@ class PlayerVsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p1Name = _firstName(player1Profile?['full_name'] as String?);
-    final p2Name = _firstName(player2Profile?['full_name'] as String?);
+    final p1Name = player1Profile?['full_name'] as String? ?? 'Player 1';
+    final p2Name = player2Profile?['full_name'] as String? ?? 'Player 2';
+    
+    final p1Details = _formatDetails(player1Profile);
+    final p2Details = _formatDetails(player2Profile);
+
     final p1Leading = player1Score >= player2Score;
+    final p2Leading = player2Score >= player1Score;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFD7E0EC)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── PLAYER 1 (Left) ──
           Expanded(
-            child: _playerChip(
-              name: p1Name,
-              profile: player1Profile,
-              score: player1Score,
-              leading: p1Leading,
-              alignEnd: false,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'LIVE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1,
-                    color: Color(0xFF7A879C),
-                  ),
+                Row(
+                  children: [
+                    _avatar(p1Name, player1Profile?['avatar_url'] as String?),
+                    const SizedBox(width: 10),
+                    TweenAnimationBuilder<int>(
+                      tween: IntTween(begin: 0, end: player1Score),
+                      duration: const Duration(milliseconds: 300),
+                      builder: (_, value, child) => Text(
+                        _formatScore(value),
+                        style: TextStyle(
+                          color: p1Leading ? const Color(0xFF162033) : const Color(0xFF728096),
+                          fontSize: p1Leading ? 24 : 20,
+                          fontWeight: p1Leading ? FontWeight.w800 : FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                _scoreBar(player1Score, player2Score),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _playerChip(
-              name: p2Name,
-              profile: player2Profile,
-              score: player2Score,
-              leading: !p1Leading,
-              alignEnd: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _playerChip({
-    required String name,
-    required Map<String, dynamic>? profile,
-    required int score,
-    required bool leading,
-    required bool alignEnd,
-  }) {
-    final avatarUrl = profile?['avatar_url'] as String?;
-    final accent = leading ? const Color(0xFF3478F6) : const Color(0xFF8C99AC);
-
-    return Row(
-      mainAxisAlignment:
-          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        if (!alignEnd) ...[
-          _avatar(name, avatarUrl, accent, leading),
-          const SizedBox(width: 8),
-        ],
-        Flexible(
-          child: Column(
-            crossAxisAlignment:
-                alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: const Color(0xFF162033),
-                  fontSize: 12,
-                  fontWeight: leading ? FontWeight.w700 : FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              TweenAnimationBuilder<int>(
-                tween: IntTween(begin: 0, end: score),
-                duration: const Duration(milliseconds: 400),
-                builder: (_, value, child) => Text(
-                  _formatScore(value),
-                  style: TextStyle(
-                    color: accent,
+                const SizedBox(height: 6),
+                Text(
+                  p1Name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF162033),
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-            ],
+                if (p1Details.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    p1Details,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF728096),
+                      fontSize: 11,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        if (alignEnd) ...[
-          const SizedBox(width: 8),
-          _avatar(name, avatarUrl, accent, leading),
+          
+          // ── VS Divider ──
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0, left: 12.0, right: 12.0),
+            child: Text(
+              'VS',
+              style: TextStyle(
+                color: Color(0xFFCBD5E1),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            ),
+          ),
+          
+          // ── PLAYER 2 (Right) ──
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TweenAnimationBuilder<int>(
+                      tween: IntTween(begin: 0, end: player2Score),
+                      duration: const Duration(milliseconds: 300),
+                      builder: (_, value, child) => Text(
+                        _formatScore(value),
+                        style: TextStyle(
+                          color: p2Leading ? const Color(0xFF162033) : const Color(0xFF728096),
+                          fontSize: p2Leading ? 24 : 20,
+                          fontWeight: p2Leading ? FontWeight.w800 : FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _avatar(p2Name, player2Profile?['avatar_url'] as String?),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  p2Name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF162033),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (p2Details.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    p2Details,
+                    textAlign: TextAlign.right,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF728096),
+                      fontSize: 11,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
-      ],
+      ),
     );
   }
 
-  Widget _avatar(String name, String? avatarUrl, Color accent, bool leading) {
+  String _formatDetails(Map<String, dynamic>? profile) {
+    if (profile == null) return '';
+    final branch = profile['branch'];
+    final year = profile['year'];
+    
+    // Handle the joined colleges table structure
+    final colObj = profile['colleges'];
+    String? colName;
+    if (colObj != null && colObj is Map) {
+      colName = colObj['short_name'] as String?;
+    } else if (profile['college_id'] != null) {
+      // In case the join didn't happen, we don't have the name, so we just skip it
+      colName = null; 
+    }
+
+    final parts = <String>[];
+    if (colName != null && colName.isNotEmpty) parts.add(colName);
+    if (branch != null && branch.toString().isNotEmpty) parts.add(branch.toString());
+    if (year != null && year.toString().isNotEmpty) parts.add('Year $year');
+
+    return parts.join(' • ');
+  }
+
+  Widget _avatar(String name, String? avatarUrl) {
     return Container(
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: leading ? accent : const Color(0xFFD7E0EC),
-          width: 2,
-        ),
+        border: Border.all(color: const Color(0xFFD7E0EC), width: 2),
       ),
       child: ClipOval(
-        child: avatarUrl != null
+        child: avatarUrl != null && avatarUrl.isNotEmpty
             ? Image.network(
                 avatarUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, error, stackTrace) => _initials(name),
+                errorBuilder: (_, __, ___) => _initials(name),
               )
             : _initials(name),
-      ),
-    );
-  }
-
-  Widget _scoreBar(int s1, int s2) {
-    final total = s1 + s2;
-    final ratio = total == 0 ? 0.5 : s1 / total;
-
-    return SizedBox(
-      width: 70,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: SizedBox(
-          height: 8,
-          child: Row(
-            children: [
-              Expanded(
-                flex: (ratio * 100).round(),
-                child: Container(color: const Color(0xFF3478F6)),
-              ),
-              Expanded(
-                flex: ((1 - ratio) * 100).round(),
-                child: Container(color: const Color(0xFFD7E0EC)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -191,7 +209,7 @@ class PlayerVsWidget extends StatelessWidget {
           style: const TextStyle(
             color: Color(0xFF5F6E86),
             fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
@@ -199,7 +217,7 @@ class PlayerVsWidget extends StatelessWidget {
   }
 
   String _firstName(String? name) {
-    if (name == null || name.isEmpty) return '???';
+    if (name == null || name.isEmpty) return '?';
     return name.split(' ').first;
   }
 

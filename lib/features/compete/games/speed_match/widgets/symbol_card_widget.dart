@@ -74,14 +74,17 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
 
   @override
   Widget build(BuildContext context) {
-    final size = min(MediaQuery.sizeOf(context).width - 40, 334.0);
+    // Keep a healthy 60px gap on both sides at minimum, max size 320 for clean look
+    final size = min(MediaQuery.sizeOf(context).width - 60, 320.0);
     final hasColour = widget.symbol.colorIndex >= 0;
     final symbolColor = hasColour
         ? _kSymbolPalette[widget.symbol.colorIndex % _kSymbolPalette.length]
         : const Color(0xFF162033);
     final isCodeSymbol =
         RegExp(r'^[\{\}\[\]\(\)<>!=/%&|:#\-+]+$').hasMatch(widget.symbol.symbol);
-    final fontSize = _fontSizeFor(widget.symbol.symbol, size);
+    
+    // Increase the visual weight of the bare symbol now that boxes are gone
+    final fontSize = _fontSizeFor(widget.symbol.symbol, size) * 1.6;
 
     Color cardBg = const Color(0xFFFCFDFF);
     Color borderColor = const Color(0xFFD7E0EC);
@@ -111,28 +114,6 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                _TopTag(
-                  label: 'CURRENT SYMBOL',
-                  borderColor: borderColor,
-                ),
-                const Spacer(),
-                if (hasColour)
-                  Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: symbolColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: symbolColor.withValues(alpha: 0.35),
-                        width: 3,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
             Expanded(
               child: Center(
                 child: FittedBox(
@@ -142,33 +123,13 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: fontSize,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       height: 1,
                       letterSpacing: isCodeSymbol ? 2.8 : 0,
                       color: symbolColor,
                       fontFamily: isCodeSymbol ? 'monospace' : null,
                     ),
                   ),
-                ),
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF6F8FC),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE1E7F0)),
-              ),
-              child: Text(
-                hasColour
-                    ? 'Compare both the symbol and the tone.'
-                    : 'Focus on the shape before you answer.',
-                style: const TextStyle(
-                  fontSize: 12,
-                  height: 1.35,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF66738A),
                 ),
               ),
             ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../../widgets/compete/memory_game_widget.dart';
@@ -17,6 +19,7 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
   MemoryNotifier get _n => widget.notifier;
 
   bool _navigatedToScorecard = false;
+  bool _isLeavingScreen = false;
 
   @override
   void initState() {
@@ -25,6 +28,7 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
     if (_n.phase == MemoryPhase.initial) {
       _n.loadInfo();
     }
+    debugPrint('🧠 MEMORY GameScreen: initState isDuel=${_n.isDuel} phase=${_n.phase}');
   }
 
   @override
@@ -34,9 +38,34 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
   }
 
   void _onNotify() {
-    if (mounted) {
-      setState(() {});
+    if (!mounted) return;
+
+    final errorMessage = _n.error;
+    final isCancellation = errorMessage != null &&
+        errorMessage.toLowerCase().contains('cancel');
+
+    if (!_isLeavingScreen &&
+        _n.phase == MemoryPhase.modeSelect &&
+        _n.gameResult == null &&
+        isCancellation) {
+      final message = _n.takeError();
+      if (message != null && message.isNotEmpty) {
+        _isLeavingScreen = true;
+        Future.microtask(() {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.of(context).pop();
+        });
+        return;
+      }
     }
+
+    setState(() {});
   }
 
   Future<void> _handleGameComplete({
@@ -47,6 +76,8 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
     required int mistakes,
   }) async {
     if (_n.phase == MemoryPhase.submitting) return;
+
+    debugPrint('🧠🏁 MEMORY: game complete! score=$rawScore level=$levelReached mistakes=$mistakes');
 
     await _n.completeGame(
       rawScore: rawScore,
@@ -59,12 +90,14 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
     if (!mounted || _navigatedToScorecard) return;
 
     if (_n.error != null || _n.gameResult == null) {
+      debugPrint('❌ MEMORY GameScreen: error or no result → snackbar');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_n.error ?? 'Unable to save score')),
       );
       return;
     }
 
+    debugPrint('✅ MEMORY GameScreen: navigating to scorecard');
     _navigatedToScorecard = true;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -81,7 +114,7 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Quit Memory?'),
+        title: const Text('Quit Game?'),
         content: const Text('Your current run will be lost.'),
         actions: [
           TextButton(
@@ -100,6 +133,17 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
     );
 
     return shouldExit ?? false;
+  }
+
+  void _exitGame() {
+    if (_isLeavingScreen) return;
+    _isLeavingScreen = true;
+    if (_n.isDuel) {
+      unawaited(_n.cancelDuelFromGame());
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -164,68 +208,101 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
         if (didPop) return;
         final shouldExit = await _confirmExit();
         if (!context.mounted || !shouldExit) return;
-        Navigator.of(context).pop();
+        _exitGame();
       },
       child: Scaffold(
         backgroundColor: cs.surface,
-        appBar: AppBar(
-          backgroundColor: cs.surface,
-          surfaceTintColor: Colors.transparent,
-          title: const Text('Memory Arena'),
-          leading: IconButton(
-            icon: const Icon(Icons.close_rounded),
-            onPressed: () async {
-              final shouldExit = await _confirmExit();
-              if (!context.mounted || !shouldExit) return;
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
-        body: Stack(
-          children: [
-            MemoryGameWidget(onGameComplete: _handleGameComplete),
-            if (_n.phase == MemoryPhase.submitting)
-              Container(
-                color: Colors.black.withValues(alpha: 0.2),
-                alignment: Alignment.center,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 18,
-                  ),
-                  decoration: BoxDecoration(
-                    color: cs.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top bar with exit button and optional duel info
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 16, 0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.close_rounded, color: cs.onSurface),
+                      onPressed: () async {
+                        final shouldExit = await _confirmExit();
+                        if (!context.mounted || !shouldExit) return;
+                        _exitGame();
+                      },
+                    ),
+                    if (_n.isDuel) ...[
+                      const Spacer(),
+                      // Compact duel score header
+                      _buildDuelScoreHeader(cs),
+                    ] else
+                      const Spacer(),
+                    Text(
+                      _n.isDuel ? 'Duel' : 'Solo',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        color: cs.primary,
-                        strokeWidth: 2.5,
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'Saving score...',
-                        style: TextStyle(
-                          color: cs.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-          ],
+
+              // Game widget
+              Expanded(
+                child: MemoryGameWidget(onGameComplete: _handleGameComplete),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildDuelScoreHeader(ColorScheme cs) {
+    final myName = _n.myProfile?['full_name'] as String? ?? 'You';
+    final oppName = _n.opponentProfile?['full_name'] as String? ?? 'Opponent';
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _firstName(myName),
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: cs.primaryContainer.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            'VS',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFFF97316),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          _firstName(oppName),
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 12),
+      ],
+    );
+  }
+
+  String _firstName(String? n) {
+    if (n == null || n.isEmpty) return '?';
+    return n.split(' ').first;
   }
 }

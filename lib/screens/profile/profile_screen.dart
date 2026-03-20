@@ -9,8 +9,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/supabase_client.dart';
 import '../../services/auth_service.dart';
 import '../../services/profile_service.dart';
-import '../../services/bookmark_service.dart';
-import '../../services/status_service.dart';
 import '../../services/devcard/devcard_service.dart';
 import '../../services/user_role_service.dart';
 import '../../models/user_profile.dart';
@@ -75,9 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   DevCardModel? _devCard;
   int _followerCount = 0;
   int _followingCount = 0;
-  int _savedOpsCount = 0;
-  int _appliedCount = 0;
-  int _totalOpsCount = 33;
   int _pendingRequests = 0;
 
   FollowStatus _followStatus = FollowStatus.none;
@@ -139,10 +134,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       final futures = <Future>[
         ProfileService().fetchProfile(userId),
         DevCardService.getOtherUserDevCard(userId),
-        BookmarkService().init().then((_) => BookmarkService().getBookmarks()),
-        StatusService()
-            .init()
-            .then((_) => StatusService().getItemsByStatus('applied')),
         _fetchFollowCounts(userId),
       ];
 
@@ -161,13 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         _profile = results[0] as UserProfile?;
         _devCard = results[1] as DevCardModel?;
 
-        final bookmarks = results[2] as List;
-        _savedOpsCount = bookmarks.length;
-
-        final applied = results[3] as List;
-        _appliedCount = applied.length;
-
-        if (!_isCurrentUser && results.length > 5) {
+        if (!_isCurrentUser && results.length > 3) {
           _followStatus = FollowStatus.fromString(
               results[futures.length - 1] as String?);
         }
@@ -316,13 +301,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   child: _buildTopProjects(cs),
                 ),
               ),
-              if (_isCurrentUser)
-                SliverToBoxAdapter(
-                  child: _buildSection(
-                    label: 'Opportunity Journey',
-                    child: _buildJourneyRow(cs),
-                  ),
-                ),
               SliverToBoxAdapter(
                 child: _buildSection(
                   label: 'Connect',
@@ -1429,40 +1407,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // OPPORTUNITY JOURNEY
-  // ═══════════════════════════════════════════════════════════════
-
-  Widget _buildJourneyRow(ColorScheme cs) {
-    return Row(
-      children: [
-        _JourneyCard(
-            icon: Icons.explore_rounded,
-            iconBg: _brandBlueContainer,
-            iconColor: _brandBlue,
-            value: _totalOpsCount.toString(),
-            label: 'Explored',
-            cs: cs),
-        const SizedBox(width: 8),
-        _JourneyCard(
-            icon: Icons.bookmark_rounded,
-            iconBg: _brandRedContainer,
-            iconColor: _brandRed,
-            value: _savedOpsCount.toString(),
-            label: 'Saved',
-            cs: cs),
-        const SizedBox(width: 8),
-        _JourneyCard(
-            icon: Icons.send_rounded,
-            iconBg: const Color(0xFFE8F5E9),
-            iconColor: const Color(0xFF2E7D32),
-            value: _appliedCount.toString(),
-            label: 'Applied',
-            cs: cs),
-      ],
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════
   // SOCIAL LINKS
   // ═══════════════════════════════════════════════════════════════
 
@@ -1832,61 +1776,6 @@ class _DevMetric extends StatelessWidget {
                   letterSpacing: 0.2,
                   color: cs.onSurfaceVariant)),
         ],
-      ),
-    );
-  }
-}
-
-class _JourneyCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
-  final String value;
-  final String label;
-  final ColorScheme cs;
-
-  const _JourneyCard(
-      {required this.icon,
-      required this.iconBg,
-      required this.iconColor,
-      required this.value,
-      required this.label,
-      required this.cs});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          border: Border.all(color: cs.outlineVariant),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                  color: iconBg, borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, size: 16, color: iconColor),
-            ),
-            const SizedBox(height: 3),
-            Text(value,
-                style: GoogleFonts.jetBrainsMono(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: cs.onSurface,
-                    height: 1)),
-            Text(label,
-                style: GoogleFonts.sora(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurfaceVariant)),
-          ],
-        ),
       ),
     );
   }

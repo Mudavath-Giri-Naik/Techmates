@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/compete/games/memory/memory_notifier.dart';
-import '../../features/compete/games/memory/screens/memory_game_screen.dart';
+import '../../features/compete/games/memory/screens/memory_mode_screen.dart';
 import '../../features/compete/games/speed_match/speed_match_notifier.dart';
 // [HIDDEN] Info screen skipped — going directly to mode select
 // import '../../features/compete/games/speed_match/screens/speed_match_info_screen.dart';
@@ -166,7 +166,7 @@ class _CompeteScreenState extends State<CompeteScreen> {
         _GameItem(
           title: 'Memory Arena',
           icon: Icons.memory_rounded,
-          screen: MemoryGameScreen(notifier: MemoryNotifier()),
+          screen: MemoryModeScreen(notifier: MemoryNotifier()..loadInfo()),
         ),
       ];
     }
@@ -944,7 +944,7 @@ class _GamePickerSheet extends StatelessWidget {
         _GameItem(
           title: 'Memory Arena',
           icon: Icons.memory_rounded,
-          screen: MemoryGameScreen(notifier: MemoryNotifier()),
+          screen: MemoryModeScreen(notifier: MemoryNotifier()..loadInfo()),
         ),
       ];
     }

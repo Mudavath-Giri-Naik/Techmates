@@ -5,6 +5,7 @@ import '../memory_notifier.dart';
 import '../memory_service.dart';
 import '../models/memory_game_result_model.dart';
 import 'memory_game_screen.dart';
+import 'memory_mode_screen.dart';
 
 class MemoryScorecardScreen extends StatefulWidget {
   final MemoryNotifier notifier;
@@ -68,6 +69,12 @@ class _MemoryScorecardScreenState extends State<MemoryScorecardScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
         children: [
+          // Duel result banner
+          if (result.isDuel) ...[
+            _duelResultBanner(result),
+            const SizedBox(height: 16),
+          ],
+
           _scoreHeader(result),
           const SizedBox(height: 24),
           _section('Performance', _performanceCard(result)),
@@ -85,10 +92,11 @@ class _MemoryScorecardScreenState extends State<MemoryScorecardScreen> {
               Expanded(
                 child: FilledButton(
                   onPressed: () {
+                    final newNotifier = MemoryNotifier()..loadInfo();
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (_) =>
-                            MemoryGameScreen(notifier: MemoryNotifier()),
+                            MemoryModeScreen(notifier: newNotifier),
                       ),
                     );
                   },
@@ -128,6 +136,67 @@ class _MemoryScorecardScreenState extends State<MemoryScorecardScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _duelResultBanner(MemoryGameResult result) {
+    final won = result.duelWon ?? false;
+    final oppScore = result.opponentScore ?? 0;
+    final myScore = result.score;
+    final tied = myScore == oppScore;
+
+    Color bg;
+    Color fg;
+    String label;
+    IconData icon;
+
+    if (tied) {
+      bg = const Color(0xFFFFF7ED);
+      fg = const Color(0xFFF97316);
+      label = "IT'S A TIE!";
+      icon = Icons.handshake_rounded;
+    } else if (won) {
+      bg = const Color(0xFFECFDF5);
+      fg = const Color(0xFF059669);
+      label = 'YOU WON! 🎉';
+      icon = Icons.emoji_events_rounded;
+    } else {
+      bg = const Color(0xFFFEF2F2);
+      fg = const Color(0xFFDC2626);
+      label = 'YOU LOST';
+      icon = Icons.sentiment_dissatisfied_rounded;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 36, color: fg),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: fg,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your Score: $myScore  •  Opponent: $oppScore',
+            style: TextStyle(
+              fontSize: 13,
+              color: fg.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

@@ -18,7 +18,9 @@ class GitHubService {
     final response = await Supabase.instance.client.functions.invoke(
       'github-devcard',
       body: {'github_username': username},
-    );
+    ).timeout(const Duration(seconds: 25), onTimeout: () {
+      throw Exception('Request timed out. The backend took too long to analyze your GitHub profile.');
+    });
 
     if (response.data == null) {
       throw Exception('No data returned from edge function');

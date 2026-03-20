@@ -6,9 +6,7 @@ import 'package:flutter/services.dart';
 import '../engine/speed_match_engine.dart';
 import '../speed_match_notifier.dart';
 import '../speed_match_service.dart';
-import '../widgets/multiplier_badge_widget.dart';
 import '../widgets/player_vs_widget.dart';
-import '../widgets/streak_dots_widget.dart';
 import '../widgets/symbol_card_widget.dart';
 import '../widgets/timer_bar_widget.dart';
 import 'speed_match_scorecard_screen.dart';
@@ -207,6 +205,43 @@ class _SpeedMatchGameScreenState extends State<SpeedMatchGameScreen>
     });
   }
 
+  void _promptExit() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Quit Game?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to exit the match? Your progress will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF728096), fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _cancelGame();
+            },
+            child: const Text('Quit', style: TextStyle(color: Color(0xFFE46677), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _cancelGame() {
+    _gameTimer?.cancel();
+    _scoreSyncTimer?.cancel();
+    if (_isDuel) {
+      _n.cancelDuel();
+    } else {
+      _n.showModeSelect();
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bgBase = const Color(0xFFF5F7FB);
@@ -226,36 +261,32 @@ class _SpeedMatchGameScreenState extends State<SpeedMatchGameScreen>
               minimum: const EdgeInsets.fromLTRB(20, 14, 20, 20),
               child: Column(
                 children: [
-                  TimerBarWidget(
-                    progress: _secondsRemaining / 60.0,
-                    secondsRemaining: _secondsRemaining,
-                  ),
-                  const SizedBox(height: 18),
                   Row(
                     children: [
-                      Expanded(
-                        child: _TimerChip(
-                          seconds: _secondsRemaining,
-                          isUrgent: isUrgent,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFCFDFF),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFD7E0EC)),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Color(0xFF728096), size: 20),
+                          onPressed: _promptExit,
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(8),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
-                        child: _ScoreDisplay(
-                          score: _engine.score,
-                          popAnim: _scorePopAnim,
+                        child: TimerBarWidget(
+                          progress: _secondsRemaining / 60.0,
+                          secondsRemaining: _secondsRemaining,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  _StatusStrip(
-                    streak: _engine.streak,
-                    dotsToShow: _engine.dotsToShow,
-                    multiplier: _engine.multiplier,
-                  ),
+                  const SizedBox(height: 24),
                   if (_isDuel) ...[
-                    const SizedBox(height: 12),
                     PlayerVsWidget(
                       player1Profile: _n.myProfile,
                       player2Profile: _n.opponentProfile,
@@ -263,45 +294,83 @@ class _SpeedMatchGameScreenState extends State<SpeedMatchGameScreen>
                       player2Score: _n.opponentLiveScore,
                       currentUserId: _n.userId!,
                     ),
-                  ],
-                  const SizedBox(height: 18),
-                  AnimatedOpacity(
-                    opacity: _isFirstCard ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const _FocusBanner(
-                      title: 'Opening Symbol',
-                      subtitle: 'Memorize it before the match starts.',
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    // Simple solo score header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'SCORE',
+                            style: TextStyle(
+                              color: Color(0xFF728096),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          ScaleTransition(
+                            scale: _scorePopAnim,
+                            child: Text(
+                              _engine.score.toString(),
+                              style: const TextStyle(
+                                color: Color(0xFF162033),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                  ],
+
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (_engine.currentSymbol != null)
-                            Flexible(
-                              flex: 3,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
                               child: SymbolCardWidget(
                                 key: ValueKey(_engine.totalCards),
                                 symbol: _engine.currentSymbol!,
                                 lastAnswerCorrect: _lastAnswerCorrect,
                               ),
                             ),
-                          const SizedBox(height: 12),
-                          AnimatedOpacity(
-                            opacity: !_isFirstCard ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 250),
-                            child: _InstructionCard(
-                              text: _engine.ruleFlipped
-                                  ? 'Tap YES when the current symbol is different from the previous one.'
-                                  : 'Tap YES when the current symbol matches the previous one.',
+                          // Subtle indicator for rule flip instead of big card
+                          if (_engine.ruleFlipped && !_isFirstCard) ...[
+                            const SizedBox(height: 32),
+                            const Text(
+                              'DIFFERENT SYMBOL?',
+                              style: TextStyle(
+                                color: Color(0xFF245FD9),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.5,
+                              ),
                             ),
-                          ),
+                          ] else if (!_isFirstCard) ...[
+                            const SizedBox(height: 32),
+                            const Text(
+                              'SAME SYMBOL?',
+                              style: TextStyle(
+                                color: Color(0xFF5F6E86),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ]
                         ],
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
                   AnimatedOpacity(
                     opacity: (!_isFirstCard && _gameStarted) ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
@@ -310,7 +379,6 @@ class _SpeedMatchGameScreenState extends State<SpeedMatchGameScreen>
                         Expanded(
                           child: _AnswerButton(
                             label: 'NO',
-                            hint: 'Different pattern',
                             icon: Icons.close_rounded,
                             isNegative: true,
                             onTap: () => _onAnswer(false),
@@ -320,7 +388,6 @@ class _SpeedMatchGameScreenState extends State<SpeedMatchGameScreen>
                         Expanded(
                           child: _AnswerButton(
                             label: 'YES',
-                            hint: 'Same pattern',
                             icon: Icons.check_rounded,
                             isNegative: false,
                             onTap: () => _onAnswer(true),
@@ -347,285 +414,7 @@ class _SpeedMatchGameScreenState extends State<SpeedMatchGameScreen>
   }
 }
 
-class _TimerChip extends StatelessWidget {
-  final int seconds;
-  final bool isUrgent;
 
-  const _TimerChip({
-    required this.seconds,
-    required this.isUrgent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = isUrgent
-        ? const Color(0xFFE46677)
-        : const Color(0xFF3478F6);
-    final bg = isUrgent
-        ? const Color(0xFFFFF3F4)
-        : const Color(0xFFFCFDFF);
-    final border = isUrgent
-        ? const Color(0xFFF0C9CF)
-        : const Color(0xFFD7E0EC);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _MiniIconBadge(
-                icon: isUrgent ? Icons.timer_rounded : Icons.timer_outlined,
-                iconColor: accent,
-                bgColor: accent.withValues(alpha: 0.12),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'TIME LEFT',
-                style: TextStyle(
-                  color: Color(0xFF728096),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            '0:${seconds.toString().padLeft(2, '0')}',
-            style: const TextStyle(
-              color: Color(0xFF162033),
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreDisplay extends StatelessWidget {
-  final int score;
-  final Animation<double> popAnim;
-
-  const _ScoreDisplay({
-    required this.score,
-    required this.popAnim,
-  });
-
-  String _fmt(int value) {
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}k'.replaceAll('.0k', 'k');
-    }
-    return value.toString();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFD7E0EC)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _MiniIconBadge(
-                icon: Icons.auto_graph_rounded,
-                iconColor: const Color(0xFF245FD9),
-                bgColor: const Color(0xFFEAF2FF),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'SCORE',
-                style: TextStyle(
-                  color: Color(0xFF728096),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ScaleTransition(
-            scale: popAnim,
-            child: Text(
-              _fmt(score),
-              style: const TextStyle(
-                color: Color(0xFF162033),
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.6,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusStrip extends StatelessWidget {
-  final int streak;
-  final int dotsToShow;
-  final int multiplier;
-
-  const _StatusStrip({
-    required this.streak,
-    required this.dotsToShow,
-    required this.multiplier,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD7E0EC)),
-      ),
-      child: Row(
-        children: [
-          const Text(
-            'STREAK',
-            style: TextStyle(
-              color: Color(0xFF728096),
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(width: 10),
-          StreakDotsWidget(filledCount: dotsToShow),
-          const SizedBox(width: 12),
-          Text(
-            streak.toString(),
-            style: const TextStyle(
-              color: Color(0xFF162033),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          AnimatedMultiplierBadge(multiplier: multiplier),
-        ],
-      ),
-    );
-  }
-}
-
-class _FocusBanner extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const _FocusBanner({
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFDF7EA),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF0D7A5)),
-      ),
-      child: Row(
-        children: [
-          _MiniIconBadge(
-            icon: Icons.visibility_outlined,
-            iconColor: const Color(0xFFAD7A18),
-            bgColor: const Color(0xFFFDF0CD),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF7E5A18),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF9B7A3A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InstructionCard extends StatelessWidget {
-  final String text;
-
-  const _InstructionCard({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD7E0EC)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _MiniIconBadge(
-            icon: Icons.compare_arrows_rounded,
-            iconColor: const Color(0xFF3478F6),
-            bgColor: const Color(0xFFEAF2FF),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Color(0xFF5F6E86),
-                fontSize: 13,
-                height: 1.45,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.left,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _MiniIconBadge extends StatelessWidget {
   final IconData icon;
@@ -654,14 +443,12 @@ class _MiniIconBadge extends StatelessWidget {
 
 class _AnswerButton extends StatefulWidget {
   final String label;
-  final String hint;
   final IconData icon;
   final bool isNegative;
   final VoidCallback onTap;
 
   const _AnswerButton({
     required this.label,
-    required this.hint,
     required this.icon,
     required this.isNegative,
     required this.onTap,
@@ -701,50 +488,35 @@ class _AnswerButtonState extends State<_AnswerButton> {
           onTap: widget.onTap,
           onHighlightChanged: (value) => setState(() => _pressed = value),
           child: Ink(
-            height: 78,
+            height: 70,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: border, width: 1.2),
             ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: iconBg,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(widget.icon, color: fg, size: 22),
+                  child: Icon(widget.icon, color: fg, size: 20),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.label,
-                        style: TextStyle(
-                          color: fg,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.hint,
-                        style: TextStyle(
-                          color: fg.withValues(alpha: 0.75),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
                   ),
                 ),
+                const SizedBox(width: 8), // Balances the icon on the left
               ],
             ),
           ),

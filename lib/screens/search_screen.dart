@@ -68,9 +68,22 @@ class _SearchScreenState extends State<SearchScreen> {
             }
           }
 
-          final branch = profileRes?['branch'] as String?;
-          if (branch != null && _branches.contains(branch.toUpperCase())) {
-            _selectedBranch = branch.toUpperCase();
+          final dbBranch = profileRes?['branch'] as String?;
+          if (dbBranch != null) {
+            final upperBranch = dbBranch.toUpperCase();
+            // Try to find an exact match first
+            if (_branches.contains(upperBranch)) {
+              _selectedBranch = upperBranch;
+            } else {
+              // Try to find if the branch name contains our code (e.g., "(CSE)" contains "CSE")
+              try {
+                _selectedBranch = _branches.skip(1).firstWhere(
+                  (b) => upperBranch.contains(b),
+                );
+              } catch (_) {
+                _selectedBranch = 'All';
+              }
+            }
           }
 
           final year = profileRes?['year'] as int?;
@@ -163,15 +176,34 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildFiltersRow() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(flex: 7, child: _buildSelectorPill(label: _getCollegeLabel(), onTap: _showCollegePicker)),
-          const SizedBox(width: 8),
-          Expanded(flex: 5, child: _buildSelectorPill(label: _selectedBranch, onTap: _showBranchPicker)),
-          const SizedBox(width: 8),
-          Expanded(flex: 6, child: _buildSelectorPill(label: _formatYear(_selectedYear), onTap: _showYearPicker)),
-        ],
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8E8EC), width: 1.0),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 7, 
+                child: _buildToolbarButton(label: _getCollegeLabel(), onTap: _showCollegePicker)
+              ),
+              Container(width: 1.0, height: 24, color: const Color(0xFFE8E8EC)),
+              Expanded(
+                flex: 5, 
+                child: _buildToolbarButton(label: _selectedBranch, onTap: _showBranchPicker)
+              ),
+              Container(width: 1.0, height: 24, color: const Color(0xFFE8E8EC)),
+              Expanded(
+                flex: 6, 
+                child: _buildToolbarButton(label: _formatYear(_selectedYear), onTap: _showYearPicker)
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -184,22 +216,16 @@ class _SearchScreenState extends State<SearchScreen> {
     return (code != null && code.isNotEmpty) ? code.toUpperCase() : c['name'] as String;
   }
 
-  Widget _buildSelectorPill({required String label, required VoidCallback onTap}) {
+  Widget _buildToolbarButton({required String label, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
       child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8E8EC), width: 1.0),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.center,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
+            Flexible(
               child: Text(
                 label,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF111111)),
@@ -209,7 +235,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(width: 2),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF444444)),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF666666)),
           ],
         ),
       ),

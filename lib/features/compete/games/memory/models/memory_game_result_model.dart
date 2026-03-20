@@ -6,6 +6,12 @@ class MemoryGameResult {
   final int mistakes;
   final int? brainScore;
 
+  // Duel fields
+  final bool isDuel;
+  final bool? duelWon;
+  final int? opponentScore;
+  final String? opponentId;
+
   const MemoryGameResult({
     required this.score,
     required this.accuracy,
@@ -13,6 +19,10 @@ class MemoryGameResult {
     required this.timeTakenMs,
     required this.mistakes,
     this.brainScore,
+    this.isDuel = false,
+    this.duelWon,
+    this.opponentScore,
+    this.opponentId,
   });
 
   String get formattedTime {

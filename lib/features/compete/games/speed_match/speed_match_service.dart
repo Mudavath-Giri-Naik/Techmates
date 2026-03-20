@@ -211,26 +211,73 @@ class SpeedMatchService {
 
   // ── Matchmaking Queue ────────────────────────────────
 
-  Future<void> insertMatchmakingQueue(int level, int elo) async {
-    print('SPEED_MATCH: inserting into matchmaking_queue level=$level elo=$elo uid=$_uid');
-    await _sb.from('matchmaking_queue').upsert({
-      'user_id': _uid,
-      'game_type': 'speed_match',
-      'user_level': level,
-      'user_elo': elo,
-    }, onConflict: 'user_id, game_type');
-    print('SPEED_MATCH: matchmaking queue insert done');
+  /// Atomic RPC: instantly matches if opponent is waiting, otherwise queues self.
+  /// Returns the duel record if matched instantly, or null if queued (wait for realtime).
+  Future<Map<String, dynamic>?> findOrCreateMatch(int level, int elo) async {
+    debugPrint('🚀 [MATCHMAKING] Calling find_or_create_match RPC: uid=$_uid level=$level elo=$elo');
+    try {
+      final result = await _sb.rpc('find_or_create_match', params: {
+        'p_user_id': _uid,
+        'p_game_type': 'speed_match',
+        'p_level': level,
+        'p_elo': elo,
+      });
+      debugPrint('✅ [MATCHMAKING] RPC result: $result');
+
+      final Map<String, dynamic> row;
+      if (result is List && result.isNotEmpty) {
+        row = result.first as Map<String, dynamic>;
+      } else if (result is Map<String, dynamic>) {
+        row = result;
+      } else {
+        debugPrint('❌ [MATCHMAKING] Unexpected RPC response type: ${result.runtimeType}');
+        return null;
+      }
+
+      final matchedInstantly = row['matched_instantly'] as bool? ?? false;
+      final duelId = row['duel_id']?.toString();
+
+      if (matchedInstantly && duelId != null) {
+        debugPrint('⚡ [MATCHMAKING] INSTANT MATCH! duel_id=$duelId — no realtime wait needed!');
+        return row;
+      } else {
+        debugPrint('⏳ [MATCHMAKING] Queued (no opponent yet). Waiting for realtime event...');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ [MATCHMAKING] find_or_create_match RPC FAILED: $e');
+      debugPrint('❌ [MATCHMAKING] Falling back to direct queue insert...');
+      // Fallback to direct insert so matchmaking still works even if RPC fails
+      try {
+        await _sb.from('matchmaking_queue').upsert({
+          'user_id': _uid,
+          'game_type': 'speed_match',
+          'user_level': level,
+          'user_elo': elo,
+        }, onConflict: 'user_id, game_type');
+        debugPrint('✅ [MATCHMAKING] Fallback queue insert succeeded');
+      } catch (e2) {
+        debugPrint('❌ [MATCHMAKING] Fallback insert also FAILED: $e2');
+        rethrow;
+      }
+      return null;
+    }
   }
 
   Future<void> cancelMatchmaking(String userId, String gameType) async {
-    print('SPEED_MATCH: cancelling matchmaking userId=$userId gameType=$gameType');
-    await _sb
-        .from('matchmaking_queue')
-        .delete()
-        .eq('user_id', userId)
-        .eq('game_type', gameType);
-    print('SPEED_MATCH: matchmaking cancelled');
+    debugPrint('🔄 [MATCHMAKING] Cancelling queue entry for userId=$userId gameType=$gameType');
+    try {
+      await _sb
+          .from('matchmaking_queue')
+          .delete()
+          .eq('user_id', userId)
+          .eq('game_type', gameType);
+      debugPrint('✅ [MATCHMAKING] Queue entry deleted for userId=$userId');
+    } catch (e) {
+      debugPrint('❌ [MATCHMAKING] Cancel failed: $e');
+    }
   }
+
 
   // ── Process Game + Update Stats ──────────────────────
 
@@ -398,34 +445,56 @@ class SpeedMatchService {
   }
 
   /// Realtime channel — subscribe for matched duel (auto-match).
-  /// Listens for both INSERT (new duel created by matchmaker) and UPDATE
-  /// (existing duel that got matched).
   RealtimeChannel subscribeToMatchmaking(
       String userId, void Function(Map<String, dynamic> record) onMatch) {
-    print('SPEED_MATCH: subscribing to matchmaking realtime for userId=$userId');
+    // ─── CRITICAL: Always refresh auth token on the realtime client ───
+    final session = _sb.auth.currentSession;
+    if (session != null) {
+      _rtClient.realtime.setAuth(session.accessToken);
+      debugPrint('✅ [MATCHMAKING RT] Auth token synced to realtime client');
+    } else {
+      debugPrint('❌ [MATCHMAKING RT] WARNING: No session! Realtime will use anon key → RLS will block events!');
+    }
+
+    debugPrint('🚀 [MATCHMAKING RT] Subscribing to realtime for userId=$userId');
+    // Keep using _rtClient (direct to Supabase Cloud, bypasses Cloudflare proxy)
+    // The main _sb client fails WebSocket because the proxy blocks WS upgrades
     final channel = _rtClient.channel('matching_$userId');
 
-    void _handlePayload(PostgresChangePayload payload) {
+    void handlePayload(PostgresChangePayload payload) {
       final record = payload.newRecord;
-      print('SPEED_MATCH: matchmaking event=${payload.eventType} '
-          'table=${payload.table} record=$record');
-      if (record.isEmpty) return;
+      debugPrint('📡 [MATCHMAKING RT] Event received! type=${payload.eventType} table=${payload.table}');
+      debugPrint('📡 [MATCHMAKING RT] Record: id=${record['id']} p1=${record['player1_id']} p2=${record['player2_id']} status=${record['status']} game=${record['game_type']}');
+
+      if (record.isEmpty) {
+        debugPrint('❌ [MATCHMAKING RT] Record is EMPTY! This usually means the realtime payload only includes changed columns (not full record). Check Supabase Realtime settings → Full table replication must be enabled!');
+        return;
+      }
 
       final p1 = record['player1_id']?.toString();
       final p2 = record['player2_id']?.toString();
       final status = record['status']?.toString();
       final gameType = record['game_type']?.toString();
 
-      print('SPEED_MATCH: matchmaking check p1=$p1 p2=$p2 status=$status gameType=$gameType me=$userId');
+      debugPrint('🔍 [MATCHMAKING RT] Checking: p1=$p1 p2=$p2 status=$status gameType=$gameType me=$userId');
 
-      if ((p1 == userId || p2 == userId) && gameType == 'speed_match') {
-        // Accept 'matched', 'waiting' (with both players), or any status where
-        // both players are present
-        if (p1 != null && p2 != null) {
-          print('SPEED_MATCH: ✅ match found! duel_id=${record['id']}');
-          onMatch(record);
-        }
+      if (gameType != 'speed_match') {
+        debugPrint('⏭️ [MATCHMAKING RT] Skipping: gameType=$gameType is not speed_match');
+        return;
       }
+
+      if (p1 != userId && p2 != userId) {
+        debugPrint('⏭️ [MATCHMAKING RT] Skipping: neither p1 nor p2 matches me ($userId)');
+        return;
+      }
+
+      if (p1 == null || p2 == null) {
+        debugPrint('⏭️ [MATCHMAKING RT] Waiting: player2 not yet assigned (p2 is null). Waiting for next update...');
+        return;
+      }
+
+      debugPrint('✅ [MATCHMAKING RT] MATCH FOUND! duel_id=${record['id']} status=$status');
+      onMatch(record);
     }
 
     // Listen for INSERT events — when matchmaker creates a new duel
@@ -433,7 +502,7 @@ class SpeedMatchService {
       event: PostgresChangeEvent.insert,
       schema: 'public',
       table: 'duel_sessions',
-      callback: _handlePayload,
+      callback: handlePayload,
     );
 
     // Also listen for UPDATE events — when someone joins an existing duel
@@ -441,12 +510,17 @@ class SpeedMatchService {
       event: PostgresChangeEvent.update,
       schema: 'public',
       table: 'duel_sessions',
-      callback: _handlePayload,
+      callback: handlePayload,
     );
 
     channel.subscribe((status, [error]) {
-      print('SPEED_MATCH: matchmaking channel status=$status error=$error');
+      if (error != null) {
+        debugPrint('❌ [MATCHMAKING RT] Channel subscribe error: $error');
+      } else {
+        debugPrint('✅ [MATCHMAKING RT] Channel status: $status');
+      }
     });
+    debugPrint('✅ [MATCHMAKING RT] Channel registered (waiting for Supabase confirmation...)');
     return channel;
   }
 }

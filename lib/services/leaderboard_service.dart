@@ -34,8 +34,9 @@ class LeaderboardService {
         .eq('college_id', collegeId);
 
     if (branch != 'All') {
-      // Techmates branch names are sometimes uppercase or mixed, ilike makes it safer
-      query = query.ilike('branch', branch);
+      // Techmates branch names often contain full strings like "Computer Science & Engineering (CSE)"
+      // So we use wildcards to match the selected abbreviation.
+      query = query.ilike('branch', '%$branch%');
     }
     if (year != 0) {
       query = query.eq('year', year);

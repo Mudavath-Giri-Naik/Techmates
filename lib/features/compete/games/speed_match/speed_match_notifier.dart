@@ -100,6 +100,9 @@ class SpeedMatchNotifier extends ChangeNotifier {
   // ── Realtime ──
   RealtimeChannel? _realtimeChannel;
 
+  // ── Match Poll Timer (repeating while searching) ──
+  Timer? _matchPollTimer;
+
   // ── Error ──
   String? _error;
   String? get error => _error;
@@ -195,34 +198,107 @@ class SpeedMatchNotifier extends ChangeNotifier {
   Future<void> startAutoMatch() async {
     _setPhase(SpeedMatchPhase.searching);
     try {
-      print('SPEED_MATCH: starting auto match');
-      await _service.insertMatchmakingQueue(
-          _userLevel.currentLevel, 1000);
-      // Subscribe for matched duel
+      debugPrint('🚀 [DUEL AUTO-MATCH] Starting auto match for userId=$_userId level=${_userLevel.currentLevel}');
+
+      // STEP 1: Subscribe to realtime FIRST (catches matches created by the other player's trigger)
+      debugPrint('⏳ [DUEL AUTO-MATCH] Step 1: Subscribing to matchmaking realtime channel...');
       _realtimeChannel = _service.subscribeToMatchmaking(
         _userId!,
         (record) {
-          print('SPEED_MATCH: ✅ auto match found! record=$record');
+          debugPrint('✅ [DUEL AUTO-MATCH] Realtime match found! duel_id=${record['id']} status=${record['status']} p1=${record['player1_id']} p2=${record['player2_id']}');
+          if (_phase != SpeedMatchPhase.searching) {
+            debugPrint('🔄 [DUEL AUTO-MATCH] Already matched (instant path), ignoring realtime duplicate');
+            return;
+          }
           final id = record['id']?.toString();
           if (id == null) {
-            print('SPEED_MATCH: ❌ matched duel has no id');
+            debugPrint('❌ [DUEL AUTO-MATCH] ERROR: matched duel has no id field!');
             return;
           }
           _duelId = id;
           _duelSession = DuelSession.fromMap(record);
-          print('SPEED_MATCH: matched duel session status=${_duelSession!.status}');
+          debugPrint('✅ [DUEL AUTO-MATCH] DuelSession built: status=${_duelSession!.status} p1=${_duelSession!.player1Id} p2=${_duelSession!.player2Id}');
           _loadOpponentAndGoPreGame();
         },
       );
+      debugPrint('✅ [DUEL AUTO-MATCH] Step 1 done: realtime channel subscribed');
+
+      // STEP 2: Call the fast RPC — instantly returns a match if opponent already waiting
+      debugPrint('⏳ [DUEL AUTO-MATCH] Step 2: Calling find_or_create_match RPC...');
+      final instantMatch = await _service.findOrCreateMatch(_userLevel.currentLevel, 1000);
+
+      if (instantMatch != null) {
+        // ⚡ INSTANT MATCH — no realtime wait needed!
+        debugPrint('⚡ [DUEL AUTO-MATCH] Instant match! Navigating immediately...');
+        final id = instantMatch['duel_id']?.toString();
+        if (id == null) {
+          debugPrint('❌ [DUEL AUTO-MATCH] Instant match missing duel_id!');
+          return;
+        }
+        _duelId = id;
+        // Fetch full duel session for complete data
+        final duel = await _service.fetchDuelSession(id);
+        _duelSession = duel;
+        _loadOpponentAndGoPreGame();
+        return; // Done! No need for fallback poll
+      }
+
+      debugPrint('✅ [DUEL AUTO-MATCH] Step 2 done: queued. Waiting for opponent via realtime...');
+
+      // STEP 3: Repeating poll every 2s — catches opponents who join AFTER us
+      // (handles case where realtime event is missed or User B joins later)
+      debugPrint('⏳ [DUEL AUTO-MATCH] Step 3: Starting 2s repeating poll...');
+      _startMatchPollTimer();
+
     } catch (e) {
-      print('SPEED_MATCH: ❌ startAutoMatch error: $e');
-      _error = 'Failed to join queue';
+      debugPrint('❌ [DUEL AUTO-MATCH] FATAL ERROR in startAutoMatch: $e');
+      _error = 'Failed to join queue: $e';
       _setPhase(SpeedMatchPhase.modeSelect);
     }
   }
 
+  void _startMatchPollTimer() {
+    _matchPollTimer?.cancel();
+    _matchPollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (_phase != SpeedMatchPhase.searching || _userId == null) {
+        debugPrint('🔄 [DUEL POLL] Stopping poll (phase=$_phase)');
+        timer.cancel();
+        _matchPollTimer = null;
+        return;
+      }
+      debugPrint('🔍 [DUEL POLL] Tick: checking for a match...');
+      try {
+        final existing = await Supabase.instance.client
+            .from('duel_sessions')
+            .select()
+            .or('player1_id.eq.$_userId,player2_id.eq.$_userId')
+            .eq('game_type', 'speed_match')
+            .inFilter('status', ['waiting', 'matched'])
+            .not('player2_id', 'is', null)
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        if (existing != null && _phase == SpeedMatchPhase.searching) {
+          debugPrint('✅ [DUEL POLL] Match found! duel_id=${existing['id']} — navigating to pregame');
+          timer.cancel();
+          _matchPollTimer = null;
+          _duelId = existing['id']?.toString();
+          _duelSession = DuelSession.fromMap(existing);
+          _loadOpponentAndGoPreGame();
+        } else {
+          debugPrint('⏳ [DUEL POLL] No match yet, will retry in 2s...');
+        }
+      } catch (e) {
+        debugPrint('❌ [DUEL POLL] Poll error: $e');
+      }
+    });
+  }
+
   Future<void> cancelAutoMatch() async {
-    print('SPEED_MATCH: cancelling auto match');
+    debugPrint('🔄 [DUEL AUTO-MATCH] Cancelling auto match');
+    _matchPollTimer?.cancel();
+    _matchPollTimer = null;
     if (_userId != null) {
       await _service.cancelMatchmaking(_userId!, 'speed_match');
     }
@@ -287,15 +363,18 @@ class SpeedMatchNotifier extends ChangeNotifier {
   // ── Pre-Game: Ready ──
 
   Future<void> setReady() async {
-    if (_duelId == null) return;
-    print('SPEED_MATCH: setting ready for duelId=$_duelId');
+    if (_duelId == null) {
+      debugPrint('❌ [PREGAME] Cannot set ready: _duelId is null');
+      return;
+    }
+    debugPrint('⏳ [PREGAME] Setting ready for duelId=$_duelId...');
     try {
       await _service.setDuelReady(_duelId!);
       _myReady = true;
-      print('SPEED_MATCH: I am ready');
+      debugPrint('✅ [PREGAME] Successfully set myself as READY');
       notifyListeners();
     } catch (e) {
-      print('SPEED_MATCH: ❌ setReady error: $e');
+      debugPrint('❌ [PREGAME] setReady RPC error: $e');
     }
   }
 
@@ -443,20 +522,19 @@ class SpeedMatchNotifier extends ChangeNotifier {
   }
 
   void _handleDuelUpdate(Map<String, dynamic> record) {
-    print('SPEED_MATCH: realtime duel update'
-        ' status=${record['status']}'
-        ' p1_ready=${record['player1_ready']}'
-        ' p2_ready=${record['player2_ready']}'
-        ' p2_id=${record['player2_id']}'
-        ' duel_start_at=${record['duel_start_at']}'
-        ' phase=$_phase');
+    debugPrint('📡 [PREGAME RT] Realtime duel update received!');
+    debugPrint('   → status=${record['status']}');
+    debugPrint('   → p1_ready=${record['player1_ready']}');
+    debugPrint('   → p2_ready=${record['player2_ready']}');
+    debugPrint('   → duel_start_at=${record['duel_start_at']}');
+    debugPrint('   → current_phase=$_phase');
 
     _duelSession = DuelSession.fromMap(record);
     final duel = _duelSession!;
 
     // ── Duel cancelled by opponent ──
     if (duel.status == 'cancelled') {
-      print('SPEED_MATCH: ❌ duel was cancelled');
+      debugPrint('❌ [PREGAME] Duel was cancelled by opponent');
       _removeRealtimeChannel();
       _duelId = null;
       _duelSession = null;
@@ -473,7 +551,7 @@ class SpeedMatchNotifier extends ChangeNotifier {
     if (duel.player2Id != null &&
         duel.player2Id!.isNotEmpty &&
         _phase == SpeedMatchPhase.waiting) {
-      print('SPEED_MATCH: ✅ opponent joined! p2=${duel.player2Id}');
+      debugPrint('✅ [PREGAME] Opponent joined! p2=${duel.player2Id}');
       _loadOpponentAndGoPreGame();
       return;
     }
@@ -482,7 +560,7 @@ class SpeedMatchNotifier extends ChangeNotifier {
     final amP1 = _userId == duel.player1Id;
     _myReady = amP1 ? duel.player1Ready : duel.player2Ready;
     _opponentReady = amP1 ? duel.player2Ready : duel.player1Ready;
-    print('SPEED_MATCH: ready states myReady=$_myReady oppReady=$_opponentReady');
+    debugPrint('✅ [PREGAME] Ready states updated: myReady=$_myReady oppReady=$_opponentReady');
 
     // ── Live score during game ──
     if (_phase == SpeedMatchPhase.playing) {
@@ -493,14 +571,17 @@ class SpeedMatchNotifier extends ChangeNotifier {
     if (duel.duelStartAt != null && _phase == SpeedMatchPhase.preGame) {
       final gameSeed = duel.gameSeed;
       final playLevel = duel.playerLevel;
-      print('SPEED_MATCH: duel starting! seed=$gameSeed level=$playLevel');
+      debugPrint('🚀 [PREGAME] duel_start_at is SET -> $gameSeed! Transitioning to countdown! 🎮');
       _engine = SpeedMatchEngine(level: playLevel, gameSeed: gameSeed);
       _setPhase(SpeedMatchPhase.countdown);
       return;
     }
 
     if (duel.isBothReady && duel.duelStartAt == null && _phase == SpeedMatchPhase.preGame) {
-      print('SPEED_MATCH: both ready, waiting for duel_start_at...');
+      debugPrint('⚠️ [PREGAME] BOTH players are ready (true), BUT duel_start_at is still NULL!');
+      debugPrint('⚠️ [PREGAME] This means the database trigger/function failed to set the start time.');
+    } else if (!duel.isBothReady && duel.duelStartAt == null && _phase == SpeedMatchPhase.preGame) {
+       debugPrint('⏳ [PREGAME] Waiting for the other player to click ready...');
     }
 
     notifyListeners();
@@ -575,6 +656,8 @@ class SpeedMatchNotifier extends ChangeNotifier {
   }
 
   void _removeRealtimeChannel() {
+    _matchPollTimer?.cancel();
+    _matchPollTimer = null;
     if (_realtimeChannel != null) {
       print('SPEED_MATCH: removing realtime channel');
       SupabaseClientManager.realtimeInstance.removeChannel(_realtimeChannel!);

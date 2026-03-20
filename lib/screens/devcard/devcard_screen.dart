@@ -22,7 +22,7 @@ class DevCardScreen extends StatefulWidget {
 
 class _DevCardScreenState extends State<DevCardScreen> {
   DevCardModel? _devCard;
-  bool _isLoading = false;
+  bool _isLoading = true; // Start true so we wait for profile load
   bool _isRefreshing = false;
   String? _error;
   String? _githubUrl;
@@ -59,12 +59,22 @@ class _DevCardScreenState extends State<DevCardScreen> {
   // ─── Data loading ─────────────────────────────────────────────
 
   Future<void> _loadProfile() async {
+    debugPrint('🚀 [DEVCARD] Initializing DevCard Screen for $_targetUserId');
     try {
+      debugPrint('⏳ [DEVCARD] Fetching row from "profiles" table...');
       final rows = await Supabase.instance.client
           .from('profiles')
           .select()
           .eq('id', _targetUserId)
-          .limit(1);
+          .limit(1)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Profile select query timed out (10s)');
+            },
+          );
+      debugPrint('✅ [DEVCARD] Received ${rows.length} rows from profiles');
+
       if (rows.isNotEmpty && mounted) {
         final p = rows.first as Map<String, dynamic>;
         setState(() {
@@ -72,14 +82,26 @@ class _DevCardScreenState extends State<DevCardScreen> {
           _userName = p['name'] as String?;
           _userCollege = p['college'] as String?;
           _userBranch = p['branch'] as String?;
-          _userYear = p['year'] as String?;
+          _userYear = p['year']?.toString();
         });
+        debugPrint('✅ [DEVCARD] Parsed github_url: $_githubUrl');
+
         if (_githubUrl != null && _githubUrl!.isNotEmpty) {
+          debugPrint('🚀 [DEVCARD] Proceeding to _loadDevCard()');
           _loadDevCard();
+        } else {
+          debugPrint(
+            '❌ [DEVCARD] No Github URL found in profile. Stopping load.',
+          );
+          if (mounted) setState(() => _isLoading = false);
         }
+      } else {
+        debugPrint('❌ [DEVCARD] Empty rows from profiles for $_targetUserId');
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      debugPrint('Profile load error: $e');
+      debugPrint('❌ [DEVCARD ERROR] Profile load error: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -92,16 +114,23 @@ class _DevCardScreenState extends State<DevCardScreen> {
     });
     _cycleLoadingMessages();
     try {
-      DevCardModel? card;
-      if (_isOwnCard) {
-        card = await DevCardService.getDevCard(_targetUserId, _githubUrl!);
-      } else {
-        card = await DevCardService.getOtherUserDevCard(_targetUserId);
-      }
+      debugPrint('⏳ [DEVCARD] Starting getDevCard call for $_targetUserId');
+      final card = await DevCardService.getDevCard(_targetUserId, _githubUrl!)
+          .timeout(
+            const Duration(seconds: 25),
+            onTimeout: () {
+              throw Exception(
+                'DevCardService.getDevCard took too long (25s timeout)',
+              );
+            },
+          );
+      debugPrint('✅ [DEVCARD]  _devCard fetched successfully!');
       if (mounted) setState(() => _devCard = card);
     } catch (e) {
+      debugPrint('❌ [DEVCARD FATAL ERROR]: $e');
       if (mounted) setState(() => _error = e.toString());
     } finally {
+      debugPrint('🔄 [DEVCARD] Finally block: turning off shimmer loading');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -110,7 +139,9 @@ class _DevCardScreenState extends State<DevCardScreen> {
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 2));
       if (!mounted || !_isLoading) return false;
-      setState(() => _loadingStep = (_loadingStep + 1) % _loadingMessages.length);
+      setState(
+        () => _loadingStep = (_loadingStep + 1) % _loadingMessages.length,
+      );
       return true;
     });
   }
@@ -123,22 +154,27 @@ class _DevCardScreenState extends State<DevCardScreen> {
     });
     try {
       final username = GitHubService.extractUsername(_githubUrl!);
-      final card =
-          await DevCardService.refreshDevCard(_targetUserId, username);
+      final card = await DevCardService.refreshDevCard(_targetUserId, username);
       if (mounted) {
         setState(() => _devCard = card);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
             content: Text('Dev Card refreshed'),
             duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating));
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text('Refresh failed: $e'),
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFFF43F5E)));
+            backgroundColor: const Color(0xFFF43F5E),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isRefreshing = false);
@@ -154,26 +190,29 @@ class _DevCardScreenState extends State<DevCardScreen> {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       await WidgetsBinding.instance.endOfFrame;
 
-      final boundary = _repaintKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final boundary =
+          _repaintKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
       if (boundary == null) return;
 
       final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) return;
 
       final bytes = byteData.buffer.asUint8List();
-      final fileName = 'techmates_devcard_${_devCard?.githubUsername ?? 'user'}.png';
-      await Share.shareXFiles(
-        [XFile.fromData(bytes, name: fileName, mimeType: 'image/png')],
-        text: 'Check out my DevCard on Techmates!',
-      );
+      final fileName =
+          'techmates_devcard_${_devCard?.githubUsername ?? 'user'}.png';
+      await Share.shareXFiles([
+        XFile.fromData(bytes, name: fileName, mimeType: 'image/png'),
+      ], text: 'Check out my DevCard on Techmates!');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text('Share failed: $e'),
-            behavior: SnackBarBehavior.floating));
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -197,31 +236,32 @@ class _DevCardScreenState extends State<DevCardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor:
-            _isDark ? const Color(0xFF141E2F) : Colors.white,
+        backgroundColor: _isDark ? const Color(0xFF141E2F) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Add GitHub',
-            style: TextStyle(
-                color: _isDark
-                    ? const Color(0xFFEDF2FF)
-                    : const Color(0xFF1A1A2E))),
+        title: Text(
+          'Add GitHub',
+          style: TextStyle(
+            color: _isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E),
+          ),
+        ),
         content: TextField(
           controller: controller,
           style: TextStyle(
-              color: _isDark
-                  ? const Color(0xFFEDF2FF)
-                  : const Color(0xFF1A1A2E)),
+            color: _isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E),
+          ),
           decoration: InputDecoration(
             hintText: 'github.com/username',
             hintStyle: TextStyle(
-                color: _isDark
-                    ? const Color(0xFF6B7FA0)
-                    : const Color(0xFF6B7280)),
+              color: _isDark
+                  ? const Color(0xFF6B7FA0)
+                  : const Color(0xFF6B7280),
+            ),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                  color: _isDark
-                      ? const Color(0xFF1E2D42)
-                      : const Color(0xFFE5E7EB)),
+                color: _isDark
+                    ? const Color(0xFF1E2D42)
+                    : const Color(0xFFE5E7EB),
+              ),
               borderRadius: BorderRadius.circular(8),
             ),
             focusedBorder: OutlineInputBorder(
@@ -233,11 +273,14 @@ class _DevCardScreenState extends State<DevCardScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
-                style: TextStyle(
-                    color: _isDark
-                        ? const Color(0xFF6B7FA0)
-                        : const Color(0xFF6B7280))),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: _isDark
+                    ? const Color(0xFF6B7FA0)
+                    : const Color(0xFF6B7280),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -247,14 +290,18 @@ class _DevCardScreenState extends State<DevCardScreen> {
               try {
                 await Supabase.instance.client
                     .from('profiles')
-                    .update({'github_url': url}).eq('id', _targetUserId);
+                    .update({'github_url': url})
+                    .eq('id', _targetUserId);
                 setState(() => _githubUrl = url);
                 _loadDevCard();
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
                       content: Text('Error: $e'),
-                      behavior: SnackBarBehavior.floating));
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 }
               }
             },
@@ -262,7 +309,8 @@ class _DevCardScreenState extends State<DevCardScreen> {
               backgroundColor: const Color(0xFF00D4FF),
               foregroundColor: const Color(0xFF0D1120),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Save'),
           ),
@@ -287,11 +335,14 @@ class _DevCardScreenState extends State<DevCardScreen> {
         backgroundColor: appBarBg,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Text('DevCard',
-            style: TextStyle(
-                color: text1,
-                fontWeight: FontWeight.w700,
-                fontSize: 18)),
+        title: Text(
+          'DevCard',
+          style: TextStyle(
+            color: text1,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: false,
         iconTheme: IconThemeData(color: text1),
         actions: [
@@ -299,8 +350,9 @@ class _DevCardScreenState extends State<DevCardScreen> {
           IconButton(
             onPressed: () => setState(() => _isDark = !_isDark),
             icon: Icon(
-                _isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                size: 20),
+              _isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              size: 20,
+            ),
             color: text2,
             tooltip: _isDark ? 'Preview Light DevCard' : 'Preview Dark DevCard',
           ),
@@ -310,10 +362,13 @@ class _DevCardScreenState extends State<DevCardScreen> {
               const Padding(
                 padding: EdgeInsets.all(12),
                 child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Color(0xFF00D4FF))),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF00D4FF),
+                  ),
+                ),
               )
             else
               IconButton(
@@ -354,17 +409,22 @@ class _DevCardScreenState extends State<DevCardScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: const Color(0xFF00D4FF))),
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: const Color(0xFF00D4FF),
+                  ),
+                ),
                 const SizedBox(width: 10),
-                Text(_loadingMessages[_loadingStep],
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                        fontFamily: 'monospace')),
+                Text(
+                  _loadingMessages[_loadingStep],
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
+                ),
               ],
             ),
           ),
@@ -416,35 +476,49 @@ class _DevCardScreenState extends State<DevCardScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.code_rounded,
-                size: 64,
-                color: theme.colorScheme.outlineVariant),
+            Icon(
+              Icons.code_rounded,
+              size: 64,
+              color: theme.colorScheme.outlineVariant,
+            ),
             const SizedBox(height: 16),
-            Text('Connect your GitHub',
-                style: TextStyle(
-                    color: text1,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              _isOwnCard ? 'Connect your GitHub' : 'No GitHub Connected',
+              style: TextStyle(
+                color: text1,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
-              'Connect your GitHub to generate your DevCard',
+              _isOwnCard
+                  ? 'Connect your GitHub to generate your DevCard'
+                  : 'This student hasn\'t connected their GitHub account yet.',
               textAlign: TextAlign.center,
               style: TextStyle(color: text2, fontSize: 14),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _showGitHubDialog,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00D4FF),
-                foregroundColor: const Color(0xFF0D1120),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+            if (_isOwnCard) ...[
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _showGitHubDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D4FF),
+                  foregroundColor: const Color(0xFF0D1120),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Add GitHub',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
-              child: const Text('Add GitHub',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
+            ],
           ],
         ),
       ),
@@ -462,25 +536,34 @@ class _DevCardScreenState extends State<DevCardScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 48, color: Color(0xFFF43F5E)),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: Color(0xFFF43F5E),
+            ),
             const SizedBox(height: 12),
-            Text('Failed to load Dev Card',
-                style: TextStyle(
-                    color: text1,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              'Failed to load Dev Card',
+              style: TextStyle(
+                color: text1,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text(_error ?? 'Unknown error',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: text2, fontSize: 13)),
+            Text(
+              _error ?? 'Unknown error',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: text2, fontSize: 13),
+            ),
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: _loadDevCard,
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Retry'),
-              style:
-                  TextButton.styleFrom(foregroundColor: const Color(0xFF00D4FF)),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF00D4FF),
+              ),
             ),
           ],
         ),
@@ -498,10 +581,14 @@ class _ReportSheet extends StatelessWidget {
   const _ReportSheet({required this.devCard, required this.isDark});
 
   Color get _bg => isDark ? const Color(0xFF0D1120) : Colors.white;
-  Color get _surface => isDark ? const Color(0xFF141E2F) : const Color(0xFFF9FAFB);
-  Color get _text1 => isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
-  Color get _text2 => isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
-  Color get _border => isDark ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
+  Color get _surface =>
+      isDark ? const Color(0xFF141E2F) : const Color(0xFFF9FAFB);
+  Color get _text1 =>
+      isDark ? const Color(0xFFEDF2FF) : const Color(0xFF1A1A2E);
+  Color get _text2 =>
+      isDark ? const Color(0xFF6B7FA0) : const Color(0xFF6B7280);
+  Color get _border =>
+      isDark ? const Color(0xFF1E2D42) : const Color(0xFFE5E7EB);
 
   Color _parseHex(String hex) {
     final cleaned = hex.replaceAll('#', '');
@@ -535,7 +622,9 @@ class _ReportSheet extends StatelessWidget {
                 width: 32,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: _border, borderRadius: BorderRadius.circular(2)),
+                  color: _border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             // Title
@@ -543,24 +632,32 @@ class _ReportSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  Text('Full Report',
-                      style: TextStyle(
-                          color: _text1,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700)),
+                  Text(
+                    'Full Report',
+                    style: TextStyle(
+                      color: _text1,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const Spacer(),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: rankColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('${sb.rankEmoji} ${sb.rank} · ${sb.total}/1000',
-                        style: TextStyle(
-                            color: rankColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      '${sb.rankEmoji} ${sb.rank} · ${sb.total}/1000',
+                      style: TextStyle(
+                        color: rankColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -634,16 +731,22 @@ class _ReportSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(sb.topProjectName,
-                                    style: TextStyle(
-                                        color: _text1,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600)),
-                                Text('Score: ${sb.topProjectScore}/100',
-                                    style: TextStyle(
-                                        color: _text2,
-                                        fontSize: 11,
-                                        fontFamily: 'monospace')),
+                                Text(
+                                  sb.topProjectName,
+                                  style: TextStyle(
+                                    color: _text1,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  'Score: ${sb.topProjectScore}/100',
+                                  style: TextStyle(
+                                    color: _text2,
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -683,20 +786,28 @@ class _ReportSheet extends StatelessWidget {
                       children: devCard.personalityTags.map((tag) {
                         return Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00D4FF)
-                                .withValues(alpha: isDark ? 0.12 : 0.08),
+                            color: const Color(
+                              0xFF00D4FF,
+                            ).withValues(alpha: isDark ? 0.12 : 0.08),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: const Color(0xFF00D4FF)
-                                    .withValues(alpha: 0.3)),
+                              color: const Color(
+                                0xFF00D4FF,
+                              ).withValues(alpha: 0.3),
+                            ),
                           ),
-                          child: Text(tag,
-                              style: const TextStyle(
-                                  color: Color(0xFF00D4FF),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600)),
+                          child: Text(
+                            tag,
+                            style: const TextStyle(
+                              color: Color(0xFF00D4FF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         );
                       }).toList(),
                     ),
@@ -713,17 +824,26 @@ class _ReportSheet extends StatelessWidget {
   }
 
   Widget _sectionTitle(String text) {
-    return Text(text,
-        style: TextStyle(
-            color: _text2,
-            fontSize: 10,
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.5));
+    return Text(
+      text,
+      style: TextStyle(
+        color: _text2,
+        fontSize: 10,
+        fontFamily: 'monospace',
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.5,
+      ),
+    );
   }
 
-  Widget _scoreCard(String label, int value, Color color, String reason,
-      String tip, String emoji) {
+  Widget _scoreCard(
+    String label,
+    int value,
+    Color color,
+    String reason,
+    String tip,
+    String emoji,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -735,41 +855,53 @@ class _ReportSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Text(emoji, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 8),
-            Text(label,
+          Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Text(
+                label,
                 style: TextStyle(
-                    color: _text1,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-                borderRadius: BorderRadius.circular(12),
+                  color: _text1,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              child: Text('$value / 100',
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$value / 100',
                   style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'monospace')),
-            ),
-          ]),
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
           // Progress bar
           Container(
             height: 4,
             decoration: BoxDecoration(
-                color: _border, borderRadius: BorderRadius.circular(2)),
+              color: _border,
+              borderRadius: BorderRadius.circular(2),
+            ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: (value / 100).clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
-                    color: color, borderRadius: BorderRadius.circular(2)),
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
           ),
@@ -780,8 +912,11 @@ class _ReportSheet extends StatelessWidget {
               children: [
                 Text('📊 ', style: TextStyle(fontSize: 10)),
                 Expanded(
-                    child: Text(reason,
-                        style: TextStyle(color: _text2, fontSize: 11))),
+                  child: Text(
+                    reason,
+                    style: TextStyle(color: _text2, fontSize: 11),
+                  ),
+                ),
               ],
             ),
           ],
@@ -792,9 +927,14 @@ class _ReportSheet extends StatelessWidget {
               children: [
                 Text('💡 ', style: TextStyle(fontSize: 10)),
                 Expanded(
-                    child: Text(tip,
-                        style: TextStyle(
-                            color: const Color(0xFF22C55E), fontSize: 11))),
+                  child: Text(
+                    tip,
+                    style: TextStyle(
+                      color: const Color(0xFF22C55E),
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
@@ -811,7 +951,10 @@ class _ReportSheet extends StatelessWidget {
       ('PRs', '${devCard.totalPRs}'),
       ('Current Streak', '${devCard.currentStreak}d'),
       ('Best Streak', '${devCard.longestStreak}d'),
-      ('Active Days', '${(devCard.activeDaysPercentage * 100).toStringAsFixed(0)}%'),
+      (
+        'Active Days',
+        '${(devCard.activeDaysPercentage * 100).toStringAsFixed(0)}%',
+      ),
       ('Issues', '${devCard.totalIssues}'),
     ];
     return Wrap(
@@ -819,7 +962,12 @@ class _ReportSheet extends StatelessWidget {
       runSpacing: 6,
       children: items.map((item) {
         return Container(
-          width: (MediaQueryData.fromView(WidgetsBinding.instance.platformDispatcher.views.first).size.width - 50) / 2,
+          width:
+              (MediaQueryData.fromView(
+                    WidgetsBinding.instance.platformDispatcher.views.first,
+                  ).size.width -
+                  50) /
+              2,
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
           decoration: BoxDecoration(
             color: _surface,
@@ -829,14 +977,22 @@ class _ReportSheet extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(item.$1,
-                  style: TextStyle(
-                      color: _text2, fontSize: 10, fontFamily: 'monospace')),
-              Text(item.$2,
-                  style: TextStyle(
-                      color: _text1,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
+              Text(
+                item.$1,
+                style: TextStyle(
+                  color: _text2,
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              Text(
+                item.$2,
+                style: TextStyle(
+                  color: _text1,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         );
@@ -848,8 +1004,8 @@ class _ReportSheet extends StatelessWidget {
     final badgeColor = ps.finalScore >= 80
         ? const Color(0xFF22C55E)
         : ps.finalScore >= 60
-            ? const Color(0xFFF59E0B)
-            : const Color(0xFFF43F5E);
+        ? const Color(0xFFF59E0B)
+        : const Color(0xFFF43F5E);
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.all(10),
@@ -861,52 +1017,71 @@ class _ReportSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Text('#${index + 1}',
+          Row(
+            children: [
+              Text(
+                '#${index + 1}',
                 style: TextStyle(
-                    color: _text2,
-                    fontSize: 10,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(width: 6),
-            Expanded(
-                child: Text(ps.projectName,
-                    style: TextStyle(
-                        color: _text1,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600))),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: isDark ? 0.2 : 0.1),
-                  borderRadius: BorderRadius.circular(4)),
-              child: Text('${ps.finalScore.round()}/100',
+                  color: _text2,
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  ps.projectName,
                   style: TextStyle(
-                      color: badgeColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'monospace')),
-            ),
-          ]),
+                    color: _text1,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${ps.finalScore.round()}/100',
+                  style: TextStyle(
+                    color: badgeColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
-          Row(children: [
-            _miniStat('Commit', ps.commitScore),
-            _miniStat('README', ps.readmeScore),
-            _miniStat('Tech', ps.techScore),
-            if (ps.timelineMultiplier != 1.0)
-              _miniStat('×${ps.timelineMultiplier.toStringAsFixed(1)}', null),
-          ]),
+          Row(
+            children: [
+              _miniStat('Commit', ps.commitScore),
+              _miniStat('README', ps.readmeScore),
+              _miniStat('Tech', ps.techScore),
+              if (ps.timelineMultiplier != 1.0)
+                _miniStat('×${ps.timelineMultiplier.toStringAsFixed(1)}', null),
+            ],
+          ),
           const SizedBox(height: 4),
           Container(
             height: 3,
             decoration: BoxDecoration(
-                color: _border, borderRadius: BorderRadius.circular(2)),
+              color: _border,
+              borderRadius: BorderRadius.circular(2),
+            ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: (ps.finalScore / 100).clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
-                    color: badgeColor, borderRadius: BorderRadius.circular(2)),
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
           ),
@@ -921,16 +1096,24 @@ class _ReportSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: _text2, fontSize: 8, fontFamily: 'monospace')),
+          Text(
+            label,
+            style: TextStyle(
+              color: _text2,
+              fontSize: 8,
+              fontFamily: 'monospace',
+            ),
+          ),
           if (value != null)
-            Text('$value',
-                style: TextStyle(
-                    color: _text1,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'monospace')),
+            Text(
+              '$value',
+              style: TextStyle(
+                color: _text1,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'monospace',
+              ),
+            ),
         ],
       ),
     );
@@ -940,36 +1123,48 @@ class _ReportSheet extends StatelessWidget {
     final color = _parseHex(l.color);
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Row(children: [
-        Container(
+      child: Row(
+        children: [
+          Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        SizedBox(
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
             width: 80,
-            child: Text(l.name,
-                style: TextStyle(color: _text1, fontSize: 11))),
-        Expanded(
-          child: Container(
-            height: 4,
-            decoration: BoxDecoration(
-                color: _border, borderRadius: BorderRadius.circular(2)),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: l.percentage.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                    color: color, borderRadius: BorderRadius.circular(2)),
+            child: Text(l.name, style: TextStyle(color: _text1, fontSize: 11)),
+          ),
+          Expanded(
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: _border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: l.percentage.clamp(0.0, 1.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text('${(l.percentage * 100).toStringAsFixed(0)}%',
+          const SizedBox(width: 8),
+          Text(
+            '${(l.percentage * 100).toStringAsFixed(0)}%',
             style: TextStyle(
-                color: _text2, fontSize: 10, fontFamily: 'monospace')),
-      ]),
+              color: _text2,
+              fontSize: 10,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
